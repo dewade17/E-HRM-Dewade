@@ -38,6 +38,88 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                //fetchAgenda
+                Text(
+                  ' Agenda',
+                  style: GoogleFonts.poppins(
+                    textStyle: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textDefaultColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  // value: _selectedAgenda,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    hintText: 'Pilih status',
+                    hintStyle: GoogleFonts.poppins(
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: AppColors.backgroundColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: AppColors.primaryColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: AppColors.menuColor,
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  items: _statusOptions
+                      .map(
+                        (s) => DropdownMenuItem<String>(
+                          value: s,
+                          child: Text(
+                            s,
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() => _selectedStatus = val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 30),
+          SizedBox(
+            width: 360,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
                   ' Deskripsi Pekerjaan',
                   style: GoogleFonts.poppins(

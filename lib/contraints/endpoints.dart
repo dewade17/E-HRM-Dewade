@@ -23,13 +23,16 @@ class Endpoints {
   //get-approvers
   static const String getApprovers = "$baseURL/admin/approvers";
 
+  //get-agendakerja
+  static const String agendaKerja = "$baseURL/mobile/agenda-kerja";
+  static const String agendaKerjaCrud = "$baseURL/agenda-kerja";
+  static String agendaKerjaUser(String userId) => "$agendaKerja/user/$userId";
+  static String agendaKerjaDetail(String id) => "$agendaKerjaCrud/$id";
+
   //get-agenda
   static const String agenda = "$baseURL/mobile/agenda";
   //detail-agenda
   static String agendaDetail(String id) => "$agenda/$id";
-
-  //get-agendakerja
-  static String agendaKerja = "$baseURL/mobile/agenda-kerja";
 
   //post-enrollface
   static const String faceEnroll = "$faceBaseURL/api/face/enroll";

@@ -224,7 +224,7 @@ Map<String, dynamic> _ensureMap(dynamic value) {
   return <String, dynamic>{};
 }
 
-String? _asString(dynamic value) => value == null ? null : value.toString();
+String? _asString(dynamic value) => value?.toString();
 
 int? _asInt(dynamic value) {
   if (value == null) return null;

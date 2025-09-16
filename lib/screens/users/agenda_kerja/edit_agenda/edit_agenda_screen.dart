@@ -7,8 +7,9 @@ import 'package:e_hrm/screens/users/agenda_kerja/edit_agenda/widget/header_edit_
 import 'package:flutter/material.dart';
 
 class EditAgendaScreen extends StatefulWidget {
-  const EditAgendaScreen({super.key});
+  const EditAgendaScreen({super.key, required this.agendaKerjaId});
 
+  final String agendaKerjaId;
   @override
   State<EditAgendaScreen> createState() => _EditAgendaScreenState();
 }
@@ -71,7 +72,9 @@ class _EditAgendaScreenState extends State<EditAgendaScreen> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: FormAgendaEdit(),
+                          child: FormAgendaEdit(
+                            agendaKerjaId: widget.agendaKerjaId,
+                          ),
                         ),
                       ],
                     ),
@@ -80,7 +83,7 @@ class _EditAgendaScreenState extends State<EditAgendaScreen> {
               ),
             ),
           ),
-          Positioned(top: 30, left: 10, child: HeaderEditAgenda()),
+          const Positioned(top: 30, left: 10, child: HeaderEditAgenda()),
         ],
       ),
     );

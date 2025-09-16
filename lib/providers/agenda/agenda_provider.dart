@@ -11,7 +11,7 @@ class AgendaProvider extends ChangeNotifier {
   bool loading = false;
   String? error;
 
-  List<Data> items = <Data>[];
+  List<AgendaItem> items = <AgendaItem>[];
   Meta? meta;
 
   int page = 1;
@@ -36,9 +36,10 @@ class AgendaProvider extends ChangeNotifier {
   }) async {
     final trimmedSearch = (search ?? query).trim();
 
-    var requestedPage =
-        page ?? (append ? ((meta?.page ?? this.page) + 1) : this.page);
-    if (requestedPage < 1) requestedPage = 1;
+    var requestedPage = page ?? this.page;
+    if (requestedPage < 1) {
+      requestedPage = 1;
+    }
 
     var requestedPerPage = perPage ?? this.perPage;
     if (requestedPerPage < 1) {
@@ -67,25 +68,24 @@ class AgendaProvider extends ChangeNotifier {
       final res = await _api.fetchDataPrivate(uri.toString());
 
       final rawItems = res['data'];
-      final List<Data> mapped = rawItems is List
-          ? rawItems.map<Data>((dynamic e) => _parseAgendaItem(e)).toList()
-          : <Data>[];
+      final List<AgendaItem> mapped = rawItems is List
+          ? rawItems
+                .map<AgendaItem>((dynamic e) => _parseAgendaItem(e))
+                .toList()
+          : <AgendaItem>[];
 
       Meta? metaValue;
       final metaRaw = res['meta'];
-      if (metaRaw is Map<String, dynamic>) {
-        metaValue = Meta.fromJson(metaRaw);
-      } else if (metaRaw is Map) {
-        metaValue = Meta.fromJson(Map<String, dynamic>.from(metaRaw));
+      if (metaRaw != null) {
+        metaValue = _parseMeta(metaRaw);
       }
 
       if (append) {
-        // Gunakan idAgendaKerja sebagai kunci unik
-        final combined = <String, Data>{
-          for (final item in items) item.idAgendaKerja: item,
+        final combined = <String, AgendaItem>{
+          for (final item in items) item.idAgenda: item,
         };
         for (final item in mapped) {
-          combined[item.idAgendaKerja] = item;
+          combined[item.idAgenda] = item;
         }
         items = combined.values.toList();
       } else {
@@ -133,7 +133,7 @@ class AgendaProvider extends ChangeNotifier {
   void reset() {
     loading = false;
     error = null;
-    items = <Data>[];
+    items = <AgendaItem>[];
     meta = null;
     page = 1;
     perPage = 20;
@@ -141,14 +141,21 @@ class AgendaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Data _parseAgendaItem(dynamic raw) {
-    if (raw is Data) return raw;
+  AgendaItem _parseAgendaItem(dynamic raw) {
+    if (raw is AgendaItem) return raw;
     if (raw is Map<String, dynamic>) {
-      return Data.fromJson(raw);
+      return AgendaItem.fromJson(raw);
     }
     if (raw is Map) {
-      return Data.fromJson(Map<String, dynamic>.from(raw));
+      return AgendaItem.fromJson(Map<String, dynamic>.from(raw));
     }
     throw Exception('Bentuk data agenda tidak dikenali');
+  }
+
+  Meta? _parseMeta(dynamic raw) {
+    if (raw is Meta) return raw;
+    if (raw is Map<String, dynamic>) return Meta.fromJson(raw);
+    if (raw is Map) return Meta.fromJson(Map<String, dynamic>.from(raw));
+    return null;
   }
 }

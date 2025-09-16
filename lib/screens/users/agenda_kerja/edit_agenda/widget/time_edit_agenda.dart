@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 class TimeEditAgenda extends StatefulWidget {
-  const TimeEditAgenda({super.key, this.onChanged});
+  const TimeEditAgenda({
+    super.key,
+    this.onChanged,
+    this.initialStart,
+    this.initialEnd,
+  });
 
   final void Function(TimeOfDay? jamMulai, TimeOfDay? jamSelesai)? onChanged;
+  final TimeOfDay? initialStart;
+  final TimeOfDay? initialEnd;
 
   @override
   State<TimeEditAgenda> createState() => _TimeEditAgendaState();
@@ -15,6 +22,32 @@ class _TimeEditAgendaState extends State<TimeEditAgenda> {
 
   late final TextEditingController _startC = TextEditingController();
   late final TextEditingController _endC = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _setInitialValues(widget.initialStart, widget.initialEnd);
+  }
+
+  @override
+  void didUpdateWidget(TimeEditAgenda oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialStart != widget.initialStart ||
+        oldWidget.initialEnd != widget.initialEnd) {
+      _setInitialValues(widget.initialStart, widget.initialEnd);
+    }
+  }
+
+  void _setInitialValues(TimeOfDay? start, TimeOfDay? end) {
+    _start = start;
+    _end = end;
+    _startC.text = _fmt(_start);
+    _endC.text = _fmt(_end);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onChanged?.call(_start, _end);
+    });
+  }
 
   @override
   void dispose() {
@@ -32,7 +65,6 @@ class _TimeEditAgendaState extends State<TimeEditAgenda> {
       initialTime: init,
       helpText: isStart ? 'Pilih Jam Mulai' : 'Pilih Jam Selesai',
       builder: (ctx, child) {
-        // Paksa 24 jam (umum di ID)
         return MediaQuery(
           data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
           child: child!,
@@ -57,7 +89,7 @@ class _TimeEditAgendaState extends State<TimeEditAgenda> {
   String _fmt(TimeOfDay? t) {
     if (t == null) return '';
     final l = MaterialLocalizations.of(context);
-    return l.formatTimeOfDay(t, alwaysUse24HourFormat: true); // contoh: 08.30
+    return l.formatTimeOfDay(t, alwaysUse24HourFormat: true);
   }
 
   InputDecoration _decoration(String label) => InputDecoration(
@@ -70,7 +102,7 @@ class _TimeEditAgendaState extends State<TimeEditAgenda> {
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Color(0xFFCBD5E1)), // abu tipis
+      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),

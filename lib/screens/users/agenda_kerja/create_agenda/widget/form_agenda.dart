@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';

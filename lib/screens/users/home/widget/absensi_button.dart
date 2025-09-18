@@ -9,10 +9,10 @@ import 'package:e_hrm/screens/users/absensi/absensi_checkin/absensi_checkin_scre
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/absensi_checkout_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:e_hrm/utils/id_user_resolver.dart';
 
 /// Widget berdikari untuk tombol Absensi:
-/// - ambil userId (AuthProvider -> SharedPreferences)
+/// - ambil userId via helper `resolveUserId`
 /// - fetch status absensi hari ini
 /// - handle tap (navigate ke checkin/checkout)
 /// - auto refresh saat app kembali ke foreground (resumed)
@@ -49,20 +49,14 @@ class _AbsensiButtonState extends State<AbsensiButton>
   }
 
   Future<void> _bootstrap() async {
-    // 1) Ambil dari AuthProvider
+    // Ambil ID user memanfaatkan helper terpusat
     final auth = context.read<AuthProvider>();
-    String? id = auth.currentUser?.idUser;
-
-    // 2) Fallback ke SharedPreferences
-    if (id == null) {
-      final prefs = await SharedPreferences.getInstance();
-      id = prefs.getString('id_user');
-    }
+    final id = await resolveUserId(auth, context: context);
 
     if (!mounted) return;
     setState(() => _userId = id);
 
-    // 3) Tarik status absensi hari ini
+    // Tarik status absensi hari ini
     if (id != null) {
       await context.read<AbsensiProvider>().fetchTodayStatus(id);
     }

@@ -1,12 +1,17 @@
 // screens/users/absensi/absensi_checkin/widget/content_absensi_checkin.dart
 
+import 'dart:ui' as ui;
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/location/location.dart' as dto_loc;
+import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/agenda_absensi_checkin.dart';
+import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/catatan_absensi_checkin.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/recipient_absensi_checkin.dart';
 import 'package:e_hrm/screens/users/absensi/widget/geofence_map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dotted_border/dotted_border.dart';
 
 class ContentAbsensiCheckin extends StatefulWidget {
   final String userId;
@@ -25,16 +30,19 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
 
   @override
   Widget build(BuildContext context) {
+    final textStyle = GoogleFonts.poppins(
+      textStyle: const TextStyle(fontSize: 13.5),
+    );
+
     return Column(
       children: [
-        // PENTING: beri tinggi finite agar flutter_map tidak menerima constraints tak terbatas
+        // Beri tinggi finite agar flutter_map tidak error
         SizedBox(
           height: 280,
           child: GeofenceMap(
             onStatus: (inside, distanceM, nearest) async {
               if (!mounted) return;
 
-              // Normalisasi: buang NaN/Infinity dari sumber manapun
               final double? safeDistance =
                   (distanceM != null && distanceM.isFinite) ? distanceM : null;
 
@@ -44,21 +52,17 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
                 _nearest = nearest;
               });
 
-              // Simpan posisi GPS terakhir (aman gagal)
               try {
                 final p = await Geolocator.getCurrentPosition(
                   desiredAccuracy: LocationAccuracy.high,
                 );
                 if (mounted) setState(() => _position = p);
-              } catch (_) {
-                // Biarkan null; proses submit bisa memvalidasi lagi.
-              }
+              } catch (_) {}
             },
           ),
         ),
         const SizedBox(height: 12),
 
-        // Info jarak & status geofence
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -74,186 +78,36 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
                     : '${_nearest!.namaKantor} • '
                           '${_inside ? "Di dalam radius" : "Di luar radius"}'
                           '${_distanceM != null ? " • ${_distanceM!.toStringAsFixed(1)} m" : ""}',
+                style: textStyle,
               ),
             ),
           ],
         ),
-        RecipientAbsensiCheckin(),
+        const SizedBox(height: 8),
+        const RecipientAbsensiCheckin(),
         const SizedBox(height: 16),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              left: BorderSide(
-                color: AppColors.primaryColor,
-                width: 5, // lebih tebal di kiri
-              ),
-              top: BorderSide(color: AppColors.primaryColor, width: 1),
-              right: BorderSide(color: AppColors.primaryColor, width: 1),
-              bottom: BorderSide(color: AppColors.primaryColor, width: 1),
-            ),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Kolom utama konten
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Rail kiri (jam mulai, titik vertikal, jam selesai)
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Jam mulai
-                      Container(
-                        width: 78,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: AppColors.textDefaultColor),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "09:00",
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // Titik-titik vertikal (ikon)
-                      const Icon(Icons.more_vert, size: 22),
-                      const SizedBox(height: 10),
-                      // Jam selesai
-                      Container(
-                        width: 78,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: AppColors.textDefaultColor),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "11:00",
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+
+        AgendaAbsensiCheckin(),
+        CatatanAbsensiCheckin(),
+        SizedBox(height: 20),
+        GestureDetector(
+          child: Card(
+            color: AppColors.primaryColor,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 70),
+              child: Text(
+                "Verifikasi Wajah",
+                style: GoogleFonts.poppins(
+                  textStyle: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textColor,
                   ),
-
-                  const SizedBox(width: 12),
-
-                  // Konten kanan (status, judul, tanggal)
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Chip status "Diproses" + chevron
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xfff6f6f6),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "Diproses",
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Judul
-                        Text(
-                          "Membuat Design Project Mobile E-HRM OSS Bali",
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // Tanggal
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_month_outlined, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              "02 September 2025",
-                              style: GoogleFonts.poppins(
-                                textStyle: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              // Tombol aksi di kanan (hapus & edit)
-              Positioned(
-                right: -30,
-                top: 25,
-                child: Column(
-                  children: [
-                    // Hapus
-                    Material(
-                      color: const Color(0xffffe1e8),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () {},
-                        child: const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Icon(Icons.delete_outline, size: 20),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10), // Edit
-                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
-        SizedBox(height: 10),
       ],
     );
   }

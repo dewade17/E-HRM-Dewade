@@ -1,6 +1,7 @@
 import 'package:e_hrm/contraints/endpoints.dart';
 import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart';
 import 'package:e_hrm/services/api_services.dart';
+import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/foundation.dart';
 
 class AgendaKerjaProvider extends ChangeNotifier {
@@ -64,6 +65,24 @@ class AgendaKerjaProvider extends ChangeNotifier {
   String? get currentAbsensiId => _absensiId;
   DateTime? get currentDate => _date;
   bool get isOffsetPaging => _isOffsetPaging;
+
+  Future<String?> _ensureUserId(String? userId) async {
+    final trimmed = userId?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) {
+      return trimmed;
+    }
+    if (_userId != null && _userId!.isNotEmpty) {
+      return _userId;
+    }
+
+    final stored = await loadUserIdFromPrefs();
+    if (stored != null && stored.isNotEmpty) {
+      _userId = stored;
+      return stored;
+    }
+
+    return null;
+  }
 
   void _setLoading(bool value) {
     if (loading == value) return;

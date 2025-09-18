@@ -4,6 +4,7 @@ import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/create_agenda/create_agenda_screen.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/edit_agenda/edit_agenda_screen.dart';
+import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -21,7 +22,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
   final DateFormat _shortDateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
   final DateFormat _timeFormatter = DateFormat('HH:mm');
 
-  String _selectedStatus = _statusOptions.first.value;
+  String _selectedStatus = _statusOptions.last.value; // default Diproses
   String? _deletingId;
 
   @override
@@ -35,7 +36,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
   Future<void> _fetchAgenda({DateTime? date}) async {
     final auth = context.read<AuthProvider>();
     final provider = context.read<AgendaKerjaProvider>();
-    final userId = auth.currentUser?.idUser;
+    final userId = await resolveUserId(auth, context: context);
     if (userId == null || userId.isEmpty) {
       return;
     }
@@ -43,7 +44,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
     await provider.fetchAgendaKerja(
       userId: userId,
       date: targetDate,
-      status: _selectedStatus.isEmpty ? null : _selectedStatus,
+      status: _selectedStatus,
       append: false,
     );
   }
@@ -566,7 +567,6 @@ class _StatusOption {
 }
 
 const List<_StatusOption> _statusOptions = <_StatusOption>[
-  _StatusOption(value: '', label: 'Semua status'),
   _StatusOption(value: 'ditunda', label: 'Ditunda'),
   _StatusOption(value: 'selesai', label: 'Selesai'),
   _StatusOption(value: 'diproses', label: 'Diproses'),

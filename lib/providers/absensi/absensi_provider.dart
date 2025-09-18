@@ -7,6 +7,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:e_hrm/dto/absensi/absensi_status.dart';
+import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart';
 import 'package:e_hrm/services/api_services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -18,9 +19,9 @@ import 'package:e_hrm/contraints/endpoints.dart';
 class AbsensiProvider extends ChangeNotifier {
   bool saving = false;
   String? error;
-  Absensi? result;
+  AbsensiChekin? result;
   final ApiService _api = ApiService();
-  AbsensiStatusDto? todayStatus;
+  AbsensiStatus? todayStatus;
   bool loadingStatus = false;
 
   void _setSaving(bool v) {
@@ -189,9 +190,9 @@ class AbsensiProvider extends ChangeNotifier {
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final Map<String, dynamic> jsonMap =
             jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-        result = Absensi.fromJson(jsonMap);
+        result = Absensi.fromJson(jsonMap) as AbsensiChekin?;
         notifyListeners();
-        return result;
+        // return result;
       } else if (resp.statusCode == 401) {
         await prefs.remove('token');
         throw Exception('Unauthorized. Silakan login ulang.');
@@ -211,14 +212,14 @@ class AbsensiProvider extends ChangeNotifier {
     }
   }
 
-  Future<AbsensiStatusDto?> fetchTodayStatus(String userId) async {
+  Future<AbsensiStatus?> fetchTodayStatus(String userId) async {
     loadingStatus = true;
     notifyListeners();
     try {
       final res = await _api.fetchDataPrivate(
         '${Endpoints.absensiStatus}?user_id=$userId',
       );
-      final dto = AbsensiStatusDto.fromJson(Map<String, dynamic>.from(res));
+      final dto = AbsensiStatus.fromJson(Map<String, dynamic>.from(res));
       todayStatus = dto;
       return dto;
     } catch (e) {

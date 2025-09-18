@@ -1,5 +1,15 @@
-class Absensi {
-  int distanceMeters;
+import 'dart:convert';
+
+AbsensiChekin absensiChekinFromJson(String str) =>
+    AbsensiChekin.fromJson(json.decode(str));
+
+String absensiChekinToJson(AbsensiChekin data) => json.encode(data.toJson());
+
+class AbsensiChekin {
+  int? agendasLinked;
+  int? agendasSkipped;
+  List<Catatan> catatan;
+  double distanceMeters;
   bool match;
   String metric;
   String mode;
@@ -7,10 +17,12 @@ class Absensi {
   int recipientsAdded;
   double score;
   double threshold;
-  int todosCreated;
   String userId;
 
-  Absensi({
+  AbsensiChekin({
+    this.agendasLinked,
+    this.agendasSkipped,
+    required this.catatan,
     required this.distanceMeters,
     required this.match,
     required this.metric,
@@ -19,12 +31,16 @@ class Absensi {
     required this.recipientsAdded,
     required this.score,
     required this.threshold,
-    required this.todosCreated,
     required this.userId,
   });
 
-  factory Absensi.fromJson(Map<String, dynamic> json) => Absensi(
-    distanceMeters: json["distanceMeters"],
+  factory AbsensiChekin.fromJson(Map<String, dynamic> json) => AbsensiChekin(
+    agendasLinked: json["agendasLinked"],
+    agendasSkipped: json["agendasSkipped"],
+    catatan: List<Catatan>.from(
+      json["catatan"].map((x) => Catatan.fromJson(x)),
+    ),
+    distanceMeters: json["distanceMeters"].toDouble(),
     match: json["match"],
     metric: json["metric"],
     mode: json["mode"],
@@ -32,11 +48,13 @@ class Absensi {
     recipientsAdded: json["recipientsAdded"],
     score: json["score"].toDouble(),
     threshold: json["threshold"].toDouble(),
-    todosCreated: json["todosCreated"],
     userId: json["user_id"],
   );
 
   Map<String, dynamic> toJson() => {
+    "agendasLinked": agendasLinked,
+    "agendasSkipped": agendasSkipped,
+    "catatan": List<dynamic>.from(catatan.map((x) => x.toJson())),
     "distanceMeters": distanceMeters,
     "match": match,
     "metric": metric,
@@ -45,7 +63,26 @@ class Absensi {
     "recipientsAdded": recipientsAdded,
     "score": score,
     "threshold": threshold,
-    "todosCreated": todosCreated,
     "user_id": userId,
+  };
+}
+
+class Catatan {
+  String? deskripsiCatatan;
+  String? idCatatan;
+  dynamic lampiranUrl;
+
+  Catatan({this.deskripsiCatatan, this.idCatatan, this.lampiranUrl});
+
+  factory Catatan.fromJson(Map<String, dynamic> json) => Catatan(
+    deskripsiCatatan: json["deskripsi_catatan"],
+    idCatatan: json["id_catatan"],
+    lampiranUrl: json["lampiran_url"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "deskripsi_catatan": deskripsiCatatan,
+    "id_catatan": idCatatan,
+    "lampiran_url": lampiranUrl,
   };
 }

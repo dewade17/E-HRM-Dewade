@@ -2,6 +2,7 @@ import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart' show Data;
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
+import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -40,7 +41,7 @@ class _CalendarAgendaKerjaState extends State<CalendarAgendaKerja> {
   Future<void> _loadForDate(DateTime date) async {
     final auth = context.read<AuthProvider>();
     final provider = context.read<AgendaKerjaProvider>();
-    final userId = auth.currentUser?.idUser;
+    final userId = await resolveUserId(auth, context: context);
     if (userId == null || userId.isEmpty) return;
 
     final normalized = _stripTime(date);

@@ -5,7 +5,6 @@ import 'dart:math' as math;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/content_absensi_checkin.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/header_absensi_checkin.dart';
-import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/recipient_absensi_checkin.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -130,6 +129,7 @@ class _AbsensiCheckinScreenState extends State<AbsensiCheckinScreen> {
                           const HeaderAbsensiCheckin(),
                           const SizedBox(height: 30),
                           ContentAbsensiCheckin(userId: _userId!),
+                          
                         ],
                       ),
                     ),

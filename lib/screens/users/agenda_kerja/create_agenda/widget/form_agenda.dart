@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FormAgenda extends StatefulWidget {
   const FormAgenda({super.key});
@@ -74,9 +75,14 @@ class _FormAgendaState extends State<FormAgenda> {
     }
 
     final auth = context.read<AuthProvider>();
-    final userId = auth.currentUser?.idUser;
+    final userId = await _ensureUserId(auth);
+    if (!mounted) return;
+
     if (userId == null || userId.isEmpty) {
-      _showSnackBar('ID pengguna tidak ditemukan. Silakan login ulang.', true);
+      _showSnackBar(
+        'ID pengguna tidak ditem  ukan. Silakan login ulang.',
+        true,
+      );
       return;
     }
 
@@ -102,6 +108,31 @@ class _FormAgendaState extends State<FormAgenda> {
     } else {
       _showSnackBar(errorMessage, true);
     }
+  }
+
+  Future<String?> _ensureUserId(AuthProvider auth) async {
+    final current = auth.currentUser?.idUser;
+    if (current != null && current.isNotEmpty) {
+      return current;
+    }
+
+    await auth.tryRestoreSession(context);
+    final restored = auth.currentUser?.idUser;
+    if (restored != null && restored.isNotEmpty) {
+      return restored;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getString('id_user');
+      if (stored != null && stored.isNotEmpty) {
+        return stored;
+      }
+    } catch (_) {
+      // Ignore shared preferences errors and let the caller handle null.
+    }
+
+    return null;
   }
 
   void _showSnackBar(String message, bool isError) {

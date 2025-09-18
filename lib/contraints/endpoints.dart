@@ -25,11 +25,11 @@ class Endpoints {
 
   //get-agendakerja
   static const String agendaKerja = "$baseURL/mobile/agenda-kerja";
-  static const String agendaKerjaCrud = "$baseURL/agenda-kerja";
+  static const String agendaKerjaCrud = "$baseURL/mobile/agenda-kerja";
   static String agendaKerjaUser(String userId) => "$agendaKerja/user/$userId";
   static String agendaKerjaDetail(String id) => "$agendaKerjaCrud/$id";
 
-   //agenda (admin)
+  //agenda (admin)
   static const String agenda = "$baseURL/mobile/agenda";
   //detail-agenda
   static String agendaDetail(String id) => "$agenda/$id";

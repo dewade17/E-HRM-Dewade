@@ -22,17 +22,22 @@ class GeofenceMap extends StatefulWidget {
   /// Radius default kalau null di data
   final double radiusFallback;
 
-  const GeofenceMap({super.key, this.onStatus, this.radiusFallback = 100});
+  /// Opsional: tinggi fallback ketika parent memberi constraints tidak jelas
+  final double fallbackHeight;
+
+  const GeofenceMap({
+    super.key,
+    this.onStatus,
+    this.radiusFallback = 100,
+    this.fallbackHeight = 260,
+  });
 
   @override
   State<GeofenceMap> createState() => _GeofenceMapState();
 }
 
 class _GeofenceMapState extends State<GeofenceMap> {
-  static const LatLng _fallbackCenter = LatLng(
-    -8.409518,
-    115.188919,
-  ); // Denpasar
+  static const LatLng _fallbackCenter = LatLng(-8.409518, 115.188919); //Bali
   final MapController _map = MapController();
 
   Position? _pos;
@@ -57,7 +62,7 @@ class _GeofenceMapState extends State<GeofenceMap> {
   }
 
   Future<void> _ensureLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +176,9 @@ class _GeofenceMapState extends State<GeofenceMap> {
     for (final e in items) {
       final lat = double.tryParse(e.latitude) ?? 0.0;
       final lng = double.tryParse(e.longitude) ?? 0.0;
-      if (lat != 0.0 || lng != 0.0) points.add(LatLng(lat, lng));
+      if (!lat.isNaN && !lng.isNaN && (lat != 0.0 || lng != 0.0)) {
+        points.add(LatLng(lat, lng));
+      }
     }
     if (points.isEmpty) return;
 
@@ -251,9 +258,15 @@ class _GeofenceMapState extends State<GeofenceMap> {
       );
     }
 
-    return Stack(
-      children: [
-        ClipRRect(
+    // Hardening: pastikan map selalu punya tinggi finite
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasFiniteHeight =
+            constraints.hasBoundedHeight &&
+            constraints.maxHeight.isFinite &&
+            constraints.maxHeight > 0;
+
+        final mapWidget = ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: FlutterMap(
             mapController: _map,
@@ -264,42 +277,48 @@ class _GeofenceMapState extends State<GeofenceMap> {
             ),
             children: [
               TileLayer(
-                urlTemplate:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // tanpa {s} userAgentPackageName: 'com.example.e_hrm',// samakan dg applicationId
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 keepBuffer: 2,
+                // Penting untuk OSM policy (isi sesuai applicationId Android-mu)
+                userAgentPackageName: 'com.example.e_hrm',
               ),
               if (polygons.isNotEmpty) PolygonLayer(polygons: polygons),
               if (markers.isNotEmpty) MarkerLayer(markers: markers),
-              // const RichAttributionWidget(
-              //   attributions: [
-              //     TextSourceAttribution('© OpenStreetMap contributors'),
-              //   ],
-              // ),
             ],
           ),
-        ),
+        );
 
-        // Tombol "Mark my location"
-        Positioned(
-          right: 8,
-          bottom: 8,
-          child: Column(
-            children: [
-              FloatingActionButton.small(
-                heroTag: 'markMe',
-                onPressed: _ensureLocation,
-                child: const Icon(Icons.my_location),
+        final stacked = Stack(
+          children: [
+            mapWidget,
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: Column(
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'markMe',
+                    onPressed: _ensureLocation,
+                    child: const Icon(Icons.my_location),
+                  ),
+                  const SizedBox(height: 8),
+                  FloatingActionButton.small(
+                    heroTag: 'fitAll',
+                    onPressed: _fitAll,
+                    child: const Icon(Icons.fit_screen),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              FloatingActionButton.small(
-                heroTag: 'fitAll',
-                onPressed: _fitAll,
-                child: const Icon(Icons.fit_screen),
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+
+        if (hasFiniteHeight) {
+          return stacked; // parent sudah memberi tinggi yang jelas
+        }
+        // Jika parent belum kasih tinggi, kita kasih default agar tidak NaN/Infinity
+        return SizedBox(height: widget.fallbackHeight, child: stacked);
+      },
     );
   }
 }

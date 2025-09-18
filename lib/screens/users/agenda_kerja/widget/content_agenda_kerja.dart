@@ -21,7 +21,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
   final DateFormat _shortDateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
   final DateFormat _timeFormatter = DateFormat('HH:mm');
 
-  String _selectedStatus = _statusOptions.last.value; // default Diproses
+  String _selectedStatus = _statusOptions.first.value;
   String? _deletingId;
 
   @override
@@ -43,7 +43,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
     await provider.fetchAgendaKerja(
       userId: userId,
       date: targetDate,
-      status: _selectedStatus,
+      status: _selectedStatus.isEmpty ? null : _selectedStatus,
       append: false,
     );
   }
@@ -566,6 +566,7 @@ class _StatusOption {
 }
 
 const List<_StatusOption> _statusOptions = <_StatusOption>[
+  _StatusOption(value: '', label: 'Semua status'),
   _StatusOption(value: 'ditunda', label: 'Ditunda'),
   _StatusOption(value: 'selesai', label: 'Selesai'),
   _StatusOption(value: 'diproses', label: 'Diproses'),

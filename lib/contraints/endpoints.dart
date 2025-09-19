@@ -34,6 +34,9 @@ class Endpoints {
   //detail-agenda
   static String agendaDetail(String id) => "$agenda/$id";
 
+  //shift kerja
+  static const String shiftKerjaRealtime = "$baseURL/shift-kerja/realtime";
+
   //post-enrollface
   static const String faceEnroll = "$faceBaseURL/api/face/enroll";
 

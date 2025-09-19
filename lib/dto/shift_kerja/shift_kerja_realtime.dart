@@ -1,55 +1,43 @@
-// To parse this JSON data, do
-//
-//     final shiftKerjaRealTime = shiftKerjaRealTimeFromJson(jsonString);
-
 import 'dart:convert';
 
-ShiftKerjaRealTime shiftKerjaRealTimeFromJson(String str) =>
-    ShiftKerjaRealTime.fromJson(json.decode(str));
+ShiftKerjaRealTime shiftKerjaRealTimeFromJson(String source) =>
+    ShiftKerjaRealTime.fromJson(json.decode(source));
 
 String shiftKerjaRealTimeToJson(ShiftKerjaRealTime data) =>
     json.encode(data.toJson());
 
 class ShiftKerjaRealTime {
-  DateTime date;
-  int total;
-  List<Data> data;
-
   ShiftKerjaRealTime({
     required this.date,
     required this.total,
     required this.data,
   });
 
-  factory ShiftKerjaRealTime.fromJson(Map<String, dynamic> json) =>
-      ShiftKerjaRealTime(
-        date: DateTime.parse(json["date"]),
-        total: json["total"],
-        data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
-      );
+  final DateTime date;
+  final int total;
+  final List<Data> data;
 
-  Map<String, dynamic> toJson() => {
-    "date":
-        "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}",
-    "total": total,
-    "data": List<dynamic>.from(data.map((x) => x.toJson())),
+  factory ShiftKerjaRealTime.fromJson(Map<String, dynamic> json) {
+    final parsedDate = _parseDateTime(json['date']);
+    if (parsedDate == null) {
+      throw const FormatException('Tanggal respons shift kerja tidak valid.');
+    }
+
+    return ShiftKerjaRealTime(
+      date: parsedDate,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      data: _parseDataList(json['data']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'date': _formatDateOnly(date),
+    'total': total,
+    'data': data.map((Data e) => e.toJson()).toList(),
   };
 }
 
 class Data {
-  String idShiftKerja;
-  String idUser;
-  DateTime tanggalMulai;
-  DateTime tanggalSelesai;
-  String hariKerja;
-  String status;
-  String idPolaKerja;
-  DateTime createdAt;
-  DateTime updatedAt;
-  dynamic deletedAt;
-  User user;
-  PolaKerja polaKerja;
-
   Data({
     required this.idShiftKerja,
     required this.idUser,
@@ -65,46 +53,51 @@ class Data {
     required this.polaKerja,
   });
 
+  final String idShiftKerja;
+  final String idUser;
+  final DateTime? tanggalMulai;
+  final DateTime? tanggalSelesai;
+  final List<String>? hariKerja;
+  final String status;
+  final String? idPolaKerja;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final User? user;
+  final PolaKerja? polaKerja;
+
   factory Data.fromJson(Map<String, dynamic> json) => Data(
-    idShiftKerja: json["id_shift_kerja"],
-    idUser: json["id_user"],
-    tanggalMulai: DateTime.parse(json["tanggal_mulai"]),
-    tanggalSelesai: DateTime.parse(json["tanggal_selesai"]),
-    hariKerja: json["hari_kerja"],
-    status: json["status"],
-    idPolaKerja: json["id_pola_kerja"],
-    createdAt: DateTime.parse(json["created_at"]),
-    updatedAt: DateTime.parse(json["updated_at"]),
-    deletedAt: json["deleted_at"],
-    user: User.fromJson(json["user"]),
-    polaKerja: PolaKerja.fromJson(json["polaKerja"]),
+    idShiftKerja: _string(json['id_shift_kerja']),
+    idUser: _string(json['id_user']),
+    tanggalMulai: _parseDateTime(json['tanggal_mulai']),
+    tanggalSelesai: _parseDateTime(json['tanggal_selesai']),
+    hariKerja: _parseHariKerja(json['hari_kerja']),
+    status: _string(json['status']),
+    idPolaKerja: _stringOrNull(json['id_pola_kerja']),
+    createdAt: _parseDateTime(json['created_at']),
+    updatedAt: _parseDateTime(json['updated_at']),
+    deletedAt: _parseDateTime(json['deleted_at']),
+    user: _parseUser(json['user']),
+    polaKerja: _parsePolaKerja(json['polaKerja']),
   );
 
-  Map<String, dynamic> toJson() => {
-    "id_shift_kerja": idShiftKerja,
-    "id_user": idUser,
-    "tanggal_mulai": tanggalMulai.toIso8601String(),
-    "tanggal_selesai": tanggalSelesai.toIso8601String(),
-    "hari_kerja": hariKerja,
-    "status": status,
-    "id_pola_kerja": idPolaKerja,
-    "created_at": createdAt.toIso8601String(),
-    "updated_at": updatedAt.toIso8601String(),
-    "deleted_at": deletedAt,
-    "user": user.toJson(),
-    "polaKerja": polaKerja.toJson(),
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id_shift_kerja': idShiftKerja,
+    'id_user': idUser,
+    'tanggal_mulai': tanggalMulai?.toIso8601String(),
+    'tanggal_selesai': tanggalSelesai?.toIso8601String(),
+    'hari_kerja': hariKerja?.toList(),
+    'status': status,
+    'id_pola_kerja': idPolaKerja,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+    'deleted_at': deletedAt?.toIso8601String(),
+    'user': user?.toJson(),
+    'polaKerja': polaKerja?.toJson(),
   };
 }
 
 class PolaKerja {
-  String idPolaKerja;
-  String namaPolaKerja;
-  DateTime jamMulai;
-  DateTime jamSelesai;
-  DateTime jamIstirahatMulai;
-  DateTime jamIstirahatSelesai;
-  int maksJamIstirahat;
-
   PolaKerja({
     required this.idPolaKerja,
     required this.namaPolaKerja,
@@ -115,43 +108,129 @@ class PolaKerja {
     required this.maksJamIstirahat,
   });
 
+  final String idPolaKerja;
+  final String namaPolaKerja;
+  final String? jamMulai;
+  final String? jamSelesai;
+  final String? jamIstirahatMulai;
+  final String? jamIstirahatSelesai;
+  final int? maksJamIstirahat;
+
   factory PolaKerja.fromJson(Map<String, dynamic> json) => PolaKerja(
-    idPolaKerja: json["id_pola_kerja"],
-    namaPolaKerja: json["nama_pola_kerja"],
-    jamMulai: DateTime.parse(json["jam_mulai"]),
-    jamSelesai: DateTime.parse(json["jam_selesai"]),
-    jamIstirahatMulai: DateTime.parse(json["jam_istirahat_mulai"]),
-    jamIstirahatSelesai: DateTime.parse(json["jam_istirahat_selesai"]),
-    maksJamIstirahat: json["maks_jam_istirahat"],
+    idPolaKerja: _string(json['id_pola_kerja']),
+    namaPolaKerja: _string(json['nama_pola_kerja']),
+    jamMulai: _stringOrNull(json['jam_mulai']),
+    jamSelesai: _stringOrNull(json['jam_selesai']),
+    jamIstirahatMulai: _stringOrNull(json['jam_istirahat_mulai']),
+    jamIstirahatSelesai: _stringOrNull(json['jam_istirahat_selesai']),
+    maksJamIstirahat: _parseInt(json['maks_jam_istirahat']),
   );
 
-  Map<String, dynamic> toJson() => {
-    "id_pola_kerja": idPolaKerja,
-    "nama_pola_kerja": namaPolaKerja,
-    "jam_mulai": jamMulai.toIso8601String(),
-    "jam_selesai": jamSelesai.toIso8601String(),
-    "jam_istirahat_mulai": jamIstirahatMulai.toIso8601String(),
-    "jam_istirahat_selesai": jamIstirahatSelesai.toIso8601String(),
-    "maks_jam_istirahat": maksJamIstirahat,
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id_pola_kerja': idPolaKerja,
+    'nama_pola_kerja': namaPolaKerja,
+    'jam_mulai': jamMulai,
+    'jam_selesai': jamSelesai,
+    'jam_istirahat_mulai': jamIstirahatMulai,
+    'jam_istirahat_selesai': jamIstirahatSelesai,
+    'maks_jam_istirahat': maksJamIstirahat,
   };
 }
 
 class User {
-  String idUser;
-  String namaPengguna;
-  String email;
-
   User({required this.idUser, required this.namaPengguna, required this.email});
 
+  final String idUser;
+  final String namaPengguna;
+  final String? email;
+
   factory User.fromJson(Map<String, dynamic> json) => User(
-    idUser: json["id_user"],
-    namaPengguna: json["nama_pengguna"],
-    email: json["email"],
+    idUser: _string(json['id_user']),
+    namaPengguna: _string(json['nama_pengguna']),
+    email: _stringOrNull(json['email']),
   );
 
-  Map<String, dynamic> toJson() => {
-    "id_user": idUser,
-    "nama_pengguna": namaPengguna,
-    "email": email,
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id_user': idUser,
+    'nama_pengguna': namaPengguna,
+    'email': email,
   };
+}
+
+List<Data> _parseDataList(dynamic raw) {
+  if (raw is List) {
+    final List<Data> parsed = <Data>[];
+    for (final dynamic item in raw) {
+      if (item is Data) {
+        parsed.add(item);
+      } else if (item is Map<String, dynamic>) {
+        parsed.add(Data.fromJson(item));
+      } else if (item is Map) {
+        parsed.add(Data.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+    return parsed;
+  }
+  return const <Data>[];
+}
+
+User? _parseUser(dynamic raw) {
+  if (raw is User) return raw;
+  if (raw is Map<String, dynamic>) return User.fromJson(raw);
+  if (raw is Map) return User.fromJson(Map<String, dynamic>.from(raw));
+  return null;
+}
+
+PolaKerja? _parsePolaKerja(dynamic raw) {
+  if (raw is PolaKerja) return raw;
+  if (raw is Map<String, dynamic>) return PolaKerja.fromJson(raw);
+  if (raw is Map) return PolaKerja.fromJson(Map<String, dynamic>.from(raw));
+  return null;
+}
+
+List<String>? _parseHariKerja(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is List) {
+    return raw.map((dynamic e) => e.toString()).toList();
+  }
+  if (raw is String) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    return trimmed.split(',').map((String e) => e.trim()).toList();
+  }
+  return null;
+}
+
+DateTime? _parseDateTime(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is DateTime) return raw;
+  final value = raw.toString().trim();
+  if (value.isEmpty) return null;
+  return DateTime.tryParse(value);
+}
+
+int? _parseInt(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is int) return raw;
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw.toString());
+}
+
+String _string(dynamic raw, [String fallback = '']) {
+  if (raw == null) return fallback;
+  final value = raw.toString();
+  return value.isEmpty ? fallback : value;
+}
+
+String? _stringOrNull(dynamic raw) {
+  if (raw == null) return null;
+  final value = raw.toString().trim();
+  return value.isEmpty ? null : value;
+}
+
+String _formatDateOnly(DateTime value) {
+  final year = value.year.toString().padLeft(4, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
 }

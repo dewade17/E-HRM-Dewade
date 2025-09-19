@@ -85,7 +85,7 @@ class HomeScreenContent extends StatelessWidget {
             ),
             SizedBox(height: 15),
             HomeContent(),
-            SizedBox(height: 40),
+            SizedBox(height: 20),
 
             // >>> Absensi tombol sekarang terpisah, cukup panggil widget-nya:
             AbsensiButton(),

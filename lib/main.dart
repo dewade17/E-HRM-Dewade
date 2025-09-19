@@ -1,3 +1,4 @@
+import 'package:e_hrm/dto/approvers/approvers_absensi.dart';
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
@@ -47,7 +48,6 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AgendaKerjaProvider()),
         ChangeNotifierProvider(create: (_) => FaceEnrollProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => AbsensiProvider()),
-        ChangeNotifierProvider(create: (_) => ApproversAbsensiProvider()),
         ChangeNotifierProvider(create: (_) => AgendaProvider()),
       ],
       child: MaterialApp(

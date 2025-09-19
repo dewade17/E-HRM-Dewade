@@ -3,6 +3,7 @@ import 'package:e_hrm/dto/location/location.dart' as dto_loc;
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/agenda_absensi_checkout.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/catatan_absensi_checkout.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/recipient_absensi_checkout.dart';
+import 'package:e_hrm/screens/users/absensi/take_face_absensi/take_face_absensi_screen.dart';
 import 'package:e_hrm/screens/users/absensi/widget/geofence_map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -30,6 +31,103 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
 
     return Column(
       children: [
+        SizedBox(
+          height: 80, // Anda bisa sesuaikan tinggi ini
+          child: Row(
+            // Agar semua konten berada di tengah secara vertikal
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                "11",
+                style: GoogleFonts.poppins(
+                  textStyle: TextStyle(
+                    fontSize: 60,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDefaultColor,
+                  ),
+                ),
+              ),
+              SizedBox(width: 5),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center, // Agar center
+                children: [
+                  Text(
+                    "Senin",
+                    style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textDefaultColor,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    "September 2025",
+                    style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textDefaultColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // SEKARANG VERTICAL DIVIDER AKAN TERLIHAT
+              const VerticalDivider(
+                width: 25,
+                thickness: 2, // Saya ubah agar lebih terlihat
+                color: AppColors.primaryColor,
+                indent: 10, // Memberi jarak dari atas
+                endIndent: 10, // Memberi jarak dari bawah
+              ),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center, // Agar center
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        "08:00", // Contoh jam
+                        style: GoogleFonts.poppins(
+                          textStyle: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textDefaultColor,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.more_horiz_outlined),
+                      Text(
+                        "08:00", // Contoh jam
+                        style: GoogleFonts.poppins(
+                          textStyle: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textDefaultColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    "Piket", // nama_pola_kerja
+                    style: GoogleFonts.poppins(
+                      textStyle: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textDefaultColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
         // Beri tinggi finite agar flutter_map tidak error
         SizedBox(
           height: 280,
@@ -85,6 +183,12 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
         CatatanAbsensiCheckout(),
         SizedBox(height: 20),
         GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TakeFaceAbsensiScreen()),
+            );
+          },
           child: Card(
             color: AppColors.primaryColor,
             child: Padding(

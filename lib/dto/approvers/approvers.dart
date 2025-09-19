@@ -1,20 +1,28 @@
-//dto/approvers/approvers.dart
-class Approvers {
+import 'dart:convert';
+
+ApproversAbsensi approversAbsensiFromJson(String str) =>
+    ApproversAbsensi.fromJson(json.decode(str));
+
+String approversAbsensiToJson(ApproversAbsensi data) =>
+    json.encode(data.toJson());
+
+class ApproversAbsensi {
   List<User> users;
   Pagination pagination;
   Filters filters;
 
-  Approvers({
+  ApproversAbsensi({
     required this.users,
     required this.pagination,
     required this.filters,
   });
 
-  factory Approvers.fromJson(Map<String, dynamic> json) => Approvers(
-    users: List<User>.from(json["users"].map((x) => User.fromJson(x))),
-    pagination: Pagination.fromJson(json["pagination"]),
-    filters: Filters.fromJson(json["filters"]),
-  );
+  factory ApproversAbsensi.fromJson(Map<String, dynamic> json) =>
+      ApproversAbsensi(
+        users: List<User>.from(json["users"].map((x) => User.fromJson(x))),
+        pagination: Pagination.fromJson(json["pagination"]),
+        filters: Filters.fromJson(json["filters"]),
+      );
 
   Map<String, dynamic> toJson() => {
     "users": List<dynamic>.from(users.map((x) => x.toJson())),

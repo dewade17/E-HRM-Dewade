@@ -6,28 +6,28 @@ AbsensiChekout absensiChekoutFromJson(String str) =>
 String absensiChekoutToJson(AbsensiChekout data) => json.encode(data.toJson());
 
 class AbsensiChekout {
-  List<dynamic> agendas;
-  int agendasLinked;
-  int agendasSkipped;
-  List<Catatan> catatan;
-  double distanceMeters;
-  DateTime jamPulang;
-  bool match;
-  String metric;
-  String mode;
-  bool ok;
-  int recipientsAdded;
-  double score;
-  double threshold;
-  String userId;
+  final List<Map<String, dynamic>> agendas;
+  final int? agendasLinked;
+  final int? agendasSkipped;
+  final List<Catatan> catatan;
+  final double? distanceMeters;
+  final DateTime? jamPulang;
+  final bool match;
+  final String metric;
+  final String mode;
+  final bool ok;
+  final int recipientsAdded;
+  final double score;
+  final double threshold;
+  final String userId;
 
   AbsensiChekout({
     required this.agendas,
-    required this.agendasLinked,
-    required this.agendasSkipped,
+    this.agendasLinked,
+    this.agendasSkipped,
     required this.catatan,
-    required this.distanceMeters,
-    required this.jamPulang,
+    this.distanceMeters,
+    this.jamPulang,
     required this.match,
     required this.metric,
     required this.mode,
@@ -38,41 +38,74 @@ class AbsensiChekout {
     required this.userId,
   });
 
-  factory AbsensiChekout.fromJson(Map<String, dynamic> json) => AbsensiChekout(
-    agendas: List<dynamic>.from(json["agendas"].map((x) => x)),
-    agendasLinked: json["agendasLinked"],
-    agendasSkipped: json["agendasSkipped"],
-    catatan: List<Catatan>.from(
-      json["catatan"].map((x) => Catatan.fromJson(x)),
-    ),
-    distanceMeters: json["distanceMeters"].toDouble(),
-    jamPulang: DateTime.parse(json["jam_pulang"]),
-    match: json["match"],
-    metric: json["metric"],
-    mode: json["mode"],
-    ok: json["ok"],
-    recipientsAdded: json["recipientsAdded"],
-    score: json["score"].toDouble(),
-    threshold: json["threshold"].toDouble(),
-    userId: json["user_id"],
-  );
+  factory AbsensiChekout.fromJson(Map<String, dynamic> json) {
+    final agendasList =
+        (json["agendas"] as List?)
+            ?.map<Map<String, dynamic>>(
+              (dynamic item) => Map<String, dynamic>.from(item as Map),
+            )
+            .toList() ??
+        const <Map<String, dynamic>>[];
+    final catatanList =
+        (json["catatan"] as List?)
+            ?.map<Catatan>(
+              (dynamic item) =>
+                  Catatan.fromJson(Map<String, dynamic>.from(item as Map)),
+            )
+            .toList() ??
+        const <Catatan>[];
+    final distanceRaw = json["distanceMeters"];
+    final jamPulangRaw = json["jam_pulang"];
 
-  Map<String, dynamic> toJson() => {
-    "agendas": List<dynamic>.from(agendas.map((x) => x)),
-    "agendasLinked": agendasLinked,
-    "agendasSkipped": agendasSkipped,
-    "catatan": List<dynamic>.from(catatan.map((x) => x.toJson())),
-    "distanceMeters": distanceMeters,
-    "jam_pulang": jamPulang.toIso8601String(),
-    "match": match,
-    "metric": metric,
-    "mode": mode,
-    "ok": ok,
-    "recipientsAdded": recipientsAdded,
-    "score": score,
-    "threshold": threshold,
-    "user_id": userId,
-  };
+    return AbsensiChekout(
+      agendas: agendasList,
+      agendasLinked: json["agendasLinked"],
+      agendasSkipped: json["agendasSkipped"],
+      catatan: catatanList,
+      distanceMeters: distanceRaw is num ? distanceRaw.toDouble() : null,
+      jamPulang: jamPulangRaw is String && jamPulangRaw.isNotEmpty
+          ? DateTime.parse(jamPulangRaw)
+          : null,
+      match: json["match"] as bool? ?? false,
+      metric: json["metric"]?.toString() ?? '',
+      mode: json["mode"]?.toString() ?? '',
+      ok: json["ok"] as bool? ?? false,
+      recipientsAdded: (json["recipientsAdded"] as int?) ?? 0,
+      score: (json["score"] as num).toDouble(),
+      threshold: (json["threshold"] as num).toDouble(),
+      userId: json["user_id"]?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{
+      "agendas": agendas.map((x) => Map<String, dynamic>.from(x)).toList(),
+      "catatan": List<dynamic>.from(catatan.map((x) => x.toJson())),
+      "match": match,
+      "metric": metric,
+      "mode": mode,
+      "ok": ok,
+      "recipientsAdded": recipientsAdded,
+      "score": score,
+      "threshold": threshold,
+      "user_id": userId,
+    };
+
+    if (agendasLinked != null) {
+      data["agendasLinked"] = agendasLinked;
+    }
+    if (agendasSkipped != null) {
+      data["agendasSkipped"] = agendasSkipped;
+    }
+    if (distanceMeters != null) {
+      data["distanceMeters"] = distanceMeters;
+    }
+    if (jamPulang != null) {
+      data["jam_pulang"] = jamPulang!.toIso8601String();
+    }
+
+    return data;
+  }
 }
 
 class Catatan {

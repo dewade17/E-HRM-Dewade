@@ -28,6 +28,7 @@ class _AbsensiCheckinScreenState extends State<AbsensiCheckinScreen> {
     _initUserId();
   }
 
+  //TODO: gunakan pengambilan id_user menggunakan id_user_resolver.dart
   Future<void> _initUserId() async {
     // 1) Kalau constructor sudah ngasih, pakai itu dulu
     if (widget.userId != null && widget.userId!.isNotEmpty) {
@@ -129,7 +130,6 @@ class _AbsensiCheckinScreenState extends State<AbsensiCheckinScreen> {
                           const HeaderAbsensiCheckin(),
                           const SizedBox(height: 30),
                           ContentAbsensiCheckin(userId: _userId!),
-                          
                         ],
                       ),
                     ),

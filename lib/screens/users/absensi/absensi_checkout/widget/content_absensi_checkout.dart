@@ -1,23 +1,21 @@
-// screens/users/absensi/absensi_checkin/widget/content_absensi_checkin.dart
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/location/location.dart' as dto_loc;
-import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/agenda_absensi_checkin.dart';
-import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/catatan_absensi_checkin.dart';
-import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/recipient_absensi_checkin.dart';
+import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/agenda_absensi_checkout.dart';
+import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/catatan_absensi_checkout.dart';
+import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/recipient_absensi_checkout.dart';
 import 'package:e_hrm/screens/users/absensi/widget/geofence_map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ContentAbsensiCheckin extends StatefulWidget {
-  final String userId;
-  const ContentAbsensiCheckin({super.key, required this.userId});
+class ContentAbsensiCheckout extends StatefulWidget {
+  const ContentAbsensiCheckout({super.key, required String userId});
 
   @override
-  State<ContentAbsensiCheckin> createState() => _ContentAbsensiCheckinState();
+  State<ContentAbsensiCheckout> createState() => _ContentAbsensiCheckoutState();
 }
 
-class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
+class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
   dto_loc.Location? _nearest;
   Position? _position;
 
@@ -80,11 +78,11 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
           ],
         ),
         const SizedBox(height: 8),
-        const RecipientAbsensiCheckin(),
+        const RecipientAbsensiCheckout(),
         const SizedBox(height: 16),
 
-        AgendaAbsensiCheckin(),
-        CatatanAbsensiCheckin(),
+        AgendaAbsensiCheckout(),
+        CatatanAbsensiCheckout(),
         SizedBox(height: 20),
         GestureDetector(
           child: Card(

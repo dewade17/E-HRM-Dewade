@@ -5,8 +5,8 @@ import 'package:e_hrm/dto/approvers/approvers.dart';
 import 'package:e_hrm/contraints/endpoints.dart';
 import 'package:e_hrm/services/api_services.dart';
 
-class ApproversProvider extends ChangeNotifier {
-  ApproversProvider({
+class ApproversAbsensiProvider extends ChangeNotifier {
+  ApproversAbsensiProvider({
     List<String>? initialRoles,
     this.defaultPageSize = 20,
     bool? initialIncludeDeleted,

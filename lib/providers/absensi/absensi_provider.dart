@@ -6,8 +6,8 @@
 
 import 'dart:io';
 import 'dart:convert';
+import 'package:e_hrm/dto/absensi/absensi_checkout.dart';
 import 'package:e_hrm/dto/absensi/absensi_status.dart';
-import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart';
 import 'package:e_hrm/services/api_services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -16,10 +16,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:e_hrm/dto/absensi/absensi_checkin.dart';
 import 'package:e_hrm/contraints/endpoints.dart';
 
+class AbsensiCatatanEntry {
+  final String description;
+  final String? attachmentUrl;
+
+  const AbsensiCatatanEntry({required this.description, this.attachmentUrl});
+}
+
 class AbsensiProvider extends ChangeNotifier {
   bool saving = false;
   String? error;
-  AbsensiChekin? result;
+  AbsensiChekin? checkinResult;
+  AbsensiChekout? checkoutResult;
   final ApiService _api = ApiService();
   AbsensiStatus? todayStatus;
   bool loadingStatus = false;
@@ -37,16 +45,9 @@ class AbsensiProvider extends ChangeNotifier {
   void reset() {
     saving = false;
     error = null;
-    result = null;
+    checkinResult = null;
+    checkoutResult = null;
     notifyListeners();
-  }
-
-  /// Helper format 'YYYY-MM-DD'
-  String _fmtDate(DateTime d) {
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
   }
 
   Future<AbsensiChekin?> checkin({
@@ -57,30 +58,32 @@ class AbsensiProvider extends ChangeNotifier {
     required File imageFile,
 
     // --- tambahan opsional ---
-    List<String> todos = const [],
+    List<String> agendaKerjaIds = const [],
     List<String> recipients = const [], // id_user penerima laporan
-    String? todoStatus, // 'diproses' | 'selesai' | 'ditunda'
-    DateTime? todoDate, // tanggal todo
-    DateTime? todoStart, // jam mulai (akan dikirim ISO)
-    DateTime? todoEnd, // jam selesai (akan dikirim ISO)
-  }) {
-    return _submit(
+    List<AbsensiCatatanEntry> catatan = const [],
+  }) async {
+    final value = await _submit(
       path: Endpoints.absensiCheckin,
       userId: userId,
       locationId: locationId,
       lat: lat,
       lng: lng,
       imageFile: imageFile,
-      todos: todos,
+      agendaKerjaIds: agendaKerjaIds,
       recipients: recipients,
-      todoStatus: todoStatus,
-      todoDate: todoDate,
-      todoStart: todoStart,
-      todoEnd: todoEnd,
+      catatan: catatan,
+      parser: (json) => AbsensiChekin.fromJson(json),
     );
+
+    if (value != null) {
+      checkinResult = value;
+      notifyListeners();
+    }
+
+    return value;
   }
 
-  Future<Absensi?> checkout({
+  Future<AbsensiChekout?> checkout({
     required String userId,
     String? locationId,
     required double lat,
@@ -88,30 +91,32 @@ class AbsensiProvider extends ChangeNotifier {
     required File imageFile,
 
     // --- tambahan opsional ---
-    List<String> todos = const [],
+    List<String> agendaKerjaIds = const [],
     List<String> recipients = const [],
-    String? todoStatus, // 'diproses' | 'selesai' | 'ditunda'
-    DateTime? todoDate,
-    DateTime? todoStart,
-    DateTime? todoEnd,
-  }) {
-    return _submit(
+    List<AbsensiCatatanEntry> catatan = const [],
+  }) async {
+    final value = await _submit(
       path: Endpoints.absensiCheckout,
       userId: userId,
       locationId: locationId,
       lat: lat,
       lng: lng,
       imageFile: imageFile,
-      todos: todos,
+      agendaKerjaIds: agendaKerjaIds,
       recipients: recipients,
-      todoStatus: todoStatus,
-      todoDate: todoDate,
-      todoStart: todoStart,
-      todoEnd: todoEnd,
+      catatan: catatan,
+      parser: (json) => AbsensiChekout.fromJson(json),
     );
+
+    if (value != null) {
+      checkoutResult = value;
+      notifyListeners();
+    }
+
+    return value;
   }
 
-  Future<Absensi?> _submit({
+  Future<T?> _submit<T>({
     required String path, // ex: "/api/absensi/checkin"
     required String userId,
     String? locationId,
@@ -120,12 +125,10 @@ class AbsensiProvider extends ChangeNotifier {
     required File imageFile,
 
     // --- tambahan opsional ---
-    List<String> todos = const [],
+    List<String> agendaKerjaIds = const [],
     List<String> recipients = const [],
-    String? todoStatus,
-    DateTime? todoDate,
-    DateTime? todoStart,
-    DateTime? todoEnd,
+    List<AbsensiCatatanEntry> catatan = const [],
+    required T Function(Map<String, dynamic>) parser,
   }) async {
     _setSaving(true);
     _setErr(null);
@@ -151,26 +154,11 @@ class AbsensiProvider extends ChangeNotifier {
       req.fields['lat'] = lat.toString();
       req.fields['lng'] = lng.toString();
 
-      // --- opsi Todo extras (opsional) ---
-      if (todoStatus != null && todoStatus.isNotEmpty) {
-        // harap isi salah satu: diproses | selesai | ditunda
-        req.fields['todo_status'] = todoStatus;
-      }
-      if (todoDate != null) {
-        req.fields['todo_date'] = _fmtDate(todoDate);
-      }
-      if (todoStart != null) {
-        req.fields['todo_start'] = todoStart.toIso8601String();
-      }
-      if (todoEnd != null) {
-        req.fields['todo_end'] = todoEnd.toIso8601String();
-      }
-
-      // --- multiple 'todo' (gunakan MultipartFile.fromString agar bisa duplikat key) ---
-      for (final t in todos) {
-        final val = (t).trim();
-        if (val.isEmpty) continue;
-        req.files.add(http.MultipartFile.fromString('todo', val));
+      // --- multiple agenda_kerja_id ---
+      for (final id in agendaKerjaIds) {
+        final value = id.trim();
+        if (value.isEmpty) continue;
+        req.files.add(http.MultipartFile.fromString('agenda_kerja_id', value));
       }
 
       // --- multiple 'recipient' (id_user penerima laporan) ---
@@ -178,6 +166,18 @@ class AbsensiProvider extends ChangeNotifier {
         final v = (rid).trim();
         if (v.isEmpty) continue;
         req.files.add(http.MultipartFile.fromString('recipient', v));
+      }
+
+      // --- multiple catatan (deskripsi + lampiran opsional) ---
+      for (final entry in catatan) {
+        final desc = entry.description.trim();
+        if (desc.isEmpty) continue;
+        req.files.add(http.MultipartFile.fromString('deskripsi_catatan', desc));
+
+        final url = entry.attachmentUrl?.trim();
+        if (url != null && url.isNotEmpty) {
+          req.files.add(http.MultipartFile.fromString('lampiran_url', url));
+        }
       }
 
       // --- image ---
@@ -190,9 +190,8 @@ class AbsensiProvider extends ChangeNotifier {
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final Map<String, dynamic> jsonMap =
             jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-        result = Absensi.fromJson(jsonMap) as AbsensiChekin?;
-        notifyListeners();
-        // return result;
+        final parsed = parser(jsonMap);
+        return parsed;
       } else if (resp.statusCode == 401) {
         await prefs.remove('token');
         throw Exception('Unauthorized. Silakan login ulang.');

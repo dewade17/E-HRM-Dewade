@@ -117,6 +117,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ignore: unused_element
   Future<String?> _ensureUserId(String? userId) async {
     final trimmed = userId?.trim();
     if (trimmed != null && trimmed.isNotEmpty) {

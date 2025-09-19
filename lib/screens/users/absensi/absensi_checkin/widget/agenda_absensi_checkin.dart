@@ -72,7 +72,7 @@ class _AgendaAbsensiCheckinState extends State<AgendaAbsensiCheckin> {
                         ),
                       ),
                     ),
-                    //muncul disini, dengan ui yang sama
+                    //muncul disini, dengan ui yang sama seperti di agenda_kerja_screen
                   ],
                 ),
               ),
@@ -84,7 +84,7 @@ class _AgendaAbsensiCheckinState extends State<AgendaAbsensiCheckin> {
           alignment: Alignment.centerRight,
           child: GestureDetector(
             onTap: () {
-              //TODO Pergi ke agenda_screen, lalu agenda_screen bisa menjadi cheklist, lalu memilih agenda dan muncul diline 58
+              //TODO Pergi ke agenda_screen, lalu update UI agenda_Kerja_screen  agar bisa menjadi cheklist, lalu memilih agenda Kerja sesuai hari realtime dan muncul diline 58
             },
             child: SizedBox(
               width: 150,

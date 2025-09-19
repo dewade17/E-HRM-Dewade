@@ -6,11 +6,11 @@ AbsensiStatus absensiStatusFromJson(String str) =>
 String absensiStatusToJson(AbsensiStatus data) => json.encode(data.toJson());
 
 class AbsensiStatus {
-  DateTime jamMasuk;
-  dynamic jamPulang;
-  String mode;
-  bool ok;
-  DateTime today;
+  final DateTime? jamMasuk;
+  final DateTime? jamPulang;
+  final String mode;
+  final bool ok;
+  final DateTime today;
 
   AbsensiStatus({
     required this.jamMasuk,
@@ -20,20 +20,36 @@ class AbsensiStatus {
     required this.today,
   });
 
-  factory AbsensiStatus.fromJson(Map<String, dynamic> json) => AbsensiStatus(
-    jamMasuk: DateTime.parse(json["jam_masuk"]),
-    jamPulang: json["jam_pulang"],
-    mode: json["mode"],
-    ok: json["ok"],
-    today: DateTime.parse(json["today"]),
-  );
+  factory AbsensiStatus.fromJson(Map<String, dynamic> json) {
+    final jamMasukRaw = json["jam_masuk"];
+    final jamPulangRaw = json["jam_pulang"];
 
-  Map<String, dynamic> toJson() => {
-    "jam_masuk": jamMasuk.toIso8601String(),
-    "jam_pulang": jamPulang,
-    "mode": mode,
-    "ok": ok,
-    "today":
-        "${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}",
-  };
+    return AbsensiStatus(
+      jamMasuk: jamMasukRaw is String && jamMasukRaw.isNotEmpty
+          ? DateTime.parse(jamMasukRaw)
+          : null,
+      jamPulang: jamPulangRaw is String && jamPulangRaw.isNotEmpty
+          ? DateTime.parse(jamPulangRaw)
+          : null,
+      mode: json["mode"],
+      ok: json["ok"],
+      today: DateTime.parse(json["today"]),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{
+      "mode": mode,
+      "ok": ok,
+      "today":
+          "${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}",
+    };
+    if (jamMasuk != null) {
+      data["jam_masuk"] = jamMasuk!.toIso8601String();
+    }
+    if (jamPulang != null) {
+      data["jam_pulang"] = jamPulang!.toIso8601String();
+    }
+    return data;
+  }
 }

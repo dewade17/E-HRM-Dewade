@@ -13,7 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:e_hrm/dto/absensi/absensi.dart';
+import 'package:e_hrm/dto/absensi/absensi_checkin.dart';
 import 'package:e_hrm/contraints/endpoints.dart';
 
 class AbsensiProvider extends ChangeNotifier {
@@ -49,7 +49,7 @@ class AbsensiProvider extends ChangeNotifier {
     return '$y-$m-$day';
   }
 
-  Future<Absensi?> checkin({
+  Future<AbsensiChekin?> checkin({
     required String userId,
     String? locationId,
     required double lat,

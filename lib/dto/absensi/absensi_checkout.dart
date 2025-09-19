@@ -1,15 +1,17 @@
 import 'dart:convert';
 
-AbsensiChekin absensiChekinFromJson(String str) =>
-    AbsensiChekin.fromJson(json.decode(str));
+AbsensiChekout absensiChekoutFromJson(String str) =>
+    AbsensiChekout.fromJson(json.decode(str));
 
-String absensiChekinToJson(AbsensiChekin data) => json.encode(data.toJson());
+String absensiChekoutToJson(AbsensiChekout data) => json.encode(data.toJson());
 
-class AbsensiChekin {
-  int? agendasLinked;
-  int? agendasSkipped;
+class AbsensiChekout {
+  List<dynamic> agendas;
+  int agendasLinked;
+  int agendasSkipped;
   List<Catatan> catatan;
   double distanceMeters;
+  DateTime jamPulang;
   bool match;
   String metric;
   String mode;
@@ -19,11 +21,13 @@ class AbsensiChekin {
   double threshold;
   String userId;
 
-  AbsensiChekin({
-    this.agendasLinked,
-    this.agendasSkipped,
+  AbsensiChekout({
+    required this.agendas,
+    required this.agendasLinked,
+    required this.agendasSkipped,
     required this.catatan,
     required this.distanceMeters,
+    required this.jamPulang,
     required this.match,
     required this.metric,
     required this.mode,
@@ -34,13 +38,15 @@ class AbsensiChekin {
     required this.userId,
   });
 
-  factory AbsensiChekin.fromJson(Map<String, dynamic> json) => AbsensiChekin(
+  factory AbsensiChekout.fromJson(Map<String, dynamic> json) => AbsensiChekout(
+    agendas: List<dynamic>.from(json["agendas"].map((x) => x)),
     agendasLinked: json["agendasLinked"],
     agendasSkipped: json["agendasSkipped"],
     catatan: List<Catatan>.from(
       json["catatan"].map((x) => Catatan.fromJson(x)),
     ),
     distanceMeters: json["distanceMeters"].toDouble(),
+    jamPulang: DateTime.parse(json["jam_pulang"]),
     match: json["match"],
     metric: json["metric"],
     mode: json["mode"],
@@ -52,10 +58,12 @@ class AbsensiChekin {
   );
 
   Map<String, dynamic> toJson() => {
+    "agendas": List<dynamic>.from(agendas.map((x) => x)),
     "agendasLinked": agendasLinked,
     "agendasSkipped": agendasSkipped,
     "catatan": List<dynamic>.from(catatan.map((x) => x.toJson())),
     "distanceMeters": distanceMeters,
+    "jam_pulang": jamPulang.toIso8601String(),
     "match": match,
     "metric": metric,
     "mode": mode,

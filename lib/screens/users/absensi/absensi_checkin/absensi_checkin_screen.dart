@@ -1,7 +1,5 @@
 // ignore_for_file: use_build_context_synchronously
-
 import 'dart:math' as math;
-
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/content_absensi_checkin.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkin/widget/header_absensi_checkin.dart';
@@ -9,7 +7,6 @@ import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AbsensiCheckinScreen extends StatefulWidget {
   final String? userId;

@@ -70,6 +70,12 @@ class AgendaKerjaProvider extends ChangeNotifier {
   List<String> get selectedAgendaKerjaIds =>
       List<String>.unmodifiable(_selectedAgendaKerjaIds);
 
+  List<Data> get selectedAgendaItems => items
+      .where(
+        (Data item) => _selectedAgendaKerjaIds.contains(item.idAgendaKerja),
+      )
+      .toList(growable: false);
+
   bool isAgendaSelected(String idAgendaKerja) {
     return _selectedAgendaKerjaIds.contains(idAgendaKerja);
   }

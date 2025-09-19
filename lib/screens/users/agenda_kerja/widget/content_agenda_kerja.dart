@@ -11,7 +11,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class ContentAgendaKerja extends StatefulWidget {
-  const ContentAgendaKerja({super.key});
+  const ContentAgendaKerja({super.key, this.selectionMode = false});
+
+  final bool selectionMode;
 
   @override
   State<ContentAgendaKerja> createState() => _ContentAgendaKerjaState();
@@ -307,49 +309,50 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
                   else
                     ...items.map((item) => _buildAgendaCard(item, provider)),
                   const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () async {
-                      final result = await Navigator.of(context).push<bool>(
-                        MaterialPageRoute(
-                          builder: (_) => const CreateAgendaScreen(),
+                  if (!widget.selectionMode)
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute(
+                            builder: (_) => const CreateAgendaScreen(),
+                          ),
+                        );
+                        if (result == true) {
+                          _fetchAgenda();
+                        }
+                      },
+                      child: Container(
+                        width: 170,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                      );
-                      if (result == true) {
-                        _fetchAgenda();
-                      }
-                    },
-                    child: Container(
-                      width: 170,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Card(
-                        color: AppColors.textColor,
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.add_circle),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Pekerjaan',
-                                style: GoogleFonts.poppins(
-                                  textStyle: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.textDefaultColor,
+                        child: Card(
+                          color: AppColors.textColor,
+                          elevation: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.add_circle),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Pekerjaan',
+                                  style: GoogleFonts.poppins(
+                                    textStyle: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textDefaultColor,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -364,195 +367,229 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
     final end = item.endDate;
     final normalizedStatus = item.status.toLowerCase();
     final isDeleting = _deletingId == item.idAgendaKerja && provider.deleting;
+    final selectionMode = widget.selectionMode;
+    final isSelected = provider.isAgendaSelected(item.idAgendaKerja);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            left: BorderSide(color: AppColors.primaryColor, width: 5),
-            top: const BorderSide(color: AppColors.primaryColor, width: 1),
-            right: const BorderSide(color: AppColors.primaryColor, width: 1),
-            bottom: const BorderSide(color: AppColors.primaryColor, width: 1),
+      child: InkWell(
+        onTap: selectionMode
+            ? () => provider.toggleAgendaSelection(item.idAgendaKerja)
+            : null,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          decoration: BoxDecoration(
+            color: selectionMode && isSelected
+                ? AppColors.backgroundColor
+                : Colors.white,
+            border: Border(
+              left: BorderSide(
+                color: selectionMode && isSelected
+                    ? AppColors.secondaryColor
+                    : AppColors.primaryColor,
+                width: 5,
+              ),
+              top: const BorderSide(color: AppColors.primaryColor, width: 1),
+              right: const BorderSide(color: AppColors.primaryColor, width: 1),
+              bottom: const BorderSide(color: AppColors.primaryColor, width: 1),
+            ),
+            borderRadius: BorderRadius.circular(15),
           ),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 78,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: AppColors.textDefaultColor),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _formatTime(start),
-                        style: GoogleFonts.poppins(
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Icon(Icons.more_vert, size: 22),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: 78,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: AppColors.textDefaultColor),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _formatTime(end),
-                        style: GoogleFonts.poppins(
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                        width: 78,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: const Color(0xfff6f6f6),
-                          borderRadius: BorderRadius.circular(14),
+                          color: Colors.white,
+                          border: Border.all(color: AppColors.textDefaultColor),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          _statusLabel(normalizedStatus),
+                          _formatTime(start),
                           style: GoogleFonts.poppins(
-                            textStyle: TextStyle(
-                              fontSize: 12,
+                            textStyle: const TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: _statusColor(normalizedStatus),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        item.agenda?.namaAgenda ?? 'Agenda tidak diketahui',
-                        style: GoogleFonts.poppins(
-                          textStyle: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        item.deskripsiKerja,
-                        style: GoogleFonts.poppins(
-                          textStyle: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black87,
                           ),
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_month_outlined, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatDate(start ?? end),
+                      const Icon(Icons.more_vert, size: 22),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: 78,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: AppColors.textDefaultColor),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _formatTime(end),
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xfff6f6f6),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            _statusLabel(normalizedStatus),
                             style: GoogleFonts.poppins(
-                              textStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black54,
+                              textStyle: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: _statusColor(normalizedStatus),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            Positioned(
-              right: -30,
-              top: 25,
-              child: Column(
-                children: [
-                  Material(
-                    color: const Color(0xffffe1e8),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: isDeleting ? null : () => _onDelete(item),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: isDeleting
-                            ? const SizedBox(
-                                height: 16,
-                                width: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.delete_outline, size: 20),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Material(
-                    color: const Color(0xffffe1e8),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () async {
-                        final result = await Navigator.of(context).push<bool>(
-                          MaterialPageRoute(
-                            builder: (_) => EditAgendaScreen(
-                              agendaKerjaId: item.idAgendaKerja,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          item.agenda?.namaAgenda ?? 'Agenda tidak diketahui',
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        );
-                        if (result == true) {
-                          _fetchAgenda();
-                        }
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(Icons.edit_outlined, size: 20),
-                      ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          item.deskripsiKerja,
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_month_outlined, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatDate(start ?? end),
+                              style: GoogleFonts.poppins(
+                                textStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              if (!selectionMode)
+                Positioned(
+                  right: -30,
+                  top: 25,
+                  child: Column(
+                    children: [
+                      Material(
+                        color: const Color(0xffffe1e8),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: isDeleting ? null : () => _onDelete(item),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: isDeleting
+                                ? const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.delete_outline, size: 20),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Material(
+                        color: const Color(0xffffe1e8),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () async {
+                            final result = await Navigator.of(context)
+                                .push<bool>(
+                                  MaterialPageRoute(
+                                    builder: (_) => EditAgendaScreen(
+                                      agendaKerjaId: item.idAgendaKerja,
+                                    ),
+                                  ),
+                                );
+                            if (result == true) {
+                              _fetchAgenda();
+                            }
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Icon(Icons.edit_outlined, size: 20),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Positioned(
+                  right: -18,
+                  top: 20,
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: isSelected
+                        ? AppColors.primaryColor
+                        : AppColors.textDefaultColor.withAlpha(
+                            (0.3 * 255).round(),
+                          ),
+                    child: Icon(
+                      isSelected ? Icons.check : Icons.radio_button_unchecked,
+                      color: isSelected ? Colors.white : Colors.black54,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

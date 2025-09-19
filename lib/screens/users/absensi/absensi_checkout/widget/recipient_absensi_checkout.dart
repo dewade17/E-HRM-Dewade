@@ -1,6 +1,9 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/screens/users/absensi/widget/approver_selection_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class RecipientAbsensiCheckout extends StatefulWidget {
   const RecipientAbsensiCheckout({super.key});
@@ -12,18 +15,40 @@ class RecipientAbsensiCheckout extends StatefulWidget {
 
 class _RecipientAbsensiCheckoutState extends State<RecipientAbsensiCheckout> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<ApproversProvider>();
+      if (!provider.isLoading && provider.users.isEmpty) {
+        provider.refresh();
+      }
+    });
+  }
+
+  Future<void> _openSelection() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const ApproverSelectionSheet(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      child: Card(
-        color: AppColors.backgroundColor,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+    return Consumer<ApproversProvider>(
+      builder: (context, provider, _) {
+        final selected = provider.selectedUsers;
+
+        return Card(
+          color: AppColors.backgroundColor,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 12,
+                ),
                 child: Text(
                   "Laporan Ke",
                   style: GoogleFonts.poppins(
@@ -33,122 +58,84 @@ class _RecipientAbsensiCheckoutState extends State<RecipientAbsensiCheckout> {
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Container(
-                width: 360,
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.textColor,
-                  borderRadius: BorderRadius.circular(15), // pill
-                ),
-
-                child: Wrap(
-                  alignment: WrapAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 50,
-                      width: 120,
-                      child: Card(
-                        color: AppColors.accentColor,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Supervisi",
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textDefaultColor,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: () {
-                                // aksi tambah
-                              },
-                              child: const CircleAvatar(
-                                radius: 14,
-                                backgroundColor: AppColors.backgroundColor,
-                                child: Icon(
-                                  Icons.add,
-                                  size: 16,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.textColor,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total penerima: ${selected.length}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textDefaultColor,
                         ),
                       ),
-                    ),
-                  ],
+                      InkWell(
+                        onTap: _openSelection,
+                        borderRadius: BorderRadius.circular(24),
+                        child: const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppColors.accentColor,
+                          child: Icon(Icons.add, color: Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            // Chip nama
-            Padding(
-              padding: EdgeInsetsGeometry.symmetric(horizontal: 20),
-              child: Wrap(
-                alignment: WrapAlignment.start, // ⬅️ mulai dari kiri
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Card(
-                    color: AppColors.accentColor,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        mainAxisSize:
-                            MainAxisSize.min, // ⬅️ chip selebar konten
-                        children: [
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: selected.isEmpty
+                      ? [
                           Text(
-                            "users",
+                            'Belum ada penerima dipilih.',
                             style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textDefaultColor,
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Card(
-                    color: AppColors.accentColor,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        mainAxisSize:
-                            MainAxisSize.min, // ⬅️ chip selebar konten
-                        children: [
-                          Text(
-                            "users",
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textDefaultColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                        ]
+                      : selected
+                            .map(
+                              (user) => Chip(
+                                label: Text(
+                                  user.namaPengguna,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                backgroundColor: AppColors.accentColor,
+                                deleteIconColor: Colors.black87,
+                                onDeleted: () =>
+                                    provider.toggleSelect(user.idUser),
+                              ),
+                            )
+                            .toList(),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
     );
   }
 }

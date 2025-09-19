@@ -20,6 +20,7 @@ class ApproversProvider extends ChangeNotifier {
 
   // ===== state =====
   final List<User> _users = <User>[];
+  final Map<String, User> _selectedUserCache = <String, User>{};
   Pagination? _pagination;
   String _search = '';
   List<String> roles; // ['HR','DIREKTUR','OPERASIONAL']
@@ -37,6 +38,13 @@ class ApproversProvider extends ChangeNotifier {
 
   // ===== getters =====
   List<User> get users => List<User>.unmodifiable(_users);
+  List<User> get selectedUsers {
+    return selectedRecipientIds
+        .map((id) => _selectedUserCache[id] ?? _findUserById(id))
+        .whereType<User>()
+        .toList(growable: false);
+  }
+
   Pagination? get pagination => _pagination;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -84,8 +92,13 @@ class ApproversProvider extends ChangeNotifier {
   void toggleSelect(String userId) {
     if (selectedRecipientIds.contains(userId)) {
       selectedRecipientIds.remove(userId);
+      _selectedUserCache.remove(userId);
     } else {
       selectedRecipientIds.add(userId);
+      final user = _findUserById(userId);
+      if (user != null) {
+        _selectedUserCache[userId] = user;
+      }
     }
     notifyListeners();
   }
@@ -136,7 +149,11 @@ class ApproversProvider extends ChangeNotifier {
       if (!append) _users.clear();
       _users.addAll(parsed.users);
       _pagination = parsed.pagination;
-
+      for (final user in parsed.users) {
+        if (selectedRecipientIds.contains(user.idUser)) {
+          _selectedUserCache[user.idUser] = user;
+        }
+      }
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -145,5 +162,12 @@ class ApproversProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
     }
+  }
+
+  User? _findUserById(String id) {
+    for (final user in _users) {
+      if (user.idUser == id) return user;
+    }
+    return _selectedUserCache[id];
   }
 }

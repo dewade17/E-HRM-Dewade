@@ -1,14 +1,49 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 
 class TakeFaceAbsensiScreen extends StatefulWidget {
-  const TakeFaceAbsensiScreen({super.key});
+  const TakeFaceAbsensiScreen({
+    super.key,
+    required this.isCheckin,
+    required this.userId,
+    this.locationId,
+    required this.latitude,
+    required this.longitude,
+    required this.agendaIds,
+    required this.recipientIds,
+    required this.catatan,
+    required this.locationName,
+    required this.scheduleLabel,
+    this.shiftName,
+    this.agendaCount = 0,
+    this.recipientCount = 0,
+    this.catatanCount = 0,
+    this.berkasCount = 0,
+  });
+
+  final bool isCheckin;
+  final String userId;
+  final String? locationId;
+  final double latitude;
+  final double longitude;
+  final List<String> agendaIds;
+  final List<String> recipientIds;
+  final List<AbsensiCatatanEntry> catatan;
+  final String locationName;
+  final String scheduleLabel;
+  final String? shiftName;
+  final int agendaCount;
+  final int recipientCount;
+  final int catatanCount;
+  final int berkasCount;
 
   @override
   State<TakeFaceAbsensiScreen> createState() => _TakeFaceAbsensiScreenState();
@@ -34,6 +69,8 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
 
   // Simpan rasio & apakah kamera depan
   double _previewAspectRatio = 3 / 4;
+
+  // Simpan apakah kamera depan
   bool _isFront = false;
 
   @override
@@ -134,11 +171,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
         await controller.setFlashMode(FlashMode.off);
       } catch (_) {}
 
-      if (mounted) {
-        setState(() {
-          _previewAspectRatio = controller.value.aspectRatio;
-        });
-      }
+      if (mounted) setState(() {});
     } catch (e) {
       debugPrint('Camera init error: $e');
       if (mounted) {
@@ -177,7 +210,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
   Future<void> _takePicture() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
     if (_taking) return;
-
+    final absensi = context.read<AbsensiProvider>();
     setState(() => _taking = true);
     try {
       // Pastikan zoom tetap 1.0 sebelum ambil foto
@@ -186,10 +219,41 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
       } catch (_) {}
 
       final raw = await _controller!.takePicture();
-      final file = await _mirrorIfNeeded(raw);
+      final mirrored = await _mirrorIfNeeded(raw);
+      final file = File(mirrored.path);
+
+      final result = widget.isCheckin
+          ? await absensi.checkin(
+              userId: widget.userId,
+              locationId: widget.locationId,
+              lat: widget.latitude,
+              lng: widget.longitude,
+              imageFile: file,
+              agendaKerjaIds: widget.agendaIds,
+              recipients: widget.recipientIds,
+              catatan: widget.catatan,
+            )
+          : await absensi.checkout(
+              userId: widget.userId,
+              locationId: widget.locationId,
+              lat: widget.latitude,
+              lng: widget.longitude,
+              imageFile: file,
+              agendaKerjaIds: widget.agendaIds,
+              recipients: widget.recipientIds,
+              catatan: widget.catatan,
+            );
 
       if (!mounted) return;
-      Navigator.pop(context, file); // kembalikan XFile ke caller
+
+      if (result != null) {
+        Navigator.pop(context, true);
+      } else {
+        final error = absensi.error ?? 'Gagal mengirim absensi.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
+      }
     } catch (e) {
       debugPrint('Take picture error: $e');
       if (mounted) {
@@ -339,8 +403,20 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
           ),
 
           // 3) Kartu info (tidak berubah)
-          const Positioned(left: 16, right: 16, bottom: 96, child: _InfoCard()),
-
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 96,
+            child: _InfoCard(
+              scheduleLabel: widget.scheduleLabel,
+              locationName: widget.locationName,
+              shiftName: widget.shiftName,
+              recipientCount: widget.recipientCount,
+              agendaCount: widget.agendaCount,
+              catatanCount: widget.catatanCount,
+              berkasCount: widget.berkasCount,
+            ),
+          ),
           // 4) Tombol capture (tidak berubah)
           Positioned(
             left: 20,
@@ -366,7 +442,12 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              child: Text(_taking ? 'Memproses...' : 'Presensi Keluar'), //: "Prensesi Masuk"
+              child: Text(
+                _taking
+                    ? 'Memproses...'
+                    : (widget.isCheckin ? 'Presensi Masuk' : 'Presensi Keluar'),
+              ),
+              // "Prensesi Masuk",
             ),
           ),
 
@@ -412,12 +493,28 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard();
+  const _InfoCard({
+    required this.scheduleLabel,
+    required this.locationName,
+    this.shiftName,
+    this.recipientCount = 0,
+    this.agendaCount = 0,
+    this.catatanCount = 0,
+    this.berkasCount = 0,
+  });
+
+  final String scheduleLabel;
+  final String locationName;
+  final String? shiftName;
+  final int recipientCount;
+  final int agendaCount;
+  final int catatanCount;
+  final int berkasCount;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.95),
+      color: Colors.white.withAlpha((0.95 * 255).round()),
       borderRadius: BorderRadius.circular(24),
       elevation: 6,
       child: Padding(
@@ -425,45 +522,66 @@ class _InfoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.calendar_today_rounded,
                   size: 20,
                   color: Colors.black54,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Jumat, 19 Sep 2025 (08:40 - 18:00)',
-                    style: TextStyle(
+                    scheduleLabel,
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: Colors.black45),
+                const Icon(Icons.chevron_right_rounded, color: Colors.black45),
               ],
             ),
             const SizedBox(height: 12),
-            const Row(
+            Row(
               children: [
-                Icon(Icons.location_on_rounded, size: 20, color: Colors.green),
-                SizedBox(width: 8),
+                const Icon(
+                  Icons.location_on_rounded,
+                  size: 20,
+                  color: Colors.green,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'OSS Bali',
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                    locationName,
+                    style: const TextStyle(fontSize: 15, color: Colors.black87),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
+            if (shiftName != null && shiftName!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Shift: $shiftName',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
             Row(
               children: List.generate(4, (i) {
                 final labels = ['Supervisi', 'Pekerjaan', 'Catatan', 'Berkas'];
-                final vals = ['2', '1', '0', '0'];
+                final vals = [
+                  recipientCount.toString(),
+                  agendaCount.toString(),
+                  catatanCount.toString(),
+                  berkasCount.toString(),
+                ];
                 return Expanded(
                   child: Column(
                     children: [

@@ -3,13 +3,13 @@ import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/content_absensi_checkout.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/widget/header_absensi_checkout.dart';
+import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AbsensiCheckoutScreen extends StatefulWidget {
-  final String userId;
-  const AbsensiCheckoutScreen({super.key, required this.userId});
+  final String? userId;
+  const AbsensiCheckoutScreen({super.key, this.userId});
 
   @override
   State<AbsensiCheckoutScreen> createState() => _AbsensiCheckoutScreenState();
@@ -25,44 +25,29 @@ class _AbsensiCheckoutScreenState extends State<AbsensiCheckoutScreen> {
     _initUserId();
   }
 
-  //TODO: gunakan pengambilan id_user menggunakan id_user_resolver.dart
   Future<void> _initUserId() async {
-    // 1) Kalau constructor sudah ngasih, pakai itu dulu
-    if (widget.userId != null && widget.userId!.isNotEmpty) {
+    final provided = widget.userId;
+    if (provided != null && provided.isNotEmpty) {
       setState(() {
-        _userId = widget.userId!;
+        _userId = provided;
         _loading = false;
       });
       return;
     }
 
-    // 2) Coba ambil dari AuthProvider (lebih cepat, sudah ada di memori)
-    try {
-      final auth = context.read<AuthProvider>();
-      final fromProvider = auth.currentUser?.idUser;
-      if (fromProvider != null && fromProvider.isNotEmpty) {
-        setState(() {
-          _userId = fromProvider;
-          _loading = false;
-        });
-        return;
-      }
-    } catch (_) {
-      // provider belum tersedia di tree, lanjut ke prefs
-    }
+    final auth = context.read<AuthProvider>();
+    final resolved = await resolveUserId(auth, context: context);
 
-    // 3) Fallback: SharedPreferences 'id_user'
-    final prefs = await SharedPreferences.getInstance();
-    final fromPrefs = prefs.getString('id_user');
+    if (!mounted) return;
 
     setState(() {
-      _userId = fromPrefs; // bisa null kalau belum login
+      _userId = resolved;
       _loading = false;
     });
 
-    if (_userId == null || _userId!.isEmpty) {
-      // Tampilkan snackbar informatif
+    if (resolved == null || resolved.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Silakan login ulang."),

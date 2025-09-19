@@ -366,7 +366,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              child: Text(_taking ? 'Memproses...' : 'Presensi Keluar'),
+              child: Text(_taking ? 'Memproses...' : 'Presensi Keluar'), //: "Prensesi Masuk"
             ),
           ),
 
@@ -493,6 +493,7 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
+
 // Tambahkan class helper ini di luar class State Anda
 // untuk memastikan preview tidak "bocor" keluar layar
 class _OverflowClipper extends CustomClipper<Rect> {

@@ -140,7 +140,24 @@ class AbsensiProvider extends ChangeNotifier {
         throw Exception('Unauthorized. Silakan login ulang.');
       }
 
-      final uri = Uri.parse('${Endpoints.baseURL}$path');
+      final uri = () {
+        final trimmed = path.trim();
+        final parsed = Uri.tryParse(trimmed);
+        if (parsed != null && parsed.hasScheme) {
+          return parsed;
+        }
+
+        final baseUri = Uri.parse(Endpoints.baseURL);
+        final origin = '${baseUri.scheme}://${baseUri.authority}';
+        if (trimmed.startsWith('/')) {
+          return Uri.parse('$origin$trimmed');
+        }
+
+        final basePath = baseUri.path.isEmpty
+            ? '/'
+            : (baseUri.path.endsWith('/') ? baseUri.path : '${baseUri.path}/');
+        return Uri.parse('$origin$basePath$trimmed');
+      }();
       final req = http.MultipartRequest('POST', uri);
 
       // Auth header
@@ -216,7 +233,9 @@ class AbsensiProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final res = await _api.fetchDataPrivate(
-        '${Endpoints.absensiStatus}?user_id=$userId',
+        Uri.parse(
+          Endpoints.absensiStatus,
+        ).replace(queryParameters: {'user_id': userId}).toString(),
       );
       final dto = AbsensiStatus.fromJson(Map<String, dynamic>.from(res));
       todayStatus = dto;

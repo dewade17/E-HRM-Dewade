@@ -49,5 +49,5 @@ class Endpoints {
   //absensi
   static String get absensiCheckin => "$faceBaseURL/api/absensi/checkin";
   static String get absensiCheckout => "$faceBaseURL/api/absensi/checkout";
-  static String get absensiStatus => "/api/absensi/status";
+  static String get absensiStatus => "$faceBaseURL/api/absensi/status";
 }

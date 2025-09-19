@@ -13,6 +13,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
   bool detailLoading = false;
   bool saving = false;
   bool deleting = false;
+  final Set<String> _selectedAgendaKerjaIds = <String>{};
 
   String? error;
   String? message;
@@ -65,6 +66,56 @@ class AgendaKerjaProvider extends ChangeNotifier {
   String? get currentAbsensiId => _absensiId;
   DateTime? get currentDate => _date;
   bool get isOffsetPaging => _isOffsetPaging;
+
+  List<String> get selectedAgendaKerjaIds =>
+      List<String>.unmodifiable(_selectedAgendaKerjaIds);
+
+  bool isAgendaSelected(String idAgendaKerja) {
+    return _selectedAgendaKerjaIds.contains(idAgendaKerja);
+  }
+
+  void selectAgenda(String idAgendaKerja, {bool selected = true}) {
+    final normalized = idAgendaKerja.trim();
+    if (normalized.isEmpty) return;
+
+    final changed = selected
+        ? _selectedAgendaKerjaIds.add(normalized)
+        : _selectedAgendaKerjaIds.remove(normalized);
+    if (changed) notifyListeners();
+  }
+
+  void toggleAgendaSelection(String idAgendaKerja) {
+    final normalized = idAgendaKerja.trim();
+    if (normalized.isEmpty) return;
+
+    if (_selectedAgendaKerjaIds.contains(normalized)) {
+      _selectedAgendaKerjaIds.remove(normalized);
+    } else {
+      _selectedAgendaKerjaIds.add(normalized);
+    }
+    notifyListeners();
+  }
+
+  void replaceAgendaSelection(Iterable<String> ids) {
+    final normalized = ids
+        .map((String value) => value.trim())
+        .where((String value) => value.isNotEmpty)
+        .toSet();
+    if (_selectedAgendaKerjaIds.length == normalized.length &&
+        _selectedAgendaKerjaIds.containsAll(normalized)) {
+      return;
+    }
+    _selectedAgendaKerjaIds
+      ..clear()
+      ..addAll(normalized);
+    notifyListeners();
+  }
+
+  void clearAgendaSelection() {
+    if (_selectedAgendaKerjaIds.isEmpty) return;
+    _selectedAgendaKerjaIds.clear();
+    notifyListeners();
+  }
 
   Future<String?> _ensureUserId(String? userId) async {
     final trimmed = userId?.trim();
@@ -179,6 +230,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
     _agendaId = null;
     _absensiId = null;
     _date = null;
+    _selectedAgendaKerjaIds.clear();
     notifyListeners();
   }
 
@@ -271,6 +323,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
       perPage = limit;
       message = res['message'] as String?;
       error = null;
+      _pruneAgendaSelection();
 
       notifyListeners();
       return true;
@@ -386,13 +439,16 @@ class AgendaKerjaProvider extends ChangeNotifier {
       offset = (page - 1) * perPage;
       message = res['message'] as String?;
       error = null;
+      _pruneAgendaSelection();
 
       notifyListeners();
+
       return true;
     } catch (e) {
       message = null;
       error = e.toString();
       notifyListeners();
+
       return false;
     } finally {
       _setLoading(false);
@@ -598,6 +654,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
           .toList();
       final bool changed = filtered.length != previousLength;
       items = filtered;
+      _selectedAgendaKerjaIds.remove(idAgendaKerja);
 
       if (detail?.idAgendaKerja == idAgendaKerja) {
         detail = null;
@@ -633,5 +690,13 @@ class AgendaKerjaProvider extends ChangeNotifier {
     } finally {
       _setDeleting(false);
     }
+  }
+
+  void _pruneAgendaSelection() {
+    if (_selectedAgendaKerjaIds.isEmpty) return;
+    final validIds = items.map((Data e) => e.idAgendaKerja).toSet();
+    _selectedAgendaKerjaIds.removeWhere((String id) => !validIds.contains(id));
+    // Tidak memanggil notifyListeners karena pemanggil sudah melakukannya
+    // setelah daftar item diperbarui.
   }
 }

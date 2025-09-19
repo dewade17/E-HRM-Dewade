@@ -48,6 +48,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AgendaKerjaProvider()),
         ChangeNotifierProvider(create: (_) => FaceEnrollProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => AbsensiProvider()),
+        ChangeNotifierProvider(create: (_) => AbsensiProvider()),
         ChangeNotifierProvider(create: (_) => AgendaProvider()),
       ],
       child: MaterialApp(

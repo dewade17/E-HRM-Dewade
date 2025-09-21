@@ -5,6 +5,7 @@ import 'package:e_hrm/screens/users/agenda_kerja/agenda_kerja_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class AgendaAbsensiCheckout extends StatefulWidget {
@@ -182,13 +183,14 @@ class _SelectedAgendaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final agendaName = item.agenda?.namaAgenda ?? '-';
-    final description = item.deskripsiKerja;
+    final start = item.startDate;
+    final end = item.endDate;
+    final normalizedStatus = item.status.toLowerCase();
 
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -199,12 +201,57 @@ class _SelectedAgendaTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTimeBox(_formatTime(start)),
+              const SizedBox(height: 8),
+              const Icon(Icons.more_vert, size: 20),
+              const SizedBox(height: 8),
+              _buildTimeBox(_formatTime(end)),
+            ],
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xfff6f6f6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _statusLabel(normalizedStatus),
+                        style: GoogleFonts.poppins(
+                          textStyle: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _statusColor(normalizedStatus),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      tooltip: 'Hapus',
+                      onPressed: onRemove,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
                 Text(
-                  agendaName,
+                  item.agenda?.namaAgenda ?? 'Agenda tidak diketahui',
                   style: GoogleFonts.poppins(
                     textStyle: const TextStyle(
                       fontSize: 13,
@@ -214,7 +261,7 @@ class _SelectedAgendaTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  description,
+                  item.deskripsiKerja,
                   style: GoogleFonts.poppins(
                     textStyle: const TextStyle(
                       fontSize: 12,
@@ -222,15 +269,77 @@ class _SelectedAgendaTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatDate(start ?? end),
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            tooltip: 'Hapus',
-            onPressed: onRemove,
-          ),
         ],
+      ),
+    );
+  }
+
+  static final DateFormat _timeFormatter = DateFormat('HH:mm');
+  static final DateFormat _dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
+
+  static String _formatTime(DateTime? date) {
+    if (date == null) return '--:--';
+    return _timeFormatter.format(date);
+  }
+
+  static String _formatDate(DateTime? date) {
+    if (date == null) return '-';
+    return _dateFormatter.format(date);
+  }
+
+  static String _statusLabel(String value) {
+    if (value.isEmpty) return '-';
+    final lower = value.toLowerCase();
+    return lower[0].toUpperCase() + lower.substring(1);
+  }
+
+  static Color _statusColor(String value) {
+    switch (value.toLowerCase()) {
+      case 'selesai':
+        return const Color(0xFF16A34A);
+      case 'ditunda':
+        return const Color(0xFFE11D48);
+      case 'diproses':
+      default:
+        return const Color(0xFFF59E0B);
+    }
+  }
+
+  Widget _buildTimeBox(String text) {
+    return Container(
+      width: 78,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.textDefaultColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

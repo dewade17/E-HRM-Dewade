@@ -41,8 +41,8 @@ class _TimeEditAgendaState extends State<TimeEditAgenda> {
   void _setInitialValues(TimeOfDay? start, TimeOfDay? end) {
     _start = start;
     _end = end;
-    _startC.text = _fmt(_start);
-    _endC.text = _fmt(_end);
+    _startC.text = _manualFmt(_start);
+    _endC.text = _manualFmt(_end);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.onChanged?.call(_start, _end);
@@ -90,6 +90,13 @@ class _TimeEditAgendaState extends State<TimeEditAgenda> {
     if (t == null) return '';
     final l = MaterialLocalizations.of(context);
     return l.formatTimeOfDay(t, alwaysUse24HourFormat: true);
+  }
+
+  String _manualFmt(TimeOfDay? t) {
+    if (t == null) return '';
+    final hour = t.hour.toString().padLeft(2, '0');
+    final minute = t.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   InputDecoration _decoration(String label) => InputDecoration(

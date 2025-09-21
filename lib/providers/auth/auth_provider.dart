@@ -28,9 +28,25 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isAuthenticated => _accessToken != null && _accessToken!.isNotEmpty;
 
-  void _setLoading(bool v) {
+  bool _disposed = false;
+
+  void _notify({bool silent = false}) {
+    if (_disposed) return;
+
+    if (!silent) {
+      notifyListeners();
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_disposed) return;
+      notifyListeners();
+    });
+  }
+
+  void _setLoading(bool v, {bool silent = false}) {
     _loading = v;
-    notifyListeners();
+    _notify(silent: silent);
   }
 
   Future<void> _persistMinimalUserFields(Map<String, dynamic> userJson) async {
@@ -149,14 +165,17 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Pulihkan sesi saat app start
-  Future<void> tryRestoreSession(BuildContext context) async {
-    _setLoading(true);
+  Future<void> tryRestoreSession(
+    BuildContext context, {
+    bool silent = false,
+  }) async {
+    _setLoading(true, silent: silent);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
       if (token == null) {
-        await _clearSession();
+        await _clearSession(silent: silent);
         return;
       }
 
@@ -167,7 +186,7 @@ class AuthProvider extends ChangeNotifier {
         expired = true;
       }
       if (expired) {
-        await _clearSession();
+        await _clearSession(silent: silent);
         return;
       }
 
@@ -177,11 +196,11 @@ class AuthProvider extends ChangeNotifier {
       final userJson = (me['user'] ?? me) as Map<String, dynamic>;
       _currentUser = Getdataprivate.fromJson(userJson);
       await _persistMinimalUserFields(userJson);
-      notifyListeners();
+      _notify(silent: silent);
     } catch (_) {
-      await _clearSession();
+      await _clearSession(silent: silent);
     } finally {
-      _setLoading(false);
+      _setLoading(false, silent: silent);
     }
   }
 
@@ -206,7 +225,7 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> _clearSession() async {
+  Future<void> _clearSession({bool silent = false}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('id_user');
@@ -215,6 +234,12 @@ class AuthProvider extends ChangeNotifier {
 
     _accessToken = null;
     _currentUser = null;
-    notifyListeners();
+    _notify(silent: silent);
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

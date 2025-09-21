@@ -1,6 +1,6 @@
 class Endpoints {
   static const String baseURL = "https://7qdb4npf-3000.asse.devtunnels.ms/api";
-  static const String faceBaseURL = "https://7qdb4npf-8000.asse.devtunnels.ms";
+  static const String faceBaseURL = "https://f54ldwpd-8000.asse.devtunnels.ms";
 
   //auth
   static const String login = "$baseURL/mobile/auth/login";

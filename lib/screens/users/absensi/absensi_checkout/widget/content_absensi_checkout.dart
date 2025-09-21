@@ -1,5 +1,4 @@
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/location/location.dart' as dto_loc;
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';

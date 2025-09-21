@@ -512,52 +512,60 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
               ),
               if (!selectionMode)
                 Positioned(
-                  right: -30,
-                  top: 25,
+                  right: 0,
+                  top: 16,
                   child: Column(
                     children: [
-                      Material(
-                        color: const Color(0xffffe1e8),
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: isDeleting ? null : () => _onDelete(item),
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: isDeleting
-                                ? const SizedBox(
-                                    height: 16,
-                                    width: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.delete_outline, size: 20),
+                      SizedBox(
+                        height: 48,
+                        width: 48,
+                        child: Material(
+                          color: const Color(0xffffe1e8),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: isDeleting ? null : () => _onDelete(item),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: isDeleting
+                                  ? const SizedBox(
+                                      height: 16,
+                                      width: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.delete_outline, size: 20),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Material(
-                        color: const Color(0xffffe1e8),
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () async {
-                            final result = await Navigator.of(context)
-                                .push<bool>(
-                                  MaterialPageRoute(
-                                    builder: (_) => EditAgendaScreen(
-                                      agendaKerjaId: item.idAgendaKerja,
+                      SizedBox(
+                        height: 48,
+                        width: 48,
+                        child: Material(
+                          color: const Color(0xffffe1e8),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () async {
+                              final result = await Navigator.of(context)
+                                  .push<bool>(
+                                    MaterialPageRoute(
+                                      builder: (_) => EditAgendaScreen(
+                                        agendaKerjaId: item.idAgendaKerja,
+                                      ),
                                     ),
-                                  ),
-                                );
-                            if (result == true) {
-                              _fetchAgenda();
-                            }
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: Icon(Icons.edit_outlined, size: 20),
+                                  );
+                              if (result == true) {
+                                _fetchAgenda();
+                              }
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Icon(Icons.edit_outlined, size: 20),
+                            ),
                           ),
                         ),
                       ),

@@ -1,6 +1,5 @@
 // screens/users/agenda_kerja/agenda_kerja_screen.dart
 import 'dart:math' as math;
-import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/widget/calendar_agenda_kerja.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/widget/content_agenda_kerja.dart';
@@ -22,7 +21,7 @@ class AgendaKerjaScreen extends StatefulWidget {
 }
 
 class _AgendaKerjaScreenState extends State<AgendaKerjaScreen> {
-  bool _confirmedSelection = false;
+  final bool _confirmedSelection = false;
 
   @override
   void initState() {

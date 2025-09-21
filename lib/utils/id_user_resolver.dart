@@ -25,7 +25,7 @@ Future<String?> resolveUserId(
   }
 
   if (context != null) {
-    await auth.tryRestoreSession(context);
+    await auth.tryRestoreSession(context, silent: true);
     final restored = auth.currentUser?.idUser;
     if (restored != null && restored.isNotEmpty) {
       return restored;

@@ -381,16 +381,9 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           decoration: BoxDecoration(
-            color: selectionMode && isSelected
-                ? AppColors.backgroundColor
-                : Colors.white,
+            color: Colors.white,
             border: Border(
-              left: BorderSide(
-                color: selectionMode && isSelected
-                    ? AppColors.secondaryColor
-                    : AppColors.primaryColor,
-                width: 5,
-              ),
+              left: const BorderSide(color: AppColors.primaryColor, width: 5),
               top: const BorderSide(color: AppColors.primaryColor, width: 1),
               right: const BorderSide(color: AppColors.primaryColor, width: 1),
               bottom: const BorderSide(color: AppColors.primaryColor, width: 1),
@@ -578,7 +571,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
                   child: CircleAvatar(
                     radius: 18,
                     backgroundColor: isSelected
-                        ? AppColors.primaryColor
+                        ? AppColors.succesColor
                         : AppColors.textDefaultColor.withAlpha(
                             (0.3 * 255).round(),
                           ),

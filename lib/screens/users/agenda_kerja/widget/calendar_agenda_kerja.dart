@@ -86,7 +86,9 @@ class _CalendarAgendaKerjaState extends State<CalendarAgendaKerja> {
   Widget build(BuildContext context) {
     return Consumer<AgendaKerjaProvider>(
       builder: (context, provider, _) {
-        _syncWithProvider(provider.currentDate);
+        if (!provider.loading) {
+          _syncWithProvider(provider.currentDate);
+        }
         final events = _groupEvents(provider.items);
         final selected = _selectedDay;
 

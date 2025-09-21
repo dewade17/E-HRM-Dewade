@@ -15,6 +15,9 @@ class AgendaKerjaProvider extends ChangeNotifier {
   bool deleting = false;
   final Set<String> _selectedAgendaKerjaIds = <String>{};
 
+  int _fetchTokenCounter = 0;
+  int _activeFetchToken = 0;
+
   String? error;
   String? message;
 
@@ -356,6 +359,9 @@ class AgendaKerjaProvider extends ChangeNotifier {
     int? perPage,
     bool append = false,
   }) async {
+    final int token = ++_fetchTokenCounter;
+    _activeFetchToken = token;
+
     var perPageValue = perPage ?? this.perPage;
     if (perPageValue <= 0) {
       perPageValue = this.perPage > 0 ? this.perPage : 20;
@@ -429,6 +435,10 @@ class AgendaKerjaProvider extends ChangeNotifier {
         metaValue = Meta.fromJson(Map<String, dynamic>.from(metaRaw));
       }
 
+      if (token != _activeFetchToken) {
+        return false;
+      }
+
       items = append ? <Data>[...items, ...mapped] : mapped;
       meta = metaValue;
       _userId = effectiveUserId;
@@ -452,13 +462,18 @@ class AgendaKerjaProvider extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      message = null;
-      error = e.toString();
-      notifyListeners();
+      if (token == _activeFetchToken) {
+        message = null;
+        error = e.toString();
+        notifyListeners();
+      }
 
       return false;
     } finally {
-      _setLoading(false);
+      if (token == _activeFetchToken) {
+        _activeFetchToken = 0;
+        _setLoading(false);
+      }
     }
   }
 

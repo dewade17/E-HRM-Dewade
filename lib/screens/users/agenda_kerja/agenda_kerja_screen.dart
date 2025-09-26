@@ -1,7 +1,9 @@
 // screens/users/agenda_kerja/agenda_kerja_screen.dart
 import 'dart:math' as math;
+import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/widget/calendar_agenda_kerja.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/widget/content_agenda_kerja.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -21,26 +23,34 @@ class AgendaKerjaScreen extends StatefulWidget {
 }
 
 class _AgendaKerjaScreenState extends State<AgendaKerjaScreen> {
-  final bool _confirmedSelection = false;
+  bool _selectionConfirmed = false;
+  bool _didInitDependencies = false;
+  late AgendaKerjaProvider _agendaProvider;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitDependencies) return;
+    _didInitDependencies = true;
+    _agendaProvider = Provider.of<AgendaKerjaProvider>(context, listen: false);
     if (widget.selectionMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final provider = context.read<AgendaKerjaProvider>();
-        provider.replaceAgendaSelection(widget.initialSelection);
+        _agendaProvider.replaceAgendaSelection(widget.initialSelection);
       });
     }
   }
 
   @override
   void dispose() {
-    if (widget.selectionMode && !_confirmedSelection) {
-      final provider = Provider.of<AgendaKerjaProvider>(context, listen: false);
-      provider.replaceAgendaSelection(widget.initialSelection);
+    if (widget.selectionMode && !_selectionConfirmed) {
+      _agendaProvider.replaceAgendaSelection(widget.initialSelection);
     }
     super.dispose();
+  }
+
+  void _handleConfirmSelection(List<String> selectedIds) {
+    _selectionConfirmed = true;
+    Navigator.of(context).pop(List<String>.from(selectedIds));
   }
 
   @override
@@ -101,6 +111,62 @@ class _AgendaKerjaScreenState extends State<AgendaKerjaScreen> {
               ),
             ),
           ),
+          if (widget.selectionMode)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 16,
+              child: SafeArea(
+                top: false,
+                left: false,
+                right: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Consumer<AgendaKerjaProvider>(
+                    builder: (context, provider, _) {
+                      final selectedIds = provider.selectedAgendaKerjaIds;
+                      final hasSelection = selectedIds.isNotEmpty;
+
+                      return SizedBox(
+                        width: double.infinity,
+                        child: Card(
+                          elevation: 6,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          color: hasSelection
+                              ? AppColors.textColor
+                              : AppColors.textColor.withOpacity(0.6),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: hasSelection
+                                ? () => _handleConfirmSelection(selectedIds)
+                                : null,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: Text(
+                                  'Pilih',
+                                  style: GoogleFonts.poppins(
+                                    textStyle: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: hasSelection
+                                          ? AppColors.textDefaultColor
+                                          : AppColors.hintColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

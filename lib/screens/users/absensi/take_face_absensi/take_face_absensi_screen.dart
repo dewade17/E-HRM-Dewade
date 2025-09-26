@@ -65,10 +65,10 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
   double _minZoom = 1.0;
   double _maxZoom = 1.0;
   double _currentZoom = 1.0;
-  double _baseZoomOnScaleStart = 1.0;
+  final double _baseZoomOnScaleStart = 1.0;
 
   // Simpan rasio & apakah kamera depan
-  double _previewAspectRatio = 3 / 4;
+  final double _previewAspectRatio = 3 / 4;
 
   // Simpan apakah kamera depan
   bool _isFront = false;

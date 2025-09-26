@@ -14,7 +14,7 @@ class HomeContent extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: () {
-            Navigator.pushNamed(context, '/agenda-kerja');
+            Navigator.pushNamed(context, '/kunjungan-klien');
           },
           child: Column(
             children: [

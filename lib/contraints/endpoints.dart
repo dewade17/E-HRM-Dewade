@@ -1,6 +1,6 @@
 class Endpoints {
   static const String baseURL = "https://7qdb4npf-3000.asse.devtunnels.ms/api";
-  static const String faceBaseURL = "https://f54ldwpd-8000.asse.devtunnels.ms";
+  static const String faceBaseURL = "https://7qdb4npf-8000.asse.devtunnels.ms";
 
   //auth
   static const String login = "$baseURL/mobile/auth/login";
@@ -16,6 +16,16 @@ class Endpoints {
 
   //departements
   static const String departements = "$baseURL/mobile/departements";
+
+  //kunjungan
+  static const String masterDataKunjungan =
+      "$baseURL/admin/master-data-kunjungan";
+  static String masterDataKunjunganDetail(String id) =>
+      "$masterDataKunjungan/$id";
+
+  static const String kunjunganKlien = "$baseURL/mobile/kunjungan-klien";
+  static String kunjunganKlienDetail(String id) => "$kunjunganKlien/$id";
+  static String kunjunganKlienSubmit(String id) => "$kunjunganKlien/$id/submit-kunjungan";
 
   //getuser
   static const String users = "$baseURL/mobile/users";

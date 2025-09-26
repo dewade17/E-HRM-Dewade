@@ -32,7 +32,7 @@ class ApiService {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
-      print("API Error [${res.statusCode}]: ${res.body}");
+      print("API Error FETCH DATA [${res.statusCode}]: ${res.body}");
       throw Exception('Failed to load data from $url');
     }
   }
@@ -203,7 +203,7 @@ class ApiService {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
-      print("API Error [${res.statusCode}]: $body");
+      print("API Error POSTFORM [${res.statusCode}]: $body");
       throw Exception('Failed to post form data');
     }
   }
@@ -233,7 +233,7 @@ class ApiService {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
-      print("API Error [${res.statusCode}]: $body");
+      print("API Error PUTFORM [${res.statusCode}]: $body");
       throw Exception('Failed to update form data');
     }
   }
@@ -261,7 +261,7 @@ class ApiService {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
-      print("API Error [${res.statusCode}]: $body");
+      print("API Error DELETE [${res.statusCode}]: $body");
       throw Exception('Failed to delete with form data');
     }
   }

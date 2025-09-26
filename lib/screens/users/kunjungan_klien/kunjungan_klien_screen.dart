@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:e_hrm/screens/users/kunjungan_klien/widget/calendar_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/widget/content_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/widget/header_kunjungan.dart';
 import 'package:flutter/material.dart';
 
 class KunjunganKlienScreen extends StatefulWidget {
@@ -55,14 +58,24 @@ class _KunjunganKlienScreenState extends State<KunjunganKlienScreen> {
               right: false,
               child: SingleChildScrollView(
                 // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 5, 0, 24),
+                padding: const EdgeInsets.fromLTRB(0, 80, 0, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [Text("data")],
+                  children: [
+                    Padding(
+                      // Beri jarak 16 pixel di kiri dan kanan
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: const CalendarKunjungan(),
+                    ),
+
+                    ContentKunjungan(),
+                  ],
                 ),
               ),
             ),
           ),
+
+          const Positioned(top: 40, left: 10, child: HeaderKunjungan()),
         ],
       ),
     );

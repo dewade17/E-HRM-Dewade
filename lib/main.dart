@@ -2,6 +2,7 @@ import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/auth/reset_password_provider.dart';
 import 'package:e_hrm/providers/departements/departements_provider.dart';
@@ -13,6 +14,7 @@ import 'package:e_hrm/screens/auth/reset_password/reset_password_screen.dart';
 import 'package:e_hrm/screens/opening/opening_screen.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/agenda_kerja_screen.dart';
 import 'package:e_hrm/screens/users/home/home_screen.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/kunjungan_klien_screen.dart';
 import 'package:e_hrm/screens/users/profile/profile_screen.dart';
 import 'package:e_hrm/services/auth_wrapper.dart';
 import 'package:e_hrm/utils/app_theme.dart';
@@ -49,6 +51,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FaceEnrollProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => AbsensiProvider()),
         ChangeNotifierProvider(create: (_) => ApproversProvider()),
+        ChangeNotifierProvider(create: (_) => KategoriKunjunganProvider()),
         ChangeNotifierProvider(create: (_) => ShiftKerjaRealtimeProvider()),
         ChangeNotifierProvider(create: (_) => AgendaProvider()),
       ],
@@ -70,6 +73,8 @@ class MyApp extends StatelessWidget {
             return AuthWrapper(child: FaceEnrollScreen(userId: userId));
           },
           '/agenda-kerja': (context) => AuthWrapper(child: AgendaKerjaScreen()),
+          '/kunjungan-klien': (context) =>
+              AuthWrapper(child: KunjunganKlienScreen()),
         },
       ),
     );

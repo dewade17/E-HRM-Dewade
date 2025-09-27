@@ -14,7 +14,7 @@ class FormEditKunjungan extends StatefulWidget {
 }
 
 class _FormEditKunjunganState extends State<FormEditKunjungan> {
-    final formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
 
   // Tetap gunakan controller agar nilai mudah diambil saat submit,
   // tapi TIDAK kita tampilkan sebagai TextField.
@@ -22,7 +22,7 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
   final _lngC = TextEditingController();
 
   final deskripsiControllerkunjungan = TextEditingController();
-  final calendarControllerkunjungan = TextEditingController();
+
   int _wordCount = 0;
 
   TimeOfDay? _startTime;
@@ -42,7 +42,6 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
     _latC.dispose();
     _lngC.dispose();
     deskripsiControllerkunjungan.dispose();
-    calendarControllerkunjungan.dispose();
     super.dispose();
   }
 
@@ -96,6 +95,7 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final kategoriProvider = context.watch<KategoriKunjunganProvider>();

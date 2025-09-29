@@ -1,5 +1,4 @@
 import 'package:e_hrm/providers/auth/auth_provider.dart'; // hanya untuk logout
-import 'package:e_hrm/providers/users/users_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -30,7 +29,7 @@ class _HeaderHomeState extends State<HeaderHome> {
 
     // Fetch detail HANYA lewat UserDetailProvider
     final detail = context.read<UserDetailProvider>();
-    if (detail.user == null || detail.user!.idUser != id) {
+    if (detail.user == null || detail.user!.user.idUser != id) {
       await detail.fetchById(id);
     }
   }

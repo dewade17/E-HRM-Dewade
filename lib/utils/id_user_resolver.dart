@@ -19,14 +19,14 @@ Future<String?> resolveUserId(
   AuthProvider auth, {
   BuildContext? context,
 }) async {
-  final current = auth.currentUser?.idUser;
+  final current = auth.currentUser?.user.idUser;
   if (current != null && current.isNotEmpty) {
     return current;
   }
 
   if (context != null) {
     await auth.tryRestoreSession(context, silent: true);
-    final restored = auth.currentUser?.idUser;
+    final restored = auth.currentUser?.user.idUser;
     if (restored != null && restored.isNotEmpty) {
       return restored;
     }

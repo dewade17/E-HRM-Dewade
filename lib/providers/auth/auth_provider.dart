@@ -95,9 +95,9 @@ class AuthProvider extends ChangeNotifier {
 
       // 4) Ambil profil private
       final me = await _api.fetchDataPrivate(Endpoints.getdataprivate);
-      final userJson = (me['user'] ?? me) as Map<String, dynamic>;
-      _currentUser = Getdataprivate.fromJson(userJson);
-      await _persistMinimalUserFields(userJson);
+      final dataPrivate = Getdataprivate.fromJson(me);
+      _currentUser = dataPrivate;
+      await _persistMinimalUserFields(dataPrivate.user.toJson());
       notifyListeners();
 
       // 5) Feedback
@@ -110,7 +110,7 @@ class AuthProvider extends ChangeNotifier {
 
       // 6) Cek enrol wajah via GetFaceProvider (tanpa pakai flag lokal)
       if (context.mounted) {
-        final uid = _currentUser?.idUser;
+        final uid = _currentUser?.user.idUser;
         if (uid != null) {
           final getFaceProvider = GetFaceProvider(_api);
           try {
@@ -142,7 +142,7 @@ class AuthProvider extends ChangeNotifier {
 
       // 7) Navigasi by role
       if (!context.mounted) return;
-      final role = (_currentUser?.role ?? '').toUpperCase();
+      final role = (_currentUser?.user.role ?? '').toUpperCase();
       String targetRoute = '/login';
       if (role == 'KARYAWAN' ||
           role == 'HR' ||
@@ -193,9 +193,9 @@ class AuthProvider extends ChangeNotifier {
       _accessToken = token;
 
       final me = await _api.fetchDataPrivate(Endpoints.getdataprivate);
-      final userJson = (me['user'] ?? me) as Map<String, dynamic>;
-      _currentUser = Getdataprivate.fromJson(userJson);
-      await _persistMinimalUserFields(userJson);
+      final dataPrivate = Getdataprivate.fromJson(me);
+      _currentUser = dataPrivate;
+      await _persistMinimalUserFields(dataPrivate.user.toJson());
       _notify(silent: silent);
     } catch (_) {
       await _clearSession(silent: silent);
@@ -206,9 +206,9 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> reloadProfile() async {
     final me = await _api.fetchDataPrivate(Endpoints.getdataprivate);
-    final userJson = (me['user'] ?? me) as Map<String, dynamic>;
-    _currentUser = Getdataprivate.fromJson(userJson);
-    await _persistMinimalUserFields(userJson);
+    final dataPrivate = Getdataprivate.fromJson(me);
+    _currentUser = dataPrivate;
+    await _persistMinimalUserFields(dataPrivate.user.toJson());
     notifyListeners();
   }
 

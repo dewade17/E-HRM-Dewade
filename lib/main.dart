@@ -9,7 +9,7 @@ import 'package:e_hrm/providers/departements/departements_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_provider.dart';
 import 'package:e_hrm/providers/location/location_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
-import 'package:e_hrm/providers/users/users_provider.dart';
+import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/screens/auth/login/login_screen.dart';
 import 'package:e_hrm/screens/auth/reset_password/reset_password_screen.dart';
 import 'package:e_hrm/screens/opening/opening_screen.dart';

@@ -1,11 +1,12 @@
 // lib/screens/users/kunjungan_klien/create_kunjungan_klien/create_form_kunjungan.dart
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
+import 'package:e_hrm/providers/kunjungan/kunjungan_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget/mark_me_map.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget/recipient_kunjungan.dart';
-import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class CreateFormKunjungan extends StatefulWidget {
   const CreateFormKunjungan({super.key});
@@ -26,9 +27,6 @@ class _CreateFormKunjunganState extends State<CreateFormKunjungan> {
   final calendarControllerkunjungan = TextEditingController();
   int _wordCount = 0;
 
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
-
   @override
   void initState() {
     super.initState();
@@ -43,30 +41,24 @@ class _CreateFormKunjunganState extends State<CreateFormKunjungan> {
     _latC.dispose();
     _lngC.dispose();
     deskripsiControllerkunjungan.dispose();
-    calendarControllerkunjungan.dispose();
     super.dispose();
   }
 
-  String get _formatTimeRange {
-    final start = _startTime;
-    final end = _endTime;
-    if (start == null || end == null) return '';
-    final localizations = MaterialLocalizations.of(context);
-    return '${localizations.formatTimeOfDay(start, alwaysUse24HourFormat: true)}'
-        ' - ${localizations.formatTimeOfDay(end, alwaysUse24HourFormat: true)}';
-  }
-
-  void _onTimeChanged(TimeOfDay? start, TimeOfDay? end) {
+  void _updateWordCount(String text) {
     setState(() {
-      _startTime = start;
-      _endTime = end;
+      if (text.trim().isEmpty) {
+        _wordCount = 0;
+      } else {
+        _wordCount = text.trim().split(RegExp(r'\s+')).length;
+      }
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!formKey.currentState!.validate()) return;
 
     final kategoriProvider = context.read<KategoriKunjunganProvider>();
+    final kunjunganProvider = context.read<KunjunganProvider>();
     final selectedKategori = kategoriProvider.selectedItem;
     if (selectedKategori == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -76,35 +68,55 @@ class _CreateFormKunjunganState extends State<CreateFormKunjungan> {
     }
 
     // Di titik ini, _latC.text dan _lngC.text sudah terisi oleh MarkMeMap.
-    final lat = _latC.text;
-    final lng = _lngC.text;
+    final lat = double.tryParse(_latC.text);
+    final lng = double.tryParse(_lngC.text);
+    if (lat == null || lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Koordinat tidak valid. Silakan tandai ulang.'),
+        ),
+      );
+      return;
+    }
     final deskripsi = deskripsiControllerkunjungan.text.trim();
 
-    // TODO: panggil service submit data kunjungan klien di sini.
-    // contoh:
-    // context.read<KunjunganProvider>().create(
-    //   lat: lat,
-    //   lng: lng,
-    //   deskripsi: deskripsi,
-    //   ...
-    // );
+    final now = DateTime.now();
+    final tanggal = DateTime(now.year, now.month, now.day);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Terkirim: $lat, $lng - ${selectedKategori.kategoriKunjungan} - $deskripsi',
-        ),
-      ),
-    );
+    final result = await kunjunganProvider.create({
+      'id_master_data_kunjungan': selectedKategori.idMasterDataKunjungan,
+      'deskripsi': deskripsi,
+      'start_latitude': lat,
+      'start_longitude': lng,
+      'tanggal': tanggal,
+      'jam_mulai': now,
+      'jam_selesai': null,
+    });
+
+    if (!mounted) return;
+
+    if (result != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kunjungan berhasil dibuat.')),
+      );
+      Navigator.of(context).pop();
+    } else {
+      final message = kunjunganProvider.lastMessage ?? kunjunganProvider.error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message ?? 'Gagal membuat kunjungan.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final kategoriProvider = context.watch<KategoriKunjunganProvider>();
+    final kunjunganProvider = context.watch<KunjunganProvider>();
     final kategoriItems = kategoriProvider.items;
     final selectedKategoriId = kategoriProvider.selectedId;
     final kategoriLoading = kategoriProvider.isLoading && kategoriItems.isEmpty;
     final kategoriError = kategoriProvider.error;
+    final isSaving = kunjunganProvider.isSaving;
 
     return Form(
       key: formKey,
@@ -295,18 +307,8 @@ class _CreateFormKunjunganState extends State<CreateFormKunjungan> {
                         controller: deskripsiControllerkunjungan,
                         maxLines: 3,
                         // onChaged tetap diperlukan untuk menghitung kata secara internal
-                        onChanged: (text) {
-                          setState(() {
-                            if (text.trim().isEmpty) {
-                              _wordCount = 0;
-                            } else {
-                              _wordCount = text
-                                  .trim()
-                                  .split(RegExp(r'\s+'))
-                                  .length;
-                            }
-                          });
-                        },
+                        onChanged: _updateWordCount,
+
                         // Decoration dikembalikan persis seperti kode asli Anda
                         decoration: const InputDecoration(
                           hintText: 'Tulis deskripsi...',
@@ -327,7 +329,7 @@ class _CreateFormKunjunganState extends State<CreateFormKunjungan> {
                             return 'Masukkan deskripsi';
                           }
                           // 2. Cek jika kurang dari 50 kata
-                          if (_wordCount < 50) {
+                          if (_wordCount < 15) {
                             return 'Deskripsi harus minimal 50 kata. Saat ini: $_wordCount kata.';
                           }
                           // 3. Jika valid
@@ -342,24 +344,29 @@ class _CreateFormKunjunganState extends State<CreateFormKunjungan> {
           ),
 
           const SizedBox(height: 25),
-
           GestureDetector(
-            onTap: _submit,
+            onTap: isSaving ? null : _submit,
             child: SizedBox(
               child: Card(
                 color: AppColors.backgroundColor,
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                  child: Text(
-                    "Simpan Kunjungan",
-                    style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textDefaultColor,
-                      ),
-                    ),
-                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : Text(
+                          "Simpan Kunjungan",
+                          style: GoogleFonts.poppins(
+                            textStyle: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textDefaultColor,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),

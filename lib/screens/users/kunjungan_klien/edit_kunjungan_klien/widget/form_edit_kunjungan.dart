@@ -1,13 +1,17 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/kunjungan/kunjungan.dart' as dto;
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget/recipient_kunjungan.dart';
+import 'package:e_hrm/providers/kunjungan/kunjungan_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget/mark_me_map.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/widget/recipient_kunjungan.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class FormEditKunjungan extends StatefulWidget {
-  const FormEditKunjungan({super.key});
+  final dto.Data item;
+
+  const FormEditKunjungan({super.key, required this.item});
 
   @override
   State<FormEditKunjungan> createState() => _FormEditKunjunganState();
@@ -25,16 +29,24 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
 
   int _wordCount = 0;
 
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<KategoriKunjunganProvider>().ensureLoaded();
+      final kategoriProvider = context.read<KategoriKunjunganProvider>();
+      kategoriProvider.ensureLoaded().then((_) {
+        if (!mounted) return;
+        kategoriProvider.setSelectedId(widget.item.idMasterDataKunjungan);
+      });
     });
+    final item = widget.item;
+    _latC.text = item.startLatitude;
+    _lngC.text = item.startLongitude;
+    deskripsiControllerkunjungan.text = item.deskripsi;
+    _wordCount = deskripsiControllerkunjungan.text.trim().isEmpty
+        ? 0
+        : deskripsiControllerkunjungan.text.trim().split(RegExp(r'\s+')).length;
   }
 
   @override
@@ -45,26 +57,21 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
     super.dispose();
   }
 
-  String get _formatTimeRange {
-    final start = _startTime;
-    final end = _endTime;
-    if (start == null || end == null) return '';
-    final localizations = MaterialLocalizations.of(context);
-    return '${localizations.formatTimeOfDay(start, alwaysUse24HourFormat: true)}'
-        ' - ${localizations.formatTimeOfDay(end, alwaysUse24HourFormat: true)}';
-  }
-
-  void _onTimeChanged(TimeOfDay? start, TimeOfDay? end) {
+  void _updateWordCount(String text) {
     setState(() {
-      _startTime = start;
-      _endTime = end;
+      if (text.trim().isEmpty) {
+        _wordCount = 0;
+      } else {
+        _wordCount = text.trim().split(RegExp(r'\s+')).length;
+      }
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!formKey.currentState!.validate()) return;
 
     final kategoriProvider = context.read<KategoriKunjunganProvider>();
+    final kunjunganProvider = context.read<KunjunganProvider>();
     final selectedKategori = kategoriProvider.selectedItem;
     if (selectedKategori == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -74,35 +81,49 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
     }
 
     // Di titik ini, _latC.text dan _lngC.text sudah terisi oleh MarkMeMap.
-    final lat = _latC.text;
-    final lng = _lngC.text;
+    final lat = double.tryParse(_latC.text);
+    final lng = double.tryParse(_lngC.text);
+    if (lat == null || lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Koordinat tidak valid. Silakan tandai ulang.'),
+        ),
+      );
+      return;
+    }
     final deskripsi = deskripsiControllerkunjungan.text.trim();
 
-    // TODO: panggil service submit data kunjungan klien di sini.
-    // contoh:
-    // context.read<KunjunganProvider>().create(
-    //   lat: lat,
-    //   lng: lng,
-    //   deskripsi: deskripsi,
-    //   ...
-    // );
+    final result = await kunjunganProvider.update(widget.item.idKunjungan, {
+      'id_master_data_kunjungan': selectedKategori.idMasterDataKunjungan,
+      'deskripsi': deskripsi,
+      'start_latitude': lat,
+      'start_longitude': lng,
+    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Terkirim: $lat, $lng - ${selectedKategori.kategoriKunjungan} - $deskripsi',
-        ),
-      ),
-    );
+    if (!mounted) return;
+
+    if (result != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kunjungan berhasil diperbarui.')),
+      );
+      Navigator.of(context).pop();
+    } else {
+      final message = kunjunganProvider.lastMessage ?? kunjunganProvider.error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message ?? 'Gagal memperbarui kunjungan.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final kategoriProvider = context.watch<KategoriKunjunganProvider>();
+    final kunjunganProvider = context.watch<KunjunganProvider>();
     final kategoriItems = kategoriProvider.items;
     final selectedKategoriId = kategoriProvider.selectedId;
     final kategoriLoading = kategoriProvider.isLoading && kategoriItems.isEmpty;
     final kategoriError = kategoriProvider.error;
+    final isMutating = kunjunganProvider.isMutating(widget.item.idKunjungan);
 
     return Form(
       key: formKey,
@@ -148,6 +169,7 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
               ],
             ),
           ),
+          const SizedBox(height: 20),
           Align(
             alignment: Alignment.centerLeft,
             child: Padding(
@@ -293,18 +315,7 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
                         controller: deskripsiControllerkunjungan,
                         maxLines: 3,
                         // onChaged tetap diperlukan untuk menghitung kata secara internal
-                        onChanged: (text) {
-                          setState(() {
-                            if (text.trim().isEmpty) {
-                              _wordCount = 0;
-                            } else {
-                              _wordCount = text
-                                  .trim()
-                                  .split(RegExp(r'\s+'))
-                                  .length;
-                            }
-                          });
-                        },
+                        onChanged: _updateWordCount,
                         // Decoration dikembalikan persis seperti kode asli Anda
                         decoration: const InputDecoration(
                           hintText: 'Tulis deskripsi...',
@@ -342,22 +353,28 @@ class _FormEditKunjunganState extends State<FormEditKunjungan> {
           const SizedBox(height: 25),
 
           GestureDetector(
-            onTap: _submit,
+            onTap: isMutating ? null : _submit,
             child: SizedBox(
               child: Card(
                 color: AppColors.backgroundColor,
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                  child: Text(
-                    "Simpan Kunjungan",
-                    style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textDefaultColor,
-                      ),
-                    ),
-                  ),
+                  child: isMutating
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : Text(
+                          "Simpan Kunjungan",
+                          style: GoogleFonts.poppins(
+                            textStyle: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textDefaultColor,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),

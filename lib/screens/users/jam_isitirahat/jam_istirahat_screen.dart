@@ -1,19 +1,17 @@
 import 'dart:math' as math;
 
-import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/screens/users/profile/widget/form_profile.dart';
-import 'package:e_hrm/screens/users/profile/widget/half_oval_painter_profile.dart';
-import 'package:e_hrm/screens/users/profile/widget/header_profile.dart';
+import 'package:e_hrm/screens/users/jam_isitirahat/widget/content_jam_istirahat.dart';
+import 'package:e_hrm/screens/users/jam_isitirahat/widget/header_jam_istirahat.dart';
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class JamIstirahatScreen extends StatefulWidget {
+  const JamIstirahatScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<JamIstirahatScreen> createState() => _JamIstirahatScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _JamIstirahatScreenState extends State<JamIstirahatScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -23,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // BG ikon samar di tengah
@@ -50,15 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: double.infinity,
-              height: 300,
-              child: const BlurHalfOvalHeader(height: 240, sigma: 0),
-            ),
-          ),
-          // === Konten utama (scrollable) ===
+
           Positioned.fill(
             child: SafeArea(
               // top/bottom tetap aman, kiri/kanan edge-to-edge
@@ -66,16 +57,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               right: false,
               child: SingleChildScrollView(
                 // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 80, 0, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [SizedBox(height: 100), FormProfile()],
+                padding: const EdgeInsets.fromLTRB(15, 120, 15, 24),
+                child: Stack(
+                  //saya ingin
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [ContentJamIstirahat()],
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-
-          const Positioned(top: 40, left: 10, child: HeaderProfile()),
+          Positioned(top: 40, left: 10, child: HeaderJamIstirahat()),
         ],
       ),
     );

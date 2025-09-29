@@ -1,142 +1,76 @@
-class Users {
-  // Wajib
-  final String idUser;
-  final String namaPengguna;
-  final String email;
-  final String role;
+import 'dart:convert';
 
-  // Boleh null
-  final String? kontak;
-  final String? agama;
-  final String? fotoProfilUser;
-  final DateTime? tanggalLahir;
-  final String? idDepartement;
-  final String? idLocation;
-  final Departement? departement;
-  final Kantor? kantor;
+Profile profileFromJson(String str) => Profile.fromJson(json.decode(str));
 
-  // Tanggal sistem: kita jaga supaya TIDAK null (fallback ke now())
-  final DateTime createdAt;
-  final DateTime updatedAt;
+String profileToJson(Profile data) => json.encode(data.toJson());
 
-  Users({
+class Profile {
+  Data data;
+
+  Profile({required this.data});
+
+  factory Profile.fromJson(Map<String, dynamic> json) =>
+      Profile(data: Data.fromJson(json["data"]));
+
+  Map<String, dynamic> toJson() => {"data": data.toJson()};
+}
+
+class Data {
+  String idUser;
+  String namaPengguna;
+  String email;
+  dynamic alamatDomisili;
+  dynamic alamatKtp;
+  dynamic kontak;
+  dynamic agama;
+  dynamic tanggalLahir;
+  dynamic golonganDarah;
+  dynamic nomorRekening;
+  dynamic jenisBank;
+  dynamic fotoProfilUser;
+
+  Data({
     required this.idUser,
     required this.namaPengguna,
     required this.email,
-    required this.role,
-    this.kontak,
-    this.agama,
-    this.fotoProfilUser,
-    this.tanggalLahir,
-    this.idDepartement,
-    this.idLocation,
-    required this.createdAt,
-    required this.updatedAt,
-    this.departement,
-    this.kantor,
+    required this.alamatDomisili,
+    required this.alamatKtp,
+    required this.kontak,
+    required this.agama,
+    required this.tanggalLahir,
+    required this.golonganDarah,
+    required this.nomorRekening,
+    required this.jenisBank,
+    required this.fotoProfilUser,
   });
 
-  // Helpers pembersih nilai
-  static String? _s(dynamic v) {
-    if (v == null) return null;
-    final s = v.toString().trim();
-    if (s.isEmpty || s.toLowerCase() == 'null') return null;
-    return s;
-  }
-
-  static DateTime? _d(dynamic v) {
-    if (v == null) return null;
-    return DateTime.tryParse(v.toString());
-  }
-
-  factory Users.fromJson(Map<String, dynamic> json) {
-    // Ambil tanggal sistem dengan fallback aman
-    final created =
-        _d(json['created_at']) ?? _d(json['createdAt']) ?? DateTime.now();
-    final updated = _d(json['updated_at']) ?? _d(json['updatedAt']) ?? created;
-
-    return Users(
-      idUser: (json['id_user'] ?? json['idUser']).toString(),
-      namaPengguna: (json['nama_pengguna'] ?? json['namaPengguna']).toString(),
-      email: (json['email']).toString(),
-      role: (json['role']).toString(),
-
-      kontak: _s(json['kontak']),
-      agama: _s(json['agama']),
-      // bersihkan "" / "null" jadi null
-      fotoProfilUser: _s(json['foto_profil_user']),
-      tanggalLahir: _d(json['tanggal_lahir']),
-
-      idDepartement: _s(json['id_departement']),
-      idLocation: _s(json['id_location']),
-
-      createdAt: created,
-      updatedAt: updated,
-
-      departement: json['departement'] == null
-          ? null
-          : Departement.fromJson(
-              Map<String, dynamic>.from(json['departement']),
-            ),
-      kantor: json['kantor'] == null
-          ? null
-          : Kantor.fromJson(Map<String, dynamic>.from(json['kantor'])),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'id_user': idUser,
-    'nama_pengguna': namaPengguna,
-    'email': email,
-    'role': role,
-
-    if (kontak != null) 'kontak': kontak,
-    if (agama != null) 'agama': agama,
-    'foto_profil_user': fotoProfilUser,
-    'tanggal_lahir': tanggalLahir?.toIso8601String(),
-
-    'id_departement': idDepartement,
-    'id_location': idLocation,
-
-    'created_at': createdAt.toIso8601String(),
-    'updated_at': updatedAt.toIso8601String(),
-
-    'departement': departement?.toJson(),
-    'kantor': kantor?.toJson(),
-  };
-}
-
-class Departement {
-  final String idDepartement;
-  final String namaDepartement;
-
-  Departement({required this.idDepartement, required this.namaDepartement});
-
-  factory Departement.fromJson(Map<String, dynamic> json) => Departement(
-    idDepartement: (json['id_departement'] ?? json['idDepartement']).toString(),
-    namaDepartement: (json['nama_departement'] ?? json['namaDepartement'])
-        .toString(),
+  factory Data.fromJson(Map<String, dynamic> json) => Data(
+    idUser: json["id_user"],
+    namaPengguna: json["nama_pengguna"],
+    email: json["email"],
+    alamatDomisili: json["alamat_domisili"],
+    alamatKtp: json["alamat_ktp"],
+    kontak: json["kontak"],
+    agama: json["agama"],
+    tanggalLahir: json["tanggal_lahir"],
+    golonganDarah: json["golongan_darah"],
+    nomorRekening: json["nomor_rekening"],
+    jenisBank: json["jenis_bank"],
+    fotoProfilUser: json["foto_profil_user"],
   );
 
   Map<String, dynamic> toJson() => {
-    'id_departement': idDepartement,
-    'nama_departement': namaDepartement,
-  };
-}
-
-class Kantor {
-  final String idLocation;
-  final String namaKantor;
-
-  Kantor({required this.idLocation, required this.namaKantor});
-
-  factory Kantor.fromJson(Map<String, dynamic> json) => Kantor(
-    idLocation: (json['id_location'] ?? json['idLocation']).toString(),
-    namaKantor: (json['nama_kantor'] ?? json['namaKantor']).toString(),
-  );
-
-  Map<String, dynamic> toJson() => {
-    'id_location': idLocation,
-    'nama_kantor': namaKantor,
+    "id_user": idUser,
+    "nama_pengguna": namaPengguna,
+    "email": email,
+    "alamat_domisili": alamatDomisili,
+    "alamat_ktp": alamatKtp,
+    "kontak": kontak,
+    "agama": agama,
+    "tanggal_lahir": tanggalLahir,
+    "golongan_darah": golonganDarah,
+    "nomor_rekening": nomorRekening,
+    "jenis_bank": jenisBank,
+    "foto_profil_user": fotoProfilUser,
   };
 }

@@ -1,240 +1,192 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/kunjungan/kunjungan.dart' as dto;
 import 'package:e_hrm/screens/users/kunjungan_klien/detail_kunjungan/widget/visit_timeline_easy_full.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/edit_kunjungan_klien/edit_kunjungan_klien_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
-class ContentDetailKunjungan extends StatefulWidget {
-  const ContentDetailKunjungan({super.key});
+class ContentDetailKunjungan extends StatelessWidget {
+  const ContentDetailKunjungan({super.key, required this.item});
 
-  @override
-  State<ContentDetailKunjungan> createState() => _ContentDetailKunjunganState();
-}
+  final dto.Data item;
 
-class _ContentDetailKunjunganState extends State<ContentDetailKunjungan> {
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String && value.trim().isNotEmpty) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  String _formatCoordinate(dynamic lat, dynamic lng) {
+    if (lat == null || lng == null) return 'Belum tersedia';
+    return 'Lat: ${lat.toString()}, Lng: ${lng.toString()}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      child: Column(
-        children: [
-          SizedBox(height: 20),
-          Padding(
-            padding: EdgeInsets.fromLTRB(0, 0, 20, 0),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: SizedBox(
-                width: 100,
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EditKunjunganKlienScreen(),
+    final endTime = _parseDate(item.jamSelesai);
+    final dateFormatter = DateFormat('dd MMMM yyyy');
+    final timeFormatter = DateFormat('HH.mm');
+    final statusText = endTime == null ? 'Berlangsung' : 'Selesai';
+    final startDateText = dateFormatter.format(item.jamMulai);
+    final startTimeText = timeFormatter.format(item.jamMulai);
+    final endDateText = endTime == null ? '-' : dateFormatter.format(endTime);
+    final endTimeText = endTime == null
+        ? '--:--'
+        : timeFormatter.format(endTime);
+
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: 120,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditKunjunganKlienScreen(
+                        kunjunganId: item.idKunjungan,
                       ),
-                    );
-                  },
-                  child: Card(
-                    color: AppColors.primaryColor,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 9,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.create,
-                            size: 15,
+                    ),
+                  );
+                },
+                child: Card(
+                  color: AppColors.primaryColor,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 9,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.create,
+                          size: 16,
+                          color: AppColors.textColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Edit",
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.textColor,
                           ),
-                          SizedBox(width: 10),
-                          Text(
-                            "Edit",
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textColor,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
           ),
-
-          SizedBox(height: 20),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [AppColors.backgroundColor, AppColors.textColor],
-              ),
-              borderRadius: BorderRadius.all(Radius.circular(10)),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [AppColors.backgroundColor, AppColors.textColor],
             ),
-            width: 350,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        "Kategori: Sosialisasi",
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDefaultColor,
-                        ),
-                      ),
-                    ],
+            borderRadius: const BorderRadius.all(Radius.circular(10)),
+          ),
+          width: 350,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Kategori: ${item.kategori.kategoriKunjungan}",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDefaultColor,
                   ),
-                  Container(
-                    width: 120,
-                    decoration: BoxDecoration(
-                      color: AppColors.textColor,
-                      borderRadius: BorderRadius.all(Radius.circular(5)),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.textColor,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDefaultColor,
                     ),
-                    child: Center(
-                      child: Text(
-                        "Berlangsung ",
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDefaultColor,
-                        ),
-                      ),
-                    ), //jika sudah selesai maka duration yang muncul
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 20),
-          Container(
-            width: 350,
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.primaryColor),
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-            ),
-            // === PERUBAHAN DIMULAI DI SINI ===
-            // 1. Tambahkan satu Padding di sini untuk semua konten di dalamnya
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment
-                    .start, // Atur rata kiri untuk semua anak Column
-                children: [
-                  // Bagian Keterangan
-                  Text(
-                    "Keterangan : ",
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-                  Text(
-                    "Melakukan sosialisasi di SMA 1 Denpasar dengan lima belas kelas XII, program English Course",
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-                  const VisitTimelineEasyFull(
-                    startDateText: '7 September 2025',
-                    startTimeText: '09:30 AM',
-                    startAddress:
-                        'Jl. Hayam Wuruk No.66b, Panjer, Denpasar Selatan, Kota Denpasar, Bali 80239',
-                    endDateText: '7 September 2025',
-                    endTimeText: '11.32 AM',
-                    labelGap: 20,
-                    endAddress:
-                        'Jl. Hayam Wuruk No.66b, Panjer, Denpasar Selatan, Kota Denpasar, Bali 80239',
-                  ),
-
-                  SizedBox(height: 20), // Beri jarak antara dua bagian
-                  // Bagian Bukti Kunjungan
-                  Text(
-                    "Bukti Kunjungan :",
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-
-                  //imagetAseet
-                  // Anda bisa tambahkan widget gambar di sini
-                  SizedBox(height: 30),
-                  Text(
-                    "Status Persetujuan :",
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-                  Card(
-                    color: AppColors.succesColor,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 20,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.person),
-                          SizedBox(width: 20),
-                          Text(
-                            "Ayu HR",
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textDefaultColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Card(
-                    color: AppColors.succesColor,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 20,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.person),
-                          SizedBox(width: 20),
-                          Text(
-                            "Mesy",
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textDefaultColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 30),
-                ],
-              ),
-            ),
-            // === PERUBAHAN SELESAI DI SINI ===
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: 350,
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.primaryColor),
+            borderRadius: const BorderRadius.all(Radius.circular(10)),
           ),
-        ],
-      ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Deskripsi",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDefaultColor,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  item.deskripsi,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textDefaultColor,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                VisitTimelineEasyFull(
+                  startDateText: startDateText,
+                  startTimeText: startTimeText,
+                  startAddress: _formatCoordinate(
+                    item.startLatitude,
+                    item.startLongitude,
+                  ),
+                  endDateText: endDateText,
+                  endTimeText: endTimeText,
+                  labelGap: 20,
+                  endAddress: _formatCoordinate(
+                    item.endLatitude,
+                    item.endLongitude,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

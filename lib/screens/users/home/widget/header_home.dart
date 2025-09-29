@@ -1,8 +1,9 @@
 import 'package:e_hrm/providers/auth/auth_provider.dart'; // hanya untuk logout
+import 'package:e_hrm/providers/profile/profile_provider.dart';
+import 'package:e_hrm/utils/id_user_resolver.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HeaderHome extends StatefulWidget {
   const HeaderHome({super.key});
@@ -15,23 +16,25 @@ class _HeaderHomeState extends State<HeaderHome> {
   @override
   void initState() {
     super.initState();
-    // 1) Ambil id_user dari SharedPreferences
-    // 2) Panggil fetch detail lewat UserDetailProvider
+    // Sinkronkan detail profil berdasarkan id_user aktif
     _loadIdAndFetch();
   }
 
   Future<void> _loadIdAndFetch() async {
-    final prefs = await SharedPreferences.getInstance();
-    final id = (prefs.getString('id_user') ?? '').trim();
-    if (id.isEmpty) return;
-
     if (!mounted) return;
 
-    // Fetch detail HANYA lewat UserDetailProvider
-    final detail = context.read<UserDetailProvider>();
-    if (detail.user == null || detail.user!.user.idUser != id) {
-      await detail.fetchById(id);
+    final auth = context.read<AuthProvider>();
+    final id = await resolveUserId(auth, context: context);
+    if (id == null || id.trim().isEmpty) {
+      return;
     }
+
+    final profileProvider = context.read<ProfileProvider>();
+    if (profileProvider.profile?.idUser == id) {
+      return;
+    }
+
+    await profileProvider.fetchProfile(id);
   }
 
   String _safe(String? s, {String fallback = "-"}) {
@@ -41,11 +44,11 @@ class _HeaderHomeState extends State<HeaderHome> {
 
   @override
   Widget build(BuildContext context) {
-    final detail = context.watch<UserDetailProvider>();
+    final profileProvider = context.watch<ProfileProvider>();
+    final profile = profileProvider.profile;
 
-    // Sumber tampilan: HANYA dari UserDetailProvider
-    final name = _safe(detail.user?.namaPengguna);
-    final dept = _safe(detail.user?.departement?.namaDepartement);
+    final name = _safe(profile?.namaPengguna);
+    final subtitle = _safe(profile?.email);
 
     // Agar teks tidak melebar, beri batas maksimum
     final w = MediaQuery.of(context).size.width;
@@ -67,7 +70,7 @@ class _HeaderHomeState extends State<HeaderHome> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (detail.loading && detail.user == null)
+                    if (profileProvider.loading && profile == null)
                       // Skeleton sementara menunggu fetch detail
                       Container(height: 16, width: 120, color: Colors.black12)
                     else
@@ -82,11 +85,11 @@ class _HeaderHomeState extends State<HeaderHome> {
                         ),
                       ),
                     const SizedBox(height: 2),
-                    if (detail.loading && detail.user == null)
+                    if (profileProvider.loading && profile == null)
                       Container(height: 12, width: 80, color: Colors.black12)
                     else
                       Text(
-                        dept,
+                        subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.right,

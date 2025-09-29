@@ -17,19 +17,10 @@ class HeaderProfile extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 15),
             Text(
-              "Form Edit Kunjungan",
+              "Profiel Karyawan",
               style: GoogleFonts.poppins(
                 fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textColor,
-              ),
-            ),
-            Text(
-              "Silahkan mengedit form data kunjungan",
-              style: GoogleFonts.poppins(
-                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textColor,
               ),

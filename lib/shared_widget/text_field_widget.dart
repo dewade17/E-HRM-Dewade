@@ -2,8 +2,8 @@ import "package:e_hrm/contraints/colors.dart";
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
-class TextFieldKunjungan extends StatefulWidget {
-  const TextFieldKunjungan({
+class TextFieldWidget extends StatefulWidget {
+  const TextFieldWidget({
     super.key,
     required this.label,
     required this.controller,
@@ -78,10 +78,10 @@ class TextFieldKunjungan extends StatefulWidget {
   final AutovalidateMode? autovalidateMode;
 
   @override
-  State<TextFieldKunjungan> createState() => _TextFieldKunjunganState();
+  State<TextFieldWidget> createState() => _TextFieldWidgetState();
 }
 
-class _TextFieldKunjunganState extends State<TextFieldKunjungan> {
+class _TextFieldWidgetState extends State<TextFieldWidget> {
   late bool _obscure;
 
   @override

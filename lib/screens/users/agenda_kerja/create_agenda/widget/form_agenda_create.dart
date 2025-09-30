@@ -1,9 +1,9 @@
-// lib/screens/users/agenda_kerja/edit_agenda/widget/form_agenda_edit.dart
+// lib/screens/users/agenda_kerja/create_agenda/widget/form_agenda.dart
 // ignore_for_file: deprecated_member_use
-
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
+import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
@@ -11,17 +11,16 @@ import 'package:e_hrm/shared_widget/time_picker_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class FormAgendaEdit extends StatefulWidget {
-  const FormAgendaEdit({super.key, required this.agendaKerjaId});
-
-  final String agendaKerjaId;
+class FormAgendaCreate extends StatefulWidget {
+  const FormAgendaCreate({super.key});
 
   @override
-  State<FormAgendaEdit> createState() => _FormAgendaEditState();
+  State<FormAgendaCreate> createState() => _FormAgendaCreateState();
 }
 
-class _FormAgendaEditState extends State<FormAgendaEdit> {
+class _FormAgendaCreateState extends State<FormAgendaCreate> {
   final TextEditingController deskripsiController = TextEditingController();
   final TextEditingController calendarController = TextEditingController();
   final TextEditingController startTimeController = TextEditingController();
@@ -30,19 +29,18 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
 
   String _selectedStatus = _statusOptions.first.value;
   String? _selectedAgendaId;
-  String? _detailAgendaName;
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-
-  bool _initializing = true;
-  String? _loadError;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadDetail();
+      final agendaProvider = context.read<AgendaProvider>();
+      if (!agendaProvider.loading && agendaProvider.items.isEmpty) {
+        agendaProvider.fetch();
+      }
     });
   }
 
@@ -55,65 +53,12 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
     super.dispose();
   }
 
-  Future<void> _loadDetail() async {
-    final agendaProvider = context.read<AgendaProvider>();
-    final agendaKerjaProvider = context.read<AgendaKerjaProvider>();
-
-    setState(() {
-      _initializing = true;
-      _loadError = null;
-    });
-
-    if (!agendaProvider.loading && agendaProvider.items.isEmpty) {
-      await agendaProvider.fetch();
-    }
-
-    final detail = await agendaKerjaProvider.fetchDetail(widget.agendaKerjaId);
-
-    if (!mounted) return;
-
-    if (detail == null) {
-      setState(() {
-        _initializing = false;
-        _loadError =
-            agendaKerjaProvider.error ?? 'Data agenda kerja tidak ditemukan.';
-      });
-      return;
-    }
-
-    final normalizedStatus = _normalizeStatus(detail.status);
-    final selectedDate = detail.startDate ?? detail.endDate;
-    final normalizedDate = selectedDate != null
-        ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day)
-        : null;
-    final startTime = detail.startDate != null
-        ? TimeOfDay(
-            hour: detail.startDate!.hour,
-            minute: detail.startDate!.minute,
-          )
-        : null;
-    final endTime = detail.endDate != null
-        ? TimeOfDay(hour: detail.endDate!.hour, minute: detail.endDate!.minute)
-        : null;
-
-    setState(() {
-      deskripsiController.text = detail.deskripsiKerja;
-      _selectedAgendaId = detail.idAgenda.isNotEmpty ? detail.idAgenda : null;
-      _detailAgendaName = detail.agenda?.namaAgenda;
-      _selectedStatus = normalizedStatus;
-      _selectedDate = normalizedDate;
-      _startTime = startTime;
-      _endTime = endTime;
-      _initializing = false;
-    });
-  }
-
   Future<void> _submit() async {
     final formState = formKey.currentState;
     if (formState == null || !formState.validate()) return;
 
-    if (_selectedDate == null || _startTime == null || _endTime == null) {
-      _showSnackBar('Tanggal dan jam wajib diisi.', true);
+    if (_startTime == null || _endTime == null) {
+      _showSnackBar('Jam mulai dan selesai wajib diisi.', true);
       return;
     }
 
@@ -124,10 +69,19 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       return;
     }
 
+    final auth = context.read<AuthProvider>();
+    final userId = await _ensureUserId(auth);
+    if (!mounted) return;
+
+    if (userId == null || userId.isEmpty) {
+      _showSnackBar('ID pengguna tidak ditemukan. Silakan login ulang.', true);
+      return;
+    }
+
     final provider = context.read<AgendaKerjaProvider>();
-    final updated = await provider.update(
-      widget.agendaKerjaId,
-      idAgenda: _selectedAgendaId,
+    final created = await provider.create(
+      idUser: userId,
+      idAgenda: _selectedAgendaId!,
       deskripsiKerja: deskripsiController.text,
       status: _selectedStatus,
       startDate: startDateTime,
@@ -137,14 +91,30 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
 
     if (!mounted) return;
 
-    final message = provider.message ?? 'Agenda kerja berhasil diperbarui.';
-    final errorMessage = provider.error ?? 'Gagal memperbarui agenda kerja.';
+    final message = provider.message ?? 'Agenda kerja berhasil dibuat.';
+    final errorMessage = provider.error ?? 'Gagal membuat agenda kerja.';
 
-    if (updated != null) {
+    if (created != null) {
       _showSnackBar(message, false);
       Navigator.of(context).pop(true);
     } else {
       _showSnackBar(errorMessage, true);
+    }
+  }
+
+  Future<String?> _ensureUserId(AuthProvider auth) async {
+    final current = auth.currentUser?.user.idUser;
+    if (current != null && current.isNotEmpty) return current;
+
+    await auth.tryRestoreSession(context, silent: true);
+    final restored = auth.currentUser?.user.idUser;
+    if (restored != null && restored.isNotEmpty) return restored;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('id_user');
+    } catch (_) {
+      return null;
     }
   }
 
@@ -167,67 +137,38 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
     final agendaProvider = context.watch<AgendaProvider>();
     final agendaKerjaProvider = context.watch<AgendaKerjaProvider>();
 
-    if (_initializing) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_loadError != null) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(_loadError!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _loadDetail,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Muat ulang'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final dropdownItems = agendaProvider.items
-        .map(
-          (agenda) => DropdownMenuItem<String>(
-            value: agenda.idAgenda,
-            child: Text(agenda.namaAgenda ?? 'Agenda tanpa nama'),
-          ),
-        )
-        .toList();
-
-    if (_selectedAgendaId != null &&
-        dropdownItems.every((item) => item.value != _selectedAgendaId)) {
-      dropdownItems.insert(
-        0,
-        DropdownMenuItem<String>(
-          value: _selectedAgendaId!,
-          child: Text(_detailAgendaName ?? 'Agenda saat ini'),
-        ),
-      );
-    }
-
     return Form(
       key: formKey,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
+            // --- Menggunakan DropdownFieldWidget ---
             DropdownFieldWidget<String>(
               label: 'Agenda',
               value: _selectedAgendaId,
               hintText: 'Pilih agenda...',
               isRequired: true,
-              items: dropdownItems,
+              items: agendaProvider.items
+                  .map(
+                    (agenda) => DropdownMenuItem<String>(
+                      value: agenda.idAgenda,
+                      child: Text(agenda.namaAgenda ?? 'Agenda tanpa nama'),
+                    ),
+                  )
+                  .toList(),
               onChanged: agendaProvider.loading
                   ? null
                   : (val) => setState(() => _selectedAgendaId = val),
             ),
+            if (agendaProvider.loading && agendaProvider.items.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(),
+              ),
             const SizedBox(height: 20),
+
+            // --- Menggunakan TextFieldWidget ---
             TextFieldWidget(
               label: 'Deskripsi Pekerjaan',
               controller: deskripsiController,
@@ -237,14 +178,17 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
               keyboardType: TextInputType.multiline,
             ),
             const SizedBox(height: 20),
+
+            // --- Menggunakan DatePickerFieldWidget ---
             DatePickerFieldWidget(
               label: 'Tanggal Agenda',
               controller: calendarController,
-              initialDate: _selectedDate,
               onDateChanged: (date) => setState(() => _selectedDate = date),
               isRequired: true,
             ),
             const SizedBox(height: 20),
+
+            // --- Menggunakan 2 TimePickerFieldWidget ---
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -252,7 +196,6 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
                   child: TimePickerFieldWidget(
                     label: "Jam Mulai",
                     controller: startTimeController,
-                    initialTime: _startTime,
                     onChanged: (time) => setState(() => _startTime = time),
                     isRequired: true,
                   ),
@@ -262,7 +205,6 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
                   child: TimePickerFieldWidget(
                     label: "Jam Selesai",
                     controller: endTimeController,
-                    initialTime: _endTime,
                     onChanged: (time) => setState(() => _endTime = time),
                     isRequired: true,
                   ),
@@ -270,6 +212,8 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
               ],
             ),
             const SizedBox(height: 20),
+
+            // --- Menggunakan DropdownFieldWidget ---
             DropdownFieldWidget<String>(
               label: 'Status',
               value: _selectedStatus,
@@ -287,6 +231,8 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
               },
             ),
             const SizedBox(height: 30),
+
+            // --- Tombol Submit ---
             GestureDetector(
               onTap: agendaKerjaProvider.saving ? null : _submit,
               child: Card(
@@ -311,7 +257,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
                           ),
                         )
                       : Text(
-                          'Simpan Perubahan',
+                          'Simpan Pekerjaan',
                           style: GoogleFonts.poppins(
                             textStyle: const TextStyle(
                               fontSize: 14,
@@ -327,16 +273,6 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
         ),
       ),
     );
-  }
-
-  String _normalizeStatus(String status) {
-    final normalized = status.trim().toLowerCase();
-    return _statusOptions
-        .firstWhere(
-          (option) => option.value == normalized,
-          orElse: () => _statusOptions.first,
-        )
-        .value;
   }
 }
 

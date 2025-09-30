@@ -114,7 +114,7 @@ class ProfileProvider extends ChangeNotifier {
         response = await _api.putFormDataPrivate(
           endpoint,
           normalized,
-          files: [foto!],
+          files: [foto],
         );
       } else {
         final normalized = _normalizeBody(payload);

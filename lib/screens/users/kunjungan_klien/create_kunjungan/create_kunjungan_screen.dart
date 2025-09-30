@@ -1,16 +1,18 @@
 import 'dart:math' as math;
 
-import 'package:e_hrm/screens/users/kunjungan_klien/rencana_kunjungan/widget/content_rencana_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/widget/form_create_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/widget/half_oval_painter_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/widget/header_create_kunjungan.dart';
 import 'package:flutter/material.dart';
 
-class RencanaKunjunganScreen extends StatefulWidget {
-  const RencanaKunjunganScreen({super.key});
+class CreateKunjunganScreen extends StatefulWidget {
+  const CreateKunjunganScreen({super.key});
 
   @override
-  State<RencanaKunjunganScreen> createState() => _RencanaKunjunganScreenState();
+  State<CreateKunjunganScreen> createState() => _CreateKunjunganScreenState();
 }
 
-class _RencanaKunjunganScreenState extends State<RencanaKunjunganScreen> {
+class _CreateKunjunganScreenState extends State<CreateKunjunganScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -48,6 +50,14 @@ class _RencanaKunjunganScreenState extends State<RencanaKunjunganScreen> {
               ),
             ),
           ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: double.infinity,
+              height: 300,
+              child: const HalfOvalPainterKunjungan(height: 40, sigma: 0),
+            ),
+          ),
 
           Positioned.fill(
             child: SafeArea(
@@ -62,13 +72,14 @@ class _RencanaKunjunganScreenState extends State<RencanaKunjunganScreen> {
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [ContentRencanaKunjungan()],
+                      children: [FormCreateKunjungan()],
                     ),
                   ],
                 ),
               ),
             ),
           ),
+          Positioned(top: 40, left: 10, child: HeaderCreateKunjungan()),
         ],
       ),
     );

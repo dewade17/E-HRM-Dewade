@@ -3,7 +3,7 @@
 
 import 'dart:math' as math;
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/screens/users/agenda_kerja/create_agenda/widget/form_agenda.dart';
+import 'package:e_hrm/screens/users/agenda_kerja/create_agenda/widget/form_agenda_create.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/create_agenda/widget/half_oval_painter_agenda.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/create_agenda/widget/header_create_agenda.dart';
 import 'package:flutter/material.dart';
@@ -83,7 +83,7 @@ class _CreateAgendaScreenState extends State<CreateAgendaScreen> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: FormAgenda(),
+                          child: FormAgendaCreate(),
                         ),
                       ],
                     ),

@@ -2,8 +2,8 @@ import 'package:e_hrm/contraints/colors.dart'; // Pastikan path ini benar
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class DropdownFieldKunjungan<T> extends StatefulWidget {
-  const DropdownFieldKunjungan({
+class DropdownFieldWidget<T> extends StatefulWidget {
+  const DropdownFieldWidget({
     super.key,
     required this.label,
     required this.items,
@@ -70,11 +70,10 @@ class DropdownFieldKunjungan<T> extends StatefulWidget {
   final AutovalidateMode? autovalidateMode;
 
   @override
-  State<DropdownFieldKunjungan<T>> createState() =>
-      _DropdownFieldKunjunganState<T>();
+  State<DropdownFieldWidget<T>> createState() => _DropdownFieldWidgetState<T>();
 }
 
-class _DropdownFieldKunjunganState<T> extends State<DropdownFieldKunjungan<T>> {
+class _DropdownFieldWidgetState<T> extends State<DropdownFieldWidget<T>> {
   @override
   Widget build(BuildContext context) {
     final TextStyle baseLabelStyle = GoogleFonts.poppins(

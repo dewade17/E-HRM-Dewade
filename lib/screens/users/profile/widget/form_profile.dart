@@ -5,6 +5,8 @@ import 'package:e_hrm/dto/profile/profile.dart' as dto;
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/screens/users/profile/widget/calendar_profile.dart';
 import 'package:e_hrm/screens/users/profile/widget/foto_profile.dart';
+import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
+import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -247,7 +249,11 @@ class _FormProfileState extends State<FormProfile> {
                   child: Form(
                     key: _formKey,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.only(
+                        bottom: 24,
+                        left: 18,
+                        right: 18,
+                      ),
                       child: Column(
                         children: [
                           const SizedBox(height: 70),
@@ -267,141 +273,142 @@ class _FormProfileState extends State<FormProfile> {
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Nama Lengkap',
                             controller: namapenggunaController,
                             keyboardType: TextInputType.name,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Nama wajib diisi';
-                              }
-                              return null;
-                            },
+                            isRequired: true,
+                            prefixIcon: Icons.person_outline,
                           ),
                           const SizedBox(height: 20),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Email',
                             controller: emailController,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              final text = (value ?? '').trim();
-                              if (text.isEmpty) {
-                                return 'Email wajib diisi';
-                              }
-                              if (!RegExp(
-                                r'^[^@]+@[^@]+\.[^@]+',
-                              ).hasMatch(text)) {
-                                return 'Format email tidak valid';
-                              }
-                              return null;
-                            },
+                            isRequired: true,
+                            prefixIcon: Icons.alternate_email,
                           ),
                           const SizedBox(height: 20),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Alamat Domisili',
                             controller: alamatdomisiliController,
                             keyboardType: TextInputType.streetAddress,
+                            prefixIcon: Icons.home_outlined,
                           ),
                           const SizedBox(height: 20),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Alamat KTP',
                             controller: alamatktpController,
                             keyboardType: TextInputType.streetAddress,
+                            prefixIcon: Icons.badge_outlined,
                           ),
                           const SizedBox(height: 20),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                            ), // <-- Tambahkan ini
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    label: 'Kontak',
-                                    controller: kontakController,
-                                    keyboardType: TextInputType.phone,
-                                  ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextFieldWidget(
+                                  label: 'Kontak',
+                                  controller: kontakController,
+                                  keyboardType: TextInputType.phone,
+                                  prefixIcon: Icons.phone_outlined,
+                                  width: null, // Allow flexible width
                                 ),
-                                const SizedBox(width: 20),
-                                Expanded(
-                                  child: _buildDropdown(
-                                    label: 'Agama',
-                                    value: agamaValue,
-                                    items: const [
-                                      'Islam',
-                                      'Kristen',
-                                      'Katolik',
-                                      'Hindu',
-                                      'Buddha',
-                                      'Konghucu',
-                                    ],
-                                    onChanged: (value) {
-                                      setState(() => agamaValue = value);
-                                    },
-                                  ),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: DropdownFieldWidget<String>(
+                                  label: 'Agama',
+                                  value: agamaValue,
+                                  items:
+                                      const [
+                                            'Islam',
+                                            'Kristen',
+                                            'Katolik',
+                                            'Hindu',
+                                            'Buddha',
+                                            'Konghucu',
+                                          ]
+                                          .map(
+                                            (agama) => DropdownMenuItem(
+                                              value: agama,
+                                              child: Text(agama),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged: (value) {
+                                    setState(() => agamaValue = value);
+                                  },
+                                  prefixIcon: Icons.mosque_outlined,
+                                  width: null,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 20),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                            ), // <-- Tambahkan ini juga
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Expanded(
-                                  child: CalendarProfile(
-                                    calendarController: tanggallahirController,
-                                    initialDate: _selectedDate,
-                                    onDateChanged: (value) {
-                                      setState(() {
-                                        _selectedDate = value;
-                                      });
-                                    },
-                                  ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: CalendarProfile(
+                                  calendarController: tanggallahirController,
+                                  initialDate: _selectedDate,
+                                  onDateChanged: (value) {
+                                    setState(() {
+                                      _selectedDate = value;
+                                    });
+                                  },
                                 ),
-                                const SizedBox(width: 20),
-                                Expanded(
-                                  child: _buildDropdown(
-                                    label: 'Golongan Darah',
-                                    value: golonganDarahValue,
-                                    items: const ['A', 'B', 'AB', 'O'],
-                                    onChanged: (value) {
-                                      setState(
-                                        () => golonganDarahValue = value,
-                                      );
-                                    },
-                                  ),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: DropdownFieldWidget<String>(
+                                  label: 'Gol. Darah',
+                                  value: golonganDarahValue,
+                                  items: const ['A', 'B', 'AB', 'O']
+                                      .map(
+                                        (gol) => DropdownMenuItem(
+                                          value: gol,
+                                          child: Text(gol),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setState(() => golonganDarahValue = value);
+                                  },
+                                  prefixIcon: Icons.bloodtype_outlined,
+                                  width: null,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 20),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Nomor Rekening',
                             controller: nomorRekeningController,
                             keyboardType: TextInputType.number,
+                            prefixIcon: Icons.account_balance_wallet_outlined,
                           ),
                           const SizedBox(height: 20),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Jenis Bank',
                             controller: jenisbankController,
                             keyboardType: TextInputType.text,
+                            prefixIcon: Icons.account_balance_outlined,
                           ),
                           const SizedBox(height: 20),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Kontak Darurat',
                             controller: kontakdaruratController,
                             keyboardType: TextInputType.phone,
+                            prefixIcon: Icons.contact_emergency_outlined,
                           ),
                           const SizedBox(height: 20),
-                          _buildTextField(
+                          TextFieldWidget(
                             label: 'Nama Kontak Darurat',
                             controller: namakontakdaruratController,
                             keyboardType: TextInputType.text,
+                            prefixIcon: Icons.person_pin_outlined,
                           ),
                           const SizedBox(height: 30),
                           Padding(
@@ -409,7 +416,6 @@ class _FormProfileState extends State<FormProfile> {
                             child: SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                // <-- Ganti menjadi ElevatedButton
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primaryColor,
                                   padding: const EdgeInsets.symmetric(
@@ -417,8 +423,7 @@ class _FormProfileState extends State<FormProfile> {
                                   ),
                                 ),
                                 onPressed: isSaving ? null : _submit,
-                                child:
-                                    isSaving // <-- Ganti 'label' dan 'icon' menjadi 'child'
+                                child: isSaving
                                     ? Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
@@ -434,9 +439,7 @@ class _FormProfileState extends State<FormProfile> {
                                                   ),
                                             ),
                                           ),
-                                          const SizedBox(
-                                            width: 8,
-                                          ), // Jarak antara loading dan teks
+                                          const SizedBox(width: 8),
                                           Text(
                                             'Menyimpan...',
                                             style: GoogleFonts.poppins(
@@ -467,7 +470,7 @@ class _FormProfileState extends State<FormProfile> {
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: Colors.white.withAlpha(153),
                         borderRadius: const BorderRadius.all(
                           Radius.circular(10),
                         ),
@@ -499,109 +502,6 @@ class _FormProfileState extends State<FormProfile> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return SizedBox(
-      width: 290,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            ' $label',
-            style: GoogleFonts.poppins(
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textDefaultColor,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey, width: 1.5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: TextFormField(
-                controller: controller,
-                keyboardType: keyboardType,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                ),
-                validator: validator,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-    String? value,
-  }) {
-    return SizedBox(
-      width: 100,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            ' $label',
-            style: GoogleFonts.poppins(
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDefaultColor,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey, width: 1.5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: DropdownButtonFormField<String?>(
-                key: ValueKey<String?>('$label-$value'),
-                value: value,
-                icon: const Icon(Icons.arrow_drop_down),
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                ),
-                items: items
-                    .map(
-                      (item) => DropdownMenuItem<String?>(
-                        value: item,
-                        child: Text(item),
-                      ),
-                    )
-                    .toList(),
-                onChanged: onChanged,
-                hint: Text('Pilih $label'),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

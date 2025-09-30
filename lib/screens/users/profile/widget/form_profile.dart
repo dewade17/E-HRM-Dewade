@@ -179,6 +179,10 @@ class _FormProfileState extends State<FormProfile> {
       }
     }
 
+    final formattedBirthDate = _selectedDate != null
+        ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
+        : null;
+
     final body = <String, dynamic>{
       'nama_pengguna': namapenggunaController.text.trim(),
       'email': emailController.text.trim(),
@@ -186,7 +190,7 @@ class _FormProfileState extends State<FormProfile> {
       'alamat_ktp': alamatktpController.text.trim(),
       'kontak': kontakController.text.trim(),
       'agama': agamaValue,
-      'tanggal_lahir': _selectedDate,
+      'tanggal_lahir': formattedBirthDate,
       'golongan_darah': golonganDarahValue,
       'nomor_rekening': nomorRekeningController.text.trim(),
       'jenis_bank': jenisbankController.text.trim(),
@@ -305,63 +309,75 @@ class _FormProfileState extends State<FormProfile> {
                             keyboardType: TextInputType.streetAddress,
                           ),
                           const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  label: 'Kontak',
-                                  controller: kontakController,
-                                  keyboardType: TextInputType.phone,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                            ), // <-- Tambahkan ini
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    label: 'Kontak',
+                                    controller: kontakController,
+                                    keyboardType: TextInputType.phone,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: _buildDropdown(
-                                  label: 'Agama',
-                                  value: agamaValue,
-                                  items: const [
-                                    'Islam',
-                                    'Kristen',
-                                    'Katolik',
-                                    'Hindu',
-                                    'Buddha',
-                                    'Konghucu',
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() => agamaValue = value);
-                                  },
+                                const SizedBox(width: 20),
+                                Expanded(
+                                  child: _buildDropdown(
+                                    label: 'Agama',
+                                    value: agamaValue,
+                                    items: const [
+                                      'Islam',
+                                      'Kristen',
+                                      'Katolik',
+                                      'Hindu',
+                                      'Buddha',
+                                      'Konghucu',
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() => agamaValue = value);
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              Expanded(
-                                child: CalendarProfile(
-                                  calendarController: tanggallahirController,
-                                  initialDate: _selectedDate,
-                                  onDateChanged: (value) {
-                                    setState(() {
-                                      _selectedDate = value;
-                                    });
-                                  },
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                            ), // <-- Tambahkan ini juga
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Expanded(
+                                  child: CalendarProfile(
+                                    calendarController: tanggallahirController,
+                                    initialDate: _selectedDate,
+                                    onDateChanged: (value) {
+                                      setState(() {
+                                        _selectedDate = value;
+                                      });
+                                    },
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: _buildDropdown(
-                                  label: 'Golongan Darah',
-                                  value: golonganDarahValue,
-                                  items: const ['A', 'B', 'AB', 'O'],
-                                  onChanged: (value) {
-                                    setState(() => golonganDarahValue = value);
-                                  },
+                                const SizedBox(width: 20),
+                                Expanded(
+                                  child: _buildDropdown(
+                                    label: 'Golongan Darah',
+                                    value: golonganDarahValue,
+                                    items: const ['A', 'B', 'AB', 'O'],
+                                    onChanged: (value) {
+                                      setState(
+                                        () => golonganDarahValue = value,
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 20),
                           _buildTextField(
@@ -392,7 +408,8 @@ class _FormProfileState extends State<FormProfile> {
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: SizedBox(
                               width: double.infinity,
-                              child: ElevatedButton.icon(
+                              child: ElevatedButton(
+                                // <-- Ganti menjadi ElevatedButton
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primaryColor,
                                   padding: const EdgeInsets.symmetric(
@@ -400,28 +417,44 @@ class _FormProfileState extends State<FormProfile> {
                                   ),
                                 ),
                                 onPressed: isSaving ? null : _submit,
-                                icon: isSaving
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation(
-                                            Colors.white,
+                                child:
+                                    isSaving // <-- Ganti 'label' dan 'icon' menjadi 'child'
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation(
+                                                    Colors.white,
+                                                  ),
+                                            ),
                                           ),
-                                        ),
+                                          const SizedBox(
+                                            width: 8,
+                                          ), // Jarak antara loading dan teks
+                                          Text(
+                                            'Menyimpan...',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
                                       )
-                                    : const Icon(Icons.save),
-                                label: Text(
-                                  isSaving
-                                      ? 'Menyimpan...'
-                                      : 'Simpan Perubahan',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                    : Text(
+                                        'Simpan',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
@@ -522,7 +555,7 @@ class _FormProfileState extends State<FormProfile> {
     String? value,
   }) {
     return SizedBox(
-      width: 140,
+      width: 100,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -530,8 +563,8 @@ class _FormProfileState extends State<FormProfile> {
             ' $label',
             style: GoogleFonts.poppins(
               textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textDefaultColor,
               ),
             ),

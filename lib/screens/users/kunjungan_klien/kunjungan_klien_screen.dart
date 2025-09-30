@@ -1,8 +1,5 @@
-import 'dart:math' as math;
-
-import 'package:e_hrm/screens/users/kunjungan_klien/widget/calendar_kunjungan.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget/content_kunjungan.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget/header_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/daftar_kunjungan/daftar_kunjungan_screen.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/rencana_kunjungan/rencana_kunjungan_screen.dart';
 import 'package:flutter/material.dart';
 
 class KunjunganKlienScreen extends StatefulWidget {
@@ -12,70 +9,65 @@ class KunjunganKlienScreen extends StatefulWidget {
   State<KunjunganKlienScreen> createState() => _KunjunganKlienScreenState();
 }
 
-class _KunjunganKlienScreenState extends State<KunjunganKlienScreen> {
+// 1. Tambahkan 'with SingleTickerProviderStateMixin'
+class _KunjunganKlienScreenState extends State<KunjunganKlienScreen>
+    with SingleTickerProviderStateMixin {
+  // 2. Deklarasikan TabController
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 3. Inisialisasi controller dengan 2 tab
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    // 4. Buang controller untuk mencegah memory leak
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final iconMax = (math.min(size.width, size.height) * 0.4).clamp(
-      320.0,
-      360.0,
-    );
-
     return Scaffold(
-      body: Stack(
-        children: [
-          // BG ikon samar di tengah
-          Positioned.fill(
-            child: IgnorePointer(
-              ignoring: true,
-              child: Center(
-                child: Opacity(
-                  opacity: 0.3,
-                  child: Image.asset(
-                    'lib/assets/image/icon_bg.png',
-                    width: iconMax,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              ignoring: true,
-              child: Image.asset(
-                'lib/assets/image/Pattern.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-              ),
-            ),
-          ),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        // Tombol kembali
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        // Judul AppBar
+        title: const Text(
+          'KUNJUNGAN',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
 
-          // === Konten utama (scrollable) ===
-          Positioned.fill(
-            child: SafeArea(
-              // top/bottom tetap aman, kiri/kanan edge-to-edge
-              left: false,
-              right: false,
-              child: SingleChildScrollView(
-                // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 80, 0, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      // Beri jarak 16 pixel di kiri dan kanan
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: const CalendarKunjungan(),
-                    ),
+        // 5. Tempatkan TabBar di bagian bawah AppBar
+        bottom: TabBar(
+          controller: _tabController, // Hubungkan controller
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
+          indicatorColor: Colors.blue, // Warna garis indikator
+          labelColor: Colors.blue, // Warna teks tab yang aktif
+          unselectedLabelColor: Colors.grey, // Warna teks tab yang tidak aktif
+          tabs: const [
+            Tab(text: 'Daftar Kunjungan'),
+            Tab(text: 'Rencana Kunjungan'),
+          ],
+        ),
+      ),
+      // 6. Gunakan TabBarView sebagai body
+      body: TabBarView(
+        controller: _tabController, // Hubungkan controller yang sama
+        children: const [
+          // Konten untuk tab pertama: 'Daftar Kunjungan'
+          DaftarKunjunganScreen(),
 
-                    ContentKunjungan(),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          const Positioned(top: 40, left: 10, child: HeaderKunjungan()),
+          // Konten untuk tab kedua: 'Rencana Kunjungan'
+          RencanaKunjunganScreen(),
         ],
       ),
     );

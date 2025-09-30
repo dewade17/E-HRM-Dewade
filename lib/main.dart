@@ -6,18 +6,19 @@ import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/auth/reset_password_provider.dart';
 import 'package:e_hrm/providers/departements/departements_provider.dart';
-import 'package:e_hrm/providers/kunjungan/kunjungan_provider.dart';
+
 import 'package:e_hrm/providers/location/location_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
 import 'package:e_hrm/screens/auth/login/login_screen.dart';
 import 'package:e_hrm/screens/auth/reset_password/reset_password_screen.dart';
 import 'package:e_hrm/screens/opening/opening_screen.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/kunjungan_klien_screen.dart';
 import 'package:e_hrm/screens/users/profile/profile_screen.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/agenda_kerja_screen.dart';
 import 'package:e_hrm/screens/users/home/home_screen.dart';
 import 'package:e_hrm/screens/users/jam_isitirahat/jam_istirahat_screen.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/kunjungan_klien_screen.dart';
+
 import 'package:e_hrm/services/auth_wrapper.dart';
 import 'package:e_hrm/utils/app_theme.dart';
 import 'package:e_hrm/providers/face/face_enroll/face_enroll_provider.dart';
@@ -57,7 +58,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => KategoriKunjunganProvider()),
         ChangeNotifierProvider(create: (_) => ShiftKerjaRealtimeProvider()),
         ChangeNotifierProvider(create: (_) => AgendaProvider()),
-        ChangeNotifierProvider(create: (_) => KunjunganProvider()),
+        
       ],
       child: MaterialApp(
         title: 'E-HRM',

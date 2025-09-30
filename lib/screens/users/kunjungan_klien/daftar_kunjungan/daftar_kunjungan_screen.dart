@@ -1,21 +1,16 @@
 import 'dart:math' as math;
 
-import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan_klien/widget/create_form_kunjungan.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan_klien/widget/header_create_kunjungan.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget/half_oval_pointer_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/daftar_kunjungan/widget/content_daftar_kunjungan.dart';
 import 'package:flutter/material.dart';
 
-class CreateKunjunganKlienScreen extends StatefulWidget {
-  const CreateKunjunganKlienScreen({super.key});
+class DaftarKunjunganScreen extends StatefulWidget {
+  const DaftarKunjunganScreen({super.key});
 
   @override
-  State<CreateKunjunganKlienScreen> createState() =>
-      _CreateKunjunganKlienScreenState();
+  State<DaftarKunjunganScreen> createState() => _DaftarKunjunganScreenState();
 }
 
-class _CreateKunjunganKlienScreenState
-    extends State<CreateKunjunganKlienScreen> {
+class _DaftarKunjunganScreenState extends State<DaftarKunjunganScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -23,6 +18,7 @@ class _CreateKunjunganKlienScreenState
       320.0,
       360.0,
     );
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
@@ -52,14 +48,6 @@ class _CreateKunjunganKlienScreenState
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: double.infinity,
-              height: 300,
-              child: CustomPaint(painter: HalfOvalPainterkunjungan()),
-            ),
-          ),
 
           Positioned.fill(
             child: SafeArea(
@@ -68,30 +56,19 @@ class _CreateKunjunganKlienScreenState
               right: false,
               child: SingleChildScrollView(
                 // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(15, 120, 15, 24),
+                padding: const EdgeInsets.fromLTRB(15, 20, 15, 24),
                 child: Stack(
                   //saya ingin
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          // height: 700,
-                          decoration: BoxDecoration(
-                            color: AppColors.textColor.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.secondaryColor),
-                          ),
-                          child: CreateFormKunjungan(),
-                        ),
-                      ],
+                      children: [ContentDaftarKunjungan()],
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          Positioned(top: 30, left: 10, child: HeaderCreateKunjungan()),
         ],
       ),
     );

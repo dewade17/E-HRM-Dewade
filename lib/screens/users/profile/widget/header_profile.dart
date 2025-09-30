@@ -18,7 +18,7 @@ class HeaderProfile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Profiel Karyawan",
+              "Profile Karyawan",
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,

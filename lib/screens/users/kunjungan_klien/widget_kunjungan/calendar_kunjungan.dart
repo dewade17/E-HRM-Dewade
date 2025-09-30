@@ -16,7 +16,7 @@ class _CalendarKunjunganState extends State<CalendarKunjungan>
   static final DateTime _lastDay = DateTime.utc(2100, 12, 31);
 
   late DateTime _focused;
-  bool _expanded = true;
+  bool _expanded = false;
 
   @override
   void initState() {

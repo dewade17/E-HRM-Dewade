@@ -17,9 +17,12 @@ class ContentDaftarKunjungan extends StatefulWidget {
   State<ContentDaftarKunjungan> createState() => _ContentDaftarKunjunganState();
 }
 
+enum _KunjunganStatusTab { berlangsung, selesai }
+
 class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
   bool _didFetchInitial = false;
   DateTime? _selectedDate;
+  _KunjunganStatusTab _activeTab = _KunjunganStatusTab.berlangsung;
 
   @override
   void didChangeDependencies() {
@@ -78,15 +81,23 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
 
   void _handleSelectDate(DateTime? date) {
     final provider = context.read<KunjunganKlienProvider>();
+    if (_activeTab == _KunjunganStatusTab.berlangsung) {
+      provider.setTanggalStatusBerlangsung(date);
+    } else {
+      provider.setTanggalStatusSelesai(date);
+    }
+  }
+
+  void _switchStatus(_KunjunganStatusTab status) {
+    if (_activeTab == status) return;
     setState(() {
-      _selectedDate = date;
+      _activeTab = status;
     });
-    provider.setTanggalStatusBerlangsung(date);
-    provider.setTanggalStatusSelesai(date);
   }
 
   Widget _buildStatusContainer({
     required String label,
+    required bool isSelected,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -94,11 +105,24 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
       child: Container(
         width: 150,
         height: 30,
-        decoration: const BoxDecoration(
-          color: AppColors.backgroundColor,
-          borderRadius: BorderRadius.all(Radius.circular(10)),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryColor
+              : AppColors.backgroundColor,
+          borderRadius: const BorderRadius.all(Radius.circular(10)),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryColor : AppColors.hintColor,
+          ),
         ),
-        child: Center(child: Text(label)),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : AppColors.textDefaultColor,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -257,7 +281,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const EndKunjunganScreen(),
+                                        EndKunjunganScreen(item: item),
                                   ),
                                 );
                               } else {
@@ -335,10 +359,19 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
     final selesaiLoading = kunjunganProvider.selesaiLoading;
     final selesaiError = kunjunganProvider.selesaiError;
 
-    final selectedDate =
-        kunjunganProvider.berlangsungTanggalFilter ??
-        kunjunganProvider.selesaiTanggalFilter ??
-        _selectedDate;
+    final isBerlangsungActive = _activeTab == _KunjunganStatusTab.berlangsung;
+    final selectedDate = isBerlangsungActive
+        ? kunjunganProvider.berlangsungTanggalFilter
+        : kunjunganProvider.selesaiTanggalFilter;
+
+    final activeItems = isBerlangsungActive ? berlangsungItems : selesaiItems;
+    final activeLoading = isBerlangsungActive
+        ? berlangsungLoading
+        : selesaiLoading;
+    final activeError = isBerlangsungActive ? berlangsungError : selesaiError;
+    final emptyMessage = isBerlangsungActive
+        ? 'Belum ada kunjungan berlangsung.'
+        : 'Belum ada kunjungan selesai.';
 
     return Center(
       child: Column(
@@ -354,50 +387,31 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
             children: [
               _buildStatusContainer(
                 label: 'Berlangsung',
-                onTap: () => _handleSelectDate(
-                  kunjunganProvider.berlangsungTanggalFilter,
-                ),
+                isSelected: isBerlangsungActive,
+                onTap: () => _switchStatus(_KunjunganStatusTab.berlangsung),
               ),
               _buildStatusContainer(
                 label: 'Selesai',
-                onTap: () =>
-                    _handleSelectDate(kunjunganProvider.selesaiTanggalFilter),
+                isSelected: !isBerlangsungActive,
+                onTap: () => _switchStatus(_KunjunganStatusTab.selesai),
               ),
             ],
           ),
           SizedBox(height: 20),
-          if (berlangsungLoading)
+          if (activeLoading)
             _buildLoadingState()
-          else if (berlangsungError != null)
-            _buildErrorState(berlangsungError)
-          else if (berlangsungItems.isEmpty)
-            _buildEmptyState('Belum ada kunjungan berlangsung.')
+          else if (activeError != null)
+            _buildErrorState(activeError)
+          else if (activeItems.isEmpty)
+            _buildEmptyState(emptyMessage)
           else ...[
-            for (int i = 0; i < berlangsungItems.length; i++) ...[
+            for (int i = 0; i < activeItems.length; i++) ...[
               _buildKunjunganCard(
-                berlangsungItems[i],
-                isBerlangsung: true,
+                activeItems[i],
+                isBerlangsung: isBerlangsungActive,
                 kategoriProvider: kategoriProvider,
               ),
-              if (i != berlangsungItems.length - 1) const SizedBox(height: 20),
-            ],
-          ],
-          if (berlangsungItems.isNotEmpty || berlangsungLoading)
-            const SizedBox(height: 20),
-          if (selesaiLoading)
-            _buildLoadingState()
-          else if (selesaiError != null)
-            _buildErrorState(selesaiError)
-          else if (selesaiItems.isEmpty)
-            _buildEmptyState('Belum ada kunjungan selesai.')
-          else ...[
-            for (int i = 0; i < selesaiItems.length; i++) ...[
-              _buildKunjunganCard(
-                selesaiItems[i],
-                isBerlangsung: false,
-                kategoriProvider: kategoriProvider,
-              ),
-              if (i != selesaiItems.length - 1) const SizedBox(height: 20),
+              if (i != activeItems.length - 1) const SizedBox(height: 20),
             ],
           ],
         ],

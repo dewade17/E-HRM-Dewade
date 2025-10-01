@@ -1,11 +1,13 @@
 import 'dart:math' as math;
+import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/half_oval_painter_kunjungan.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/end_kunjungan/widget/form_end_kunjungan.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/end_kunjungan/widget/header_end_kunjungan.dart';
 import 'package:flutter/material.dart';
 
 class EndKunjunganScreen extends StatefulWidget {
-  const EndKunjunganScreen({super.key});
+  final Data item;
+  const EndKunjunganScreen({super.key, required this.item});
 
   @override
   State<EndKunjunganScreen> createState() => _EndKunjunganScreenState();
@@ -68,10 +70,8 @@ class _EndKunjunganScreenState extends State<EndKunjunganScreen> {
                 padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
                 child: Stack(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [SizedBox(height: 80), FormEndKunjungan()],
-                    ),
+                    SizedBox(height: 80),
+                    FormEndKunjungan(item: widget.item),
                   ],
                 ),
               ),

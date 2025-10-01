@@ -1,53 +1,236 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
+import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
+import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/mark_me_map.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/recipient_kunjungan.dart';
 import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class FormEndKunjungan extends StatefulWidget {
-  const FormEndKunjungan({super.key});
+  const FormEndKunjungan({super.key, required this.item});
+
+  final Data item;
 
   @override
   State<FormEndKunjungan> createState() => _FormEndKunjunganState();
 }
 
 class _FormEndKunjunganState extends State<FormEndKunjungan> {
-  final TextEditingController latitudeEndcontroller = TextEditingController();
-  final TextEditingController longitudeEndcontroller = TextEditingController();
-  final TextEditingController keterangankunjungancontroller =
-      TextEditingController();
-  String? _selectedJenisKunjungan;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _autoValidate = false;
+  late final TextEditingController latitudeEndcontroller;
+  late final TextEditingController longitudeEndcontroller;
+  late final TextEditingController keterangankunjungancontroller;
+  String? _selectedKategoriId;
+  bool _didInitProviders = false;
 
-  final List<String> _opsiKunjungan = [
-    'Kunjungan Rutin',
-    'Kunjungan Darurat',
-    'Kunjungan Baru',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.item;
+    latitudeEndcontroller = TextEditingController(
+      text: item.endLatitude != null
+          ? item.endLatitude!.toStringAsFixed(6)
+          : '',
+    );
+    longitudeEndcontroller = TextEditingController(
+      text: item.endLongitude != null
+          ? item.endLongitude!.toStringAsFixed(6)
+          : '',
+    );
+    keterangankunjungancontroller = TextEditingController(
+      text: item.deskripsi ?? '',
+    );
+    _selectedKategoriId =
+        item.idKategoriKunjungan ?? item.kategoriIdFromRelation;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _didInitProviders) return;
+      _didInitProviders = true;
+
+      final kategoriProvider = context.read<KategoriKunjunganProvider>();
+      kategoriProvider.ensureLoaded();
+      if (_selectedKategoriId != null) {
+        kategoriProvider.setSelectedId(_selectedKategoriId);
+      }
+
+      final approverProvider = context.read<ApproversProvider>();
+      approverProvider.clearSelection();
+      for (final report in widget.item.reports) {
+        final id = report.idUser;
+        if (id != null &&
+            id.isNotEmpty &&
+            !approverProvider.selectedRecipientIds.contains(id)) {
+          approverProvider.toggleSelect(id);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    latitudeEndcontroller.dispose();
+    longitudeEndcontroller.dispose();
+    keterangankunjungancontroller.dispose();
+    super.dispose();
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : AppColors.accentColor,
+      ),
+    );
+  }
+
+  Future<void> _handleSubmit() async {
+    final formState = _formKey.currentState;
+    if (formState == null) return;
+
+    setState(() {
+      _autoValidate = true;
+    });
+
+    if (!formState.validate()) {
+      return;
+    }
+
+    final latitude = double.tryParse(latitudeEndcontroller.text.trim());
+    final longitude = double.tryParse(longitudeEndcontroller.text.trim());
+
+    if (latitude == null || longitude == null) {
+      _showSnackBar(
+        'Silakan tandai lokasi akhir kunjungan terlebih dahulu.',
+        isError: true,
+      );
+      return;
+    }
+
+    final kategoriProvider = context.read<KategoriKunjunganProvider>();
+    final kunjunganProvider = context.read<KunjunganKlienProvider>();
+    if (kunjunganProvider.isSaving) return;
+
+    final approverProvider = context.read<ApproversProvider>();
+
+    final kategoriId =
+        _selectedKategoriId ??
+        kategoriProvider.selectedId ??
+        widget.item.idKategoriKunjungan ??
+        widget.item.kategoriIdFromRelation;
+
+    if (kategoriId == null || kategoriId.isEmpty) {
+      _showSnackBar(
+        'Silakan pilih jenis kunjungan terlebih dahulu.',
+        isError: true,
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    final deskripsi = keterangankunjungancontroller.text.trim();
+    final recipients = approverProvider.selectedRecipientIds
+        .where((id) => id.trim().isNotEmpty)
+        .map((id) => {'id_user': id})
+        .toList();
+
+    await kunjunganProvider.submitEndKunjungan(
+      widget.item.idKunjungan,
+      deskripsi: deskripsi.isEmpty ? null : deskripsi,
+      jamCheckout: DateTime.now(),
+      endLatitude: latitude,
+      endLongitude: longitude,
+      idKategoriKunjungan: kategoriId,
+      lampiranKunjunganUrl: widget.item.lampiranKunjunganUrl,
+      recipients: recipients.isEmpty ? null : recipients,
+    );
+
+    if (!mounted) return;
+
+    final error = kunjunganProvider.saveError;
+    final message = kunjunganProvider.saveMessage;
+
+    if (error != null) {
+      _showSnackBar(error, isError: true);
+      return;
+    }
+
+    if (message != null && message.isNotEmpty) {
+      _showSnackBar(message);
+    } else {
+      _showSnackBar('Kunjungan berhasil diselesaikan.');
+    }
+
+    Navigator.of(context).maybePop(true);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final kategoriProvider = context.watch<KategoriKunjunganProvider>();
+    final kunjunganProvider = context.watch<KunjunganKlienProvider>();
+    final isSaving = kunjunganProvider.isSaving;
+    final autovalidateMode = _autoValidate
+        ? AutovalidateMode.always
+        : AutovalidateMode.disabled;
+
+    final dropdownItems = kategoriProvider.items
+        .map(
+          (item) => DropdownMenuItem<String>(
+            value: item.idKategoriKunjungan,
+            child: Text(item.kategoriKunjungan),
+          ),
+        )
+        .toList();
+
+    final currentKategoriId = _selectedKategoriId;
+    final hasExistingInItems =
+        currentKategoriId != null &&
+        dropdownItems.any((element) => element.value == currentKategoriId);
+    if (currentKategoriId != null && !hasExistingInItems) {
+      final fallbackLabel =
+          widget.item.kategori?.kategoriKunjungan ?? 'Kategori tersimpan';
+      dropdownItems.insert(
+        0,
+        DropdownMenuItem<String>(
+          value: currentKategoriId,
+          child: Text(fallbackLabel),
+        ),
+      );
+    }
+
     return Center(
       child: Container(
         width: 338,
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.backgroundColor),
-          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
         ),
         child: Form(
+          key: _formKey,
+          autovalidateMode: autovalidateMode,
           child: Column(
             children: [
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Column(
                   children: [
                     MarkMeMap(
                       latitudeController: latitudeEndcontroller,
                       longitudeController: longitudeEndcontroller,
+                      onPicked: (lat, lng) {
+                        latitudeEndcontroller.text = lat.toStringAsFixed(6);
+                        longitudeEndcontroller.text = lng.toStringAsFixed(6);
+                      },
                     ),
                     FormField<bool>(
+                      autovalidateMode: autovalidateMode,
                       validator: (_) {
                         if (latitudeEndcontroller.text.isEmpty ||
                             longitudeEndcontroller.text.isEmpty) {
@@ -71,15 +254,16 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                   ],
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextFieldWidget(
                 width: 300,
                 prefixIcon: Icons.message,
                 maxLines: 3,
-                label: "Keterangan",
+                label: 'Keterangan',
                 controller: keterangankunjungancontroller,
+                autovalidateMode: autovalidateMode,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
@@ -88,7 +272,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                     vertical: 5,
                   ),
                   child: Text(
-                    "Laporan Ke",
+                    'Laporan Ke',
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -98,41 +282,42 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                 ),
               ),
               Padding(
-                padding: EdgeInsetsGeometry.fromLTRB(10, 0, 10, 0),
-                child: RecipientKunjungan(),
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                child: const RecipientKunjungan(),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               DropdownFieldWidget<String>(
                 width: 300,
                 prefixIcon: Icons.add_box_outlined,
-                label: "Jenis Kunjungan",
-                hintText: "Pilih jenis kunjungan...",
-                value: _selectedJenisKunjungan,
-                items: _opsiKunjungan.map((String jenis) {
-                  return DropdownMenuItem<String>(
-                    value: jenis,
-                    child: Text(jenis),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedJenisKunjungan = newValue;
-                  });
-                },
+                label: 'Jenis Kunjungan',
+                hintText: 'Pilih jenis kunjungan...',
+                value: currentKategoriId,
+                items: dropdownItems,
+                autovalidateMode: autovalidateMode,
+                onChanged: isSaving
+                    ? null
+                    : (String? newValue) {
+                        setState(() {
+                          _selectedKategoriId = newValue;
+                        });
+                        if (newValue != null) {
+                          kategoriProvider.setSelectedId(newValue);
+                        }
+                      },
                 validator: (value) {
-                  if (value == null) {
+                  if ((value ?? '').isEmpty) {
                     return 'Anda harus memilih jenis kunjungan.';
                   }
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Bukti Kunjungan",
+                    'Bukti Kunjungan',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -141,27 +326,74 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                   ),
                 ),
               ),
-
-              // image.aseets lampiran_kunjungan_url
-              SizedBox(height: 50),
+              if ((widget.item.lampiranKunjunganUrl ?? '').isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      // <-- INI PERUBAHANNYA
+                      widget.item.lampiranKunjunganUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 180,
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            size: 42,
+                            color: Colors.black38,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Belum ada bukti kunjungan.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 50),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.errorColor,
                   foregroundColor: AppColors.menuColor,
                 ),
-                onPressed: () {},
+                onPressed: isSaving ? null : _handleSubmit,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 30),
-                  child: Text(
-                    "Selesai",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : Text(
+                          'Selesai',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                 ),
               ),
-              SizedBox(height: 50),
+              const SizedBox(height: 50),
             ],
           ),
         ),

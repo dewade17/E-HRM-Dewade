@@ -30,6 +30,12 @@ class _CalendarDaftarKunjunganState extends State<CalendarDaftarKunjungan>
   DateTime? _selected;
 
   @override
+  void initState() {
+    super.initState();
+    _focused = DateTime.now();
+  }
+
+  @override
   void didUpdateWidget(CalendarDaftarKunjungan oldWidget) {
     super.didUpdateWidget(oldWidget);
     final newSelected = widget.selectedDay;

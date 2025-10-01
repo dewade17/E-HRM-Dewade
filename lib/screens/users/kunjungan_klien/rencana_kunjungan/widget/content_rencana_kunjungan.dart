@@ -94,6 +94,113 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
                     ),
                   ),
                 ),
+                SizedBox(height: 20),
+                //content dibawah ini muncul ketika ada rencana kunjungan yang dibuat status diproses 
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.all(Radius.circular(15)),
+                    border: const Border(
+                      top: BorderSide(color: AppColors.primaryColor, width: 1),
+                      left: BorderSide(color: AppColors.primaryColor, width: 5),
+                      right: BorderSide(
+                        color: AppColors.primaryColor,
+                        width: 1,
+                      ),
+                      bottom: BorderSide(
+                        color: AppColors.primaryColor,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          child: Text(
+                            "Sosilasasi", //kategori.kunjungan
+                            style: GoogleFonts.poppins(
+                              textStyle: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textDefaultColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Icon(Icons.message),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "Keterangan Kategori",
+                                style: GoogleFonts.poppins(
+                                  textStyle: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: AppColors.textDefaultColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.errorColor,
+                                foregroundColor: AppColors.menuColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () {},
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 10),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(),
+                                  child: Text(
+                                    "Mulai", //untuk merubah status menjadi berlangsung, mengambil jam_checkin, start_latitude, start_longitude
+                                    style: GoogleFonts.poppins(
+                                      textStyle: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_month),
+                            SizedBox(width: 10),
+                            Text("7 September 2025"),
+                            SizedBox(width: 20),
+                            Icon(Icons.access_time),
+
+                            Text(" 08.00 - 11.00 WITA"),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 SizedBox(height: 50),
 
                 GestureDetector(

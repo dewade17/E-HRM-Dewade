@@ -1,18 +1,17 @@
 import 'dart:math' as math;
 
-import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/widget/form_create_kunjungan.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/half_oval_painter_kunjungan.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/widget/header_create_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/detail_kunjungan/widget/content_detail_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/detail_kunjungan/widget/header_detail_kunjungan.dart';
 import 'package:flutter/material.dart';
 
-class CreateKunjunganScreen extends StatefulWidget {
-  const CreateKunjunganScreen({super.key});
+class DetailKunjunganScreen extends StatefulWidget {
+  const DetailKunjunganScreen({super.key});
 
   @override
-  State<CreateKunjunganScreen> createState() => _CreateKunjunganScreenState();
+  State<DetailKunjunganScreen> createState() => _DetailKunjunganScreenState();
 }
 
-class _CreateKunjunganScreenState extends State<CreateKunjunganScreen> {
+class _DetailKunjunganScreenState extends State<DetailKunjunganScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -50,14 +49,6 @@ class _CreateKunjunganScreenState extends State<CreateKunjunganScreen> {
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: double.infinity,
-              height: 300,
-              child: const HalfOvalPainterKunjungan(height: 40, sigma: 0),
-            ),
-          ),
 
           Positioned.fill(
             child: SafeArea(
@@ -71,14 +62,17 @@ class _CreateKunjunganScreenState extends State<CreateKunjunganScreen> {
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [SizedBox(height: 30), FormCreateKunjungan()],
+                      children: [
+                        SizedBox(height: 50),
+                        ContentDetailKunjungan(),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          Positioned(top: 40, left: 10, child: HeaderCreateKunjungan()),
+          Positioned(top: 40, left: 10, child: HeaderDetailKunjungan()),
         ],
       ),
     );

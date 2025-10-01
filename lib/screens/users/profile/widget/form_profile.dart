@@ -1,10 +1,11 @@
+// lib/screens/users/profile/widget/form_profile.dart
 import 'dart:io';
 
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/profile/profile.dart' as dto;
 import 'package:e_hrm/providers/profile/profile_provider.dart';
-import 'package:e_hrm/screens/users/profile/widget/calendar_profile.dart';
 import 'package:e_hrm/screens/users/profile/widget/foto_profile.dart';
+import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
@@ -37,8 +38,6 @@ class _FormProfileState extends State<FormProfile> {
   final TextEditingController kontakdaruratController = TextEditingController();
   final TextEditingController namakontakdaruratController =
       TextEditingController();
-
-  final DateFormat _dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
 
   dto.Data? _lastProfile;
   DateTime? _selectedDate;
@@ -81,11 +80,13 @@ class _FormProfileState extends State<FormProfile> {
   }
 
   void _onProviderChanged() {
-    if (!mounted) return;
-    final profile = widget.provider.profile;
-    if (profile != null && !identical(profile, _lastProfile)) {
-      _syncFromProvider(widget.provider);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final profile = widget.provider.profile;
+      if (profile != null && !identical(profile, _lastProfile)) {
+        _syncFromProvider(widget.provider);
+      }
+    });
   }
 
   void _syncFromProvider(ProfileProvider provider) {
@@ -114,9 +115,6 @@ class _FormProfileState extends State<FormProfile> {
       agamaValue = agama;
       golonganDarahValue = golongan;
       _selectedDate = tanggal;
-      tanggallahirController.text = tanggal != null
-          ? _dateFormatter.format(tanggal)
-          : '';
       _pickedPhoto = null;
       _removePhoto = false;
     });
@@ -350,14 +348,24 @@ class _FormProfileState extends State<FormProfile> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: CalendarProfile(
-                                  calendarController: tanggallahirController,
+                                child: DatePickerFieldWidget(
+                                  label: 'Tanggal Lahir',
+                                  controller: tanggallahirController,
                                   initialDate: _selectedDate,
+                                  // --- MULAI PERBAIKAN ---
                                   onDateChanged: (value) {
-                                    setState(() {
-                                      _selectedDate = value;
-                                    });
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (mounted) {
+                                            setState(() {
+                                              _selectedDate = value;
+                                            });
+                                          }
+                                        });
                                   },
+                                  // --- AKHIR PERBAIKAN ---
+                                  width: null,
+                                  isRequired: true,
                                 ),
                               ),
                               const SizedBox(width: 20),

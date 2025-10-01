@@ -39,7 +39,8 @@ class KategoriKunjunganProvider extends ChangeNotifier {
 
   KategoriKunjunganItem? itemById(String id) {
     try {
-      return _items.firstWhere((item) => item.idMasterDataKunjungan == id);
+      // DIPERBARUI: Menggunakan field ID yang benar
+      return _items.firstWhere((item) => item.idKategoriKunjungan == id);
     } catch (_) {
       return null;
     }
@@ -108,8 +109,9 @@ class KategoriKunjunganProvider extends ChangeNotifier {
 
   Future<KategoriKunjunganItem?> fetchDetail(String id) async {
     try {
+      // DIPERBARUI: Menggunakan endpoint yang benar
       final res = await _api.fetchDataPrivate(
-        Endpoints.masterDataKunjunganDetail(id),
+        Endpoints.kategoriKunjunganDetail(id),
       );
       final dataJson = res['data'];
       if (dataJson is Map) {
@@ -117,15 +119,17 @@ class KategoriKunjunganProvider extends ChangeNotifier {
           Map<String, dynamic>.from(dataJson),
         );
         final index = _items.indexWhere(
+          // DIPERBARUI: Menggunakan field ID yang benar
           (existing) =>
-              existing.idMasterDataKunjungan == item.idMasterDataKunjungan,
+              existing.idKategoriKunjungan == item.idKategoriKunjungan,
         );
         if (index >= 0) {
           _items[index] = item;
         } else {
           _items.add(item);
         }
-        _selectedId ??= item.idMasterDataKunjungan;
+        // DIPERBARUI: Menggunakan field ID yang benar
+        _selectedId ??= item.idKategoriKunjungan;
         notifyListeners();
         return item;
       }
@@ -160,8 +164,9 @@ class KategoriKunjunganProvider extends ChangeNotifier {
         'includeDeleted': _includeDeleted ? '1' : '0',
         if (_search.isNotEmpty) 'search': _search,
       };
+      // DIPERBARUI: Menggunakan endpoint yang benar
       final uri = Uri.parse(
-        Endpoints.masterDataKunjungan,
+        Endpoints.kategoriKunjungan,
       ).replace(queryParameters: params);
 
       final res = await _api.fetchDataPrivate(uri.toString());
@@ -189,11 +194,11 @@ class KategoriKunjunganProvider extends ChangeNotifier {
           );
 
       if (_selectedId != null && itemById(_selectedId!) == null) {
-        _selectedId = _items.isEmpty
-            ? null
-            : _items.first.idMasterDataKunjungan;
+        // DIPERBARUI: Menggunakan field ID yang benar
+        _selectedId = _items.isEmpty ? null : _items.first.idKategoriKunjungan;
       } else if (_selectedId == null && _items.isNotEmpty) {
-        _selectedId = _items.first.idMasterDataKunjungan;
+        // DIPERBARUI: Menggunakan field ID yang benar
+        _selectedId = _items.first.idKategoriKunjungan;
       }
 
       _error = null;

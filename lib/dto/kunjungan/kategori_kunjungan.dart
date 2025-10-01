@@ -28,10 +28,7 @@ DateTime? _parseDate(dynamic value) {
 }
 
 class KategoriKunjungan {
-  KategoriKunjungan({
-    required this.message,
-    required this.data,
-  });
+  KategoriKunjungan({required this.message, required this.data});
 
   final String message;
   final KategoriKunjunganItem data;
@@ -43,18 +40,11 @@ class KategoriKunjungan {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'message': message,
-        'data': data.toJson(),
-      };
+  Map<String, dynamic> toJson() => {'message': message, 'data': data.toJson()};
 }
 
 class KategoriKunjunganList {
-  KategoriKunjunganList({
-    required this.data,
-    this.pagination,
-    this.message,
-  });
+  KategoriKunjunganList({required this.data, this.pagination, this.message});
 
   final List<KategoriKunjunganItem> data;
   final Pagination? pagination;
@@ -83,10 +73,10 @@ class KategoriKunjunganList {
   }
 
   Map<String, dynamic> toJson() => {
-        'data': data.map((item) => item.toJson()).toList(),
-        if (pagination != null) 'pagination': pagination!.toJson(),
-        if (message != null) 'message': message,
-      };
+    'data': data.map((item) => item.toJson()).toList(),
+    if (pagination != null) 'pagination': pagination!.toJson(),
+    if (message != null) 'message': message,
+  };
 }
 
 class Pagination {
@@ -122,23 +112,23 @@ class Pagination {
   }
 
   Map<String, dynamic> toJson() => {
-        'page': page,
-        'pageSize': pageSize,
-        'total': total,
-        'totalPages': totalPages,
-      };
+    'page': page,
+    'pageSize': pageSize,
+    'total': total,
+    'totalPages': totalPages,
+  };
 }
 
 class KategoriKunjunganItem {
   KategoriKunjunganItem({
-    required this.idMasterDataKunjungan,
+    required this.idKategoriKunjungan, // DIPERBARUI
     required this.kategoriKunjungan,
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
   });
 
-  final String idMasterDataKunjungan;
+  final String idKategoriKunjungan; // DIPERBARUI
   final String kategoriKunjungan;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -146,8 +136,8 @@ class KategoriKunjunganItem {
 
   factory KategoriKunjunganItem.fromJson(Map<String, dynamic> json) {
     return KategoriKunjunganItem(
-      idMasterDataKunjungan:
-          (json['id_master_data_kunjungan'] ?? '').toString(),
+      // DIPERBARUI: Menggunakan kunci JSON yang benar
+      idKategoriKunjungan: (json['id_kategori_kunjungan'] ?? '').toString(),
       kategoriKunjungan: (json['kategori_kunjungan'] ?? '').toString(),
       createdAt: _parseDate(json['created_at']),
       updatedAt: _parseDate(json['updated_at']),
@@ -156,10 +146,11 @@ class KategoriKunjunganItem {
   }
 
   Map<String, dynamic> toJson() => {
-        'id_master_data_kunjungan': idMasterDataKunjungan,
-        'kategori_kunjungan': kategoriKunjungan,
-        if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
-        if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
-        if (deletedAt != null) 'deleted_at': deletedAt!.toIso8601String(),
-      };
+    // DIPERBARUI: Menggunakan kunci JSON yang benar
+    'id_kategori_kunjungan': idKategoriKunjungan,
+    'kategori_kunjungan': kategoriKunjungan,
+    if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+    if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
+    if (deletedAt != null) 'deleted_at': deletedAt!.toIso8601String(),
+  };
 }

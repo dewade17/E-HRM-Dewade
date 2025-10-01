@@ -1,18 +1,17 @@
 import 'dart:math' as math;
-
-import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/widget/form_create_kunjungan.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/half_oval_painter_kunjungan.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/widget/header_create_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/end_kunjungan/widget/form_end_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/end_kunjungan/widget/header_end_kunjungan.dart';
 import 'package:flutter/material.dart';
 
-class CreateKunjunganScreen extends StatefulWidget {
-  const CreateKunjunganScreen({super.key});
+class EndKunjunganScreen extends StatefulWidget {
+  const EndKunjunganScreen({super.key});
 
   @override
-  State<CreateKunjunganScreen> createState() => _CreateKunjunganScreenState();
+  State<EndKunjunganScreen> createState() => _EndKunjunganScreenState();
 }
 
-class _CreateKunjunganScreenState extends State<CreateKunjunganScreen> {
+class _EndKunjunganScreenState extends State<EndKunjunganScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -71,14 +70,14 @@ class _CreateKunjunganScreenState extends State<CreateKunjunganScreen> {
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [SizedBox(height: 30), FormCreateKunjungan()],
+                      children: [SizedBox(height: 80), FormEndKunjungan()],
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          Positioned(top: 40, left: 10, child: HeaderCreateKunjungan()),
+          Positioned(top: 40, left: 10, child: HeaderEndKunjungan()),
         ],
       ),
     );

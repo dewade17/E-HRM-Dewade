@@ -1,4 +1,6 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/detail_kunjungan/detail_kunjungan_screen.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/end_kunjungan/end_kunjungan_screen.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/calendar_kunjungan.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -83,7 +85,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                             height: 120,
                             color: Colors.grey.shade200,
                             child: const Icon(
-                              Icons.image,
+                              Icons.image, //lampiran_kunjungan_url
                               size: 50,
                               color: Colors.grey,
                             ),
@@ -95,7 +97,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Kunjungan Rutin Pelanggan", // <-- Teks hardcoded
+                                "Kunjungan Rutin Pelanggan",
                                 style: GoogleFonts.poppins(
                                   textStyle: const TextStyle(
                                     fontSize: 17,
@@ -110,7 +112,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                                   const Icon(Icons.calendar_month, size: 18),
                                   const SizedBox(width: 8),
                                   Text(
-                                    "30 Sep 2025", // <-- Teks hardcoded
+                                    "30 Sep 2025",
                                     style: GoogleFonts.poppins(
                                       textStyle: const TextStyle(
                                         fontSize: 14,
@@ -129,7 +131,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    "09:46 - --:-- WITA", // <-- Teks hardcoded
+                                    "09:46 - --:-- WITA",
                                     style: GoogleFonts.poppins(
                                       textStyle: const TextStyle(
                                         fontSize: 14,
@@ -142,13 +144,24 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                               const SizedBox(height: 8),
                               Align(
                                 alignment: Alignment.centerRight,
-                                child: Text(
-                                  "Detail Kunjungan",
-                                  style: GoogleFonts.poppins(
-                                    textStyle: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textDefaultColor,
-                                      decoration: TextDecoration.underline,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const EndKunjunganScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    "Selesaikan Kunjungan",
+                                    style: GoogleFonts.poppins(
+                                      textStyle: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.errorColor,
+                                        decoration: TextDecoration.underline,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -241,7 +254,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Follow Up Prospek", // <-- Teks hardcoded
+                                "Follow Up Prospek",
                                 style: GoogleFonts.poppins(
                                   textStyle: const TextStyle(
                                     fontSize: 17,
@@ -256,7 +269,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                                   const Icon(Icons.calendar_month, size: 18),
                                   const SizedBox(width: 8),
                                   Text(
-                                    "29 Sep 2025", // <-- Teks hardcoded
+                                    "29 Sep 2025",
                                     style: GoogleFonts.poppins(
                                       textStyle: const TextStyle(
                                         fontSize: 14,
@@ -275,7 +288,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    "14:00 - 15:30 WITA", // <-- Teks hardcoded
+                                    "14:00 - 15:30 WITA",
                                     style: GoogleFonts.poppins(
                                       textStyle: const TextStyle(
                                         fontSize: 14,
@@ -288,13 +301,24 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                               const SizedBox(height: 8),
                               Align(
                                 alignment: Alignment.centerRight,
-                                child: Text(
-                                  "Detail Kunjungan",
-                                  style: GoogleFonts.poppins(
-                                    textStyle: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textDefaultColor,
-                                      decoration: TextDecoration.underline,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const DetailKunjunganScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    "Detail Kunjungan",
+                                    style: GoogleFonts.poppins(
+                                      textStyle: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textDefaultColor,
+                                        decoration: TextDecoration.underline,
+                                      ),
                                     ),
                                   ),
                                 ),

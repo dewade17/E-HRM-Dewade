@@ -23,6 +23,7 @@ class TextFieldWidget extends StatefulWidget {
     this.elevation = 3,
     this.borderRadius = 12,
     this.autovalidateMode,
+    this.maxLines = 1, // Ditambahkan
   });
 
   /// Teks label di atas field (contoh: "Email", "Password")
@@ -76,6 +77,9 @@ class TextFieldWidget extends StatefulWidget {
 
   /// Autovalidate (opsional)
   final AutovalidateMode? autovalidateMode;
+
+  /// Jumlah baris maksimal (default 1). Untuk password akan selalu 1.
+  final int maxLines; // Ditambahkan
 
   @override
   State<TextFieldWidget> createState() => _TextFieldWidgetState();
@@ -146,6 +150,7 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
                   keyboardType: kb,
                   obscureText: isPwd ? _obscure : false,
                   autovalidateMode: widget.autovalidateMode,
+                  maxLines: isPwd ? 1 : widget.maxLines, // Ditambahkan
                   decoration: InputDecoration(
                     hintText: widget.hintText,
                     hintStyle: TextStyle(

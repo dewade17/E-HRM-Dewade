@@ -18,15 +18,22 @@ class Endpoints {
   static const String departements = "$baseURL/mobile/departements";
 
   //kunjungan
-  static const String masterDataKunjungan =
-      "$baseURL/admin/master-data-kunjungan";
-  static String masterDataKunjunganDetail(String id) =>
-      "$masterDataKunjungan/$id";
+  static const String kategoriKunjungan = "$baseURL/admin/kategori-kunjungan";
+  static String kategoriKunjunganDetail(String id) =>
+      "$kategoriKunjunganDetail/$id";
 
   static const String kunjunganKlien = "$baseURL/mobile/kunjungan-klien";
   static String kunjunganKlienDetail(String id) => "$kunjunganKlien/$id";
-  static String kunjunganKlienSubmit(String id) =>
-      "$kunjunganKlien/$id/submit-kunjungan";
+  static String kunjunganKlienStartSubmit(String id) =>
+      "$kunjunganKlien/$id/submit-start-kunjungan";
+  static String kunjunganKlienEndSubmit(String id) =>
+      "$kunjunganKlien/$id/submit-end-kunjungan";
+  static String kunjunganKlienStatusBerlangsung(String id) =>
+      "$kunjunganKlien/status-berlangsung";
+  static String kunjunganKlienStatusDiproses(String id) =>
+      "$kunjunganKlien/status-diproses";
+  static String kunjunganKlienStatusSekesai(String id) =>
+      "$kunjunganKlien/status-selesai";
 
   //getuser
   static const String users = "$baseURL/mobile/users";

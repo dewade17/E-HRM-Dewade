@@ -1,6 +1,7 @@
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/rencana_kunjungan/rencana_kunjungan_screen.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
@@ -85,11 +86,22 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
     final provider = context.read<KunjunganKlienProvider>();
     final deskripsi = keterangankunjungancontroller.text.trim();
 
+    final normalizedDate = DateTime(
+      tanggal.year,
+      tanggal.month,
+      tanggal.day,
+    ); // local date only
+    final tanggalUtc = DateTime.utc(
+      normalizedDate.year,
+      normalizedDate.month,
+      normalizedDate.day,
+    );
+
     await provider.createKunjungan(
       idKategoriKunjungan: kategoriId,
-      tanggal: DateTime(tanggal.year, tanggal.month, tanggal.day),
-      jamMulai: _combineDateTime(tanggal, _selectedJamMulai),
-      jamSelesai: _combineDateTime(tanggal, _selectedJamSelesai),
+      tanggal: tanggalUtc,
+      jamMulai: _combineDateTime(normalizedDate, _selectedJamMulai),
+      jamSelesai: _combineDateTime(normalizedDate, _selectedJamSelesai),
       deskripsi: deskripsi.isEmpty ? null : deskripsi,
     );
 
@@ -103,7 +115,15 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
       return;
     }
 
-    _showSnackBar(message ?? 'Kunjungan berhasil dibuat.');
+    final navigator = Navigator.of(context);
+    final successMessage = message ?? 'Kunjungan berhasil dibuat.';
+    if (navigator.canPop()) {
+      navigator.pop(successMessage);
+    } else {
+      navigator.pushReplacement(
+        MaterialPageRoute(builder: (_) => const RencanaKunjunganScreen()),
+      );
+    }
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -192,7 +212,6 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
                       maxLines: 3,
                       label: "Keterangan",
                       controller: keterangankunjungancontroller,
-                      validationType: ValidationType.none,
                     ),
                     const SizedBox(height: 20),
                     DatePickerFieldWidget(

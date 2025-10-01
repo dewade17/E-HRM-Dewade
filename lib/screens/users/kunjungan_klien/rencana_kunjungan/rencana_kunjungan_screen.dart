@@ -1,7 +1,8 @@
 import 'dart:math' as math;
-
+import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/rencana_kunjungan/widget/content_rencana_kunjungan.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class RencanaKunjunganScreen extends StatefulWidget {
   const RencanaKunjunganScreen({super.key});
@@ -54,17 +55,25 @@ class _RencanaKunjunganScreenState extends State<RencanaKunjunganScreen> {
               // top/bottom tetap aman, kiri/kanan edge-to-edge
               left: false,
               right: false,
-              child: SingleChildScrollView(
-                // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
-                child: Stack(
-                  //saya ingin
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [ContentRencanaKunjungan()],
-                    ),
-                  ],
+              child: RefreshIndicator(
+                onRefresh: () => context
+                    .read<KunjunganKlienProvider>()
+                    .refreshStatusDiproses(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  // full width secara horizontal
+                  padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
+                  child: Stack(
+                    //saya ingin
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [ContentRencanaKunjungan()],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

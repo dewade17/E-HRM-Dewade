@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/daftar_kunjungan/widget/content_daftar_kunjungan.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class DaftarKunjunganScreen extends StatefulWidget {
   const DaftarKunjunganScreen({super.key});
@@ -54,17 +56,29 @@ class _DaftarKunjunganScreenState extends State<DaftarKunjunganScreen> {
               // top/bottom tetap aman, kiri/kanan edge-to-edge
               left: false,
               right: false,
-              child: SingleChildScrollView(
-                // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(15, 20, 15, 24),
-                child: Stack(
-                  //saya ingin
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [ContentDaftarKunjungan()],
-                    ),
-                  ],
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  final provider = context.read<KunjunganKlienProvider>();
+                  await Future.wait([
+                    provider.refreshStatusBerlangsung(),
+                    provider.refreshStatusSelesai(),
+                  ]);
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  // full width secara horizontal
+                  padding: const EdgeInsets.fromLTRB(15, 20, 15, 24),
+                  child: Stack(
+                    //saya ingin
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [ContentDaftarKunjungan()],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

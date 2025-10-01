@@ -5,8 +5,9 @@ import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/create_kunjungan_screen.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/calendar_rencana_kunjungan.dart';
 import 'package:e_hrm/screens/users/profile/widget/foto_profile.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/calendar_kunjungan.dart';
+import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/calendar_daftar_kunjungan.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -117,7 +118,7 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-            child: CalendarKunjungan(),
+            child: CalendarRencanaKunjungan(),
           ),
           Container(
             width: double.infinity,

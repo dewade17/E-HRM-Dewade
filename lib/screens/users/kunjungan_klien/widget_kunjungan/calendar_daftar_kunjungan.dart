@@ -1,30 +1,55 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-class CalendarKunjungan extends StatefulWidget {
-  const CalendarKunjungan({super.key});
+class CalendarDaftarKunjungan extends StatefulWidget {
+  final DateTime? selectedDay;
+  final ValueChanged<DateTime?>? onDaySelected;
+
+  const CalendarDaftarKunjungan({
+    super.key,
+    this.selectedDay,
+    this.onDaySelected,
+  });
 
   @override
-  State<CalendarKunjungan> createState() => _CalendarKunjunganState();
+  State<CalendarDaftarKunjungan> createState() =>
+      _CalendarDaftarKunjunganState();
 }
 
-class _CalendarKunjunganState extends State<CalendarKunjungan>
+class _CalendarDaftarKunjunganState extends State<CalendarDaftarKunjungan>
     with TickerProviderStateMixin {
   static final DateTime _firstDay = DateTime.utc(2000, 1, 1);
   static final DateTime _lastDay = DateTime.utc(2100, 12, 31);
 
   late DateTime _focused;
   bool _expanded = false;
+  DateTime? _selected;
 
   @override
-  void initState() {
-    super.initState();
-    _focused = DateTime.now();
+  void didUpdateWidget(CalendarDaftarKunjungan oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newSelected = widget.selectedDay;
+    if (!isSameDay(oldWidget.selectedDay, newSelected)) {
+      setState(() {
+        _selected = newSelected;
+        if (newSelected != null) {
+          _focused = DateTime(
+            newSelected.year,
+            newSelected.month,
+            newSelected.day,
+          );
+        }
+      });
+    }
   }
 
   String get _bulanTahun => DateFormat.yMMMM('id_ID').format(_focused);
+  DateTime _normalize(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   void _goPrev() {
     setState(() {
@@ -40,6 +65,21 @@ class _CalendarKunjunganState extends State<CalendarKunjungan>
 
   @override
   Widget build(BuildContext context) {
+    final kunjunganProvider = context.watch<KunjunganKlienProvider?>();
+    final eventMap = <DateTime, List<Object?>>{};
+    if (kunjunganProvider != null) {
+      final items = [
+        ...kunjunganProvider.berlangsungItems,
+        ...kunjunganProvider.selesaiItems,
+      ];
+      for (final item in items) {
+        final tanggal = item.tanggal;
+        if (tanggal == null) continue;
+        final key = _normalize(tanggal);
+        eventMap.putIfAbsent(key, () => <Object?>[]).add(item);
+      }
+    }
+
     return Card(
       color: AppColors.textColor,
       elevation: 1,
@@ -116,6 +156,8 @@ class _CalendarKunjunganState extends State<CalendarKunjungan>
                         firstDay: _firstDay,
                         lastDay: _lastDay,
                         focusedDay: _focused,
+                        selectedDayPredicate: (day) =>
+                            isSameDay(_selected, day),
                         locale: 'id_ID',
                         calendarFormat: CalendarFormat.month,
                         availableCalendarFormats: const {
@@ -141,7 +183,27 @@ class _CalendarKunjunganState extends State<CalendarKunjungan>
                             color: AppColors.secondaryColor,
                             shape: BoxShape.circle,
                           ),
+                          markerDecoration: BoxDecoration(
+                            color: AppColors.primaryColor,
+                            shape: BoxShape.circle,
+                          ),
+                          markersAlignment: Alignment.bottomCenter,
+                          markersMaxCount: 3,
                         ),
+                        eventLoader: (day) =>
+                            eventMap[_normalize(day)] ?? const <Object?>[],
+                        onDaySelected: (selectedDay, focusedDay) {
+                          setState(() {
+                            if (isSameDay(_selected, selectedDay)) {
+                              _selected = null;
+                            } else {
+                              _selected = selectedDay;
+                            }
+                            _focused = focusedDay;
+                          });
+                          widget.onDaySelected?.call(_selected);
+                        },
+
                         // Tidak pakai onDaySelected / marker / eventLoader: UI saja
                         onPageChanged: (day) {
                           // Aman kalau nanti AvailableGestures diubah; sinkronkan header

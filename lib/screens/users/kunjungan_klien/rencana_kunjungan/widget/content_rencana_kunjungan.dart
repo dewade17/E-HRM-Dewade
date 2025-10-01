@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/create_kunjungan_screen.dart';
+import 'package:e_hrm/screens/users/profile/widget/foto_profile.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/calendar_kunjungan.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -77,6 +82,24 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
     final mulai = jamMulai != null ? formatter.format(jamMulai) : '--:--';
     final selesai = jamSelesai != null ? formatter.format(jamSelesai) : '--:--';
     return '$mulai - $selesai WITA';
+  }
+
+  Future<void> _handleStartKunjungan(Data item) async {
+    final provider = context.read<KunjunganKlienProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _StartKunjunganSheet(item: item),
+    );
+
+    if (!mounted || result != true) return;
+
+    final message = provider.saveMessage ?? 'Check-in kunjungan berhasil.';
+    messenger.showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.accentColor),
+    );
   }
 
   @override
@@ -198,6 +221,7 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
                         ),
                         tanggalText: _formatTanggal(item),
                         jamText: _formatJamRange(item),
+                        onStart: () => _handleStartKunjungan(item),
                       ),
                     ),
                 ],
@@ -250,12 +274,14 @@ class _RencanaKunjunganCard extends StatelessWidget {
     required this.kategoriText,
     required this.tanggalText,
     required this.jamText,
+    required this.onStart,
   });
 
   final Data item;
   final String kategoriText;
   final String tanggalText;
   final String jamText;
+  final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +344,7 @@ class _RencanaKunjunganCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: onStart,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Padding(
@@ -349,6 +375,247 @@ class _RencanaKunjunganCard extends StatelessWidget {
                 const Icon(Icons.access_time),
                 Text(' $jamText'),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StartKunjunganSheet extends StatefulWidget {
+  const _StartKunjunganSheet({required this.item});
+
+  final Data item;
+
+  @override
+  State<_StartKunjunganSheet> createState() => _StartKunjunganSheetState();
+}
+
+class _StartKunjunganSheetState extends State<_StartKunjunganSheet> {
+  File? _pickedFile;
+  bool _submitting = false;
+  String? _errorMessage;
+
+  Future<void> _submit() async {
+    if (_submitting) return;
+
+    if (_pickedFile == null) {
+      setState(() {
+        _errorMessage = 'Harap lampirkan foto check-in terlebih dahulu.';
+      });
+      return;
+    }
+
+    final provider = context.read<KunjunganKlienProvider>();
+    final navigator = Navigator.of(context);
+
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final position = await _obtainCurrentPosition();
+      if (position == null) {
+        setState(() => _submitting = false);
+        return;
+      }
+
+      final lampiran = await http.MultipartFile.fromPath(
+        'lampiran_kunjungan',
+        _pickedFile!.path,
+      );
+
+      await provider.submitStartKunjungan(
+        widget.item.idKunjungan,
+        jamCheckin: DateTime.now(),
+        startLatitude: position.latitude,
+        startLongitude: position.longitude,
+        lampiran: lampiran,
+      );
+
+      final error = provider.saveError;
+      if (error != null) {
+        setState(() {
+          _errorMessage = error;
+          _submitting = false;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      navigator.pop(true);
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Terjadi kesalahan: $e';
+        _submitting = false;
+      });
+    }
+  }
+
+  Future<Position?> _obtainCurrentPosition() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _errorMessage =
+              'Location Services mati. Harap aktifkan untuk melanjutkan.';
+        });
+        return null;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        setState(() {
+          _errorMessage = 'Izin lokasi ditolak. Harap izinkan akses lokasi.';
+        });
+        return null;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _errorMessage =
+              'Izin lokasi ditolak permanen. Buka pengaturan untuk mengaktifkannya.';
+        });
+        return null;
+      }
+
+      return Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Gagal mengambil lokasi: $e';
+      });
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: bottomPadding + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Text(
+            'Mulai Kunjungan',
+            style: GoogleFonts.poppins(
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          FotoProfile(
+            enabled: !_submitting,
+            radius: 55,
+            onPicked: (file) {
+              setState(() {
+                _pickedFile = file;
+                _errorMessage = null;
+              });
+            },
+            onRemove: () {
+              setState(() {
+                _pickedFile = null;
+                _errorMessage = null;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Lampirkan foto sebagai bukti check-in. Lokasi & jam akan diambil otomatis.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              textStyle: const TextStyle(
+                fontSize: 12,
+                color: AppColors.hintColor,
+              ),
+            ),
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.errorColor,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _submitting ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.errorColor,
+                foregroundColor: AppColors.menuColor,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: _submitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      'Mulai Sekarang',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: _submitting
+                ? null
+                : () => Navigator.of(context).pop(false),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.poppins(
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.hintColor,
+                ),
+              ),
             ),
           ),
         ],

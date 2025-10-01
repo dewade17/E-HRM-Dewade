@@ -147,7 +147,6 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
       endLatitude: latitude,
       endLongitude: longitude,
       idKategoriKunjungan: kategoriId,
-      lampiranKunjunganUrl: widget.item.lampiranKunjunganUrl,
       recipients: recipients.isEmpty ? null : recipients,
     );
 

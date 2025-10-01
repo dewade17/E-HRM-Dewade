@@ -499,6 +499,7 @@ class KunjunganKlienProvider extends ChangeNotifier {
     List<Map<String, dynamic>>? recipients,
     http.MultipartFile? lampiran,
     Map<String, dynamic>? additionalFields,
+    bool lampiranUrlIsUpdated = false,
   }) async {
     final payload = <String, dynamic>{
       if (deskripsi != null) 'deskripsi': deskripsi,
@@ -509,10 +510,13 @@ class KunjunganKlienProvider extends ChangeNotifier {
         'id_kategori_kunjungan': idKategoriKunjungan,
     };
 
-    if (removeLampiran) {
-      payload['lampiran_kunjungan_url'] = null;
-    } else if (lampiranKunjunganUrl != null) {
-      payload['lampiran_kunjungan_url'] = lampiranKunjunganUrl;
+    final shouldIncludeLampiranUrl =
+        removeLampiran || lampiran != null || lampiranUrlIsUpdated;
+
+    if (shouldIncludeLampiranUrl) {
+      payload['lampiran_kunjungan_url'] = removeLampiran
+          ? null
+          : lampiranKunjunganUrl;
     }
 
     if (recipients != null) {

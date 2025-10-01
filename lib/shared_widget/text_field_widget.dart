@@ -1,6 +1,9 @@
-import "package:e_hrm/contraints/colors.dart";
-import "package:flutter/material.dart";
-import "package:google_fonts/google_fonts.dart";
+import 'package:e_hrm/contraints/colors.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+// Ditambahkan: Enum untuk tipe validasi
+enum ValidationType { none, email, password }
 
 class TextFieldWidget extends StatefulWidget {
   const TextFieldWidget({
@@ -23,7 +26,9 @@ class TextFieldWidget extends StatefulWidget {
     this.elevation = 3,
     this.borderRadius = 12,
     this.autovalidateMode,
-    this.maxLines = 1, // Ditambahkan
+    this.maxLines = 1,
+    // Ditambahkan: Properti untuk menentukan tipe validasi default
+    this.validationType = ValidationType.none,
   });
 
   /// Teks label di atas field (contoh: "Email", "Password")
@@ -79,7 +84,10 @@ class TextFieldWidget extends StatefulWidget {
   final AutovalidateMode? autovalidateMode;
 
   /// Jumlah baris maksimal (default 1). Untuk password akan selalu 1.
-  final int maxLines; // Ditambahkan
+  final int maxLines;
+
+  /// Ditambahkan: Tipe validasi default yang akan digunakan jika validator custom null.
+  final ValidationType validationType;
 
   @override
   State<TextFieldWidget> createState() => _TextFieldWidgetState();
@@ -98,9 +106,12 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
   Widget build(BuildContext context) {
     final bool isPwd = widget.isPassword;
 
+    // Logika keyboard type tidak berubah, ini bagus untuk kenyamanan
     final TextInputType kb =
         widget.keyboardType ??
-        (isPwd ? TextInputType.visiblePassword : TextInputType.emailAddress);
+        (widget.validationType == ValidationType.email
+            ? TextInputType.emailAddress
+            : TextInputType.text);
 
     final TextStyle baseLabelStyle = GoogleFonts.poppins(
       textStyle: const TextStyle(
@@ -150,7 +161,7 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
                   keyboardType: kb,
                   obscureText: isPwd ? _obscure : false,
                   autovalidateMode: widget.autovalidateMode,
-                  maxLines: isPwd ? 1 : widget.maxLines, // Ditambahkan
+                  maxLines: isPwd ? 1 : widget.maxLines,
                   decoration: InputDecoration(
                     hintText: widget.hintText,
                     hintStyle: TextStyle(
@@ -176,7 +187,8 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
                           )
                         : null,
                   ),
-                  validator: widget.validator ?? _defaultValidator(isPwd, kb),
+                  // Diubah: Memanggil _defaultValidator tanpa argumen
+                  validator: widget.validator ?? _defaultValidator(),
                   onChanged: widget.onChanged,
                 ),
               ),
@@ -207,25 +219,39 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
     );
   }
 
-  String? Function(String?) _defaultValidator(bool isPwd, TextInputType kb) {
+  // Diubah: Fungsi validator menjadi lebih cerdas berdasarkan `validationType`
+  String? Function(String?) _defaultValidator() {
     return (value) {
       final String v = value?.trim() ?? '';
 
+      // Pengecekan wajib isi berlaku untuk semua tipe
       if (widget.isRequired && v.isEmpty) {
         return '${widget.label} tidak boleh kosong';
       }
 
-      if (!isPwd && kb == TextInputType.emailAddress && v.isNotEmpty) {
-        final RegExp emailPattern = RegExp(
-          r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
-        );
-        if (!emailPattern.hasMatch(v)) {
-          return 'Format email tidak valid';
-        }
+      // Jika tidak wajib dan kosong, tidak perlu validasi lebih lanjut
+      if (v.isEmpty) {
+        return null;
       }
 
-      if (isPwd && v.isNotEmpty && v.length < 6) {
-        return 'Password minimal 6 karakter';
+      // Gunakan switch untuk validasi spesifik
+      switch (widget.validationType) {
+        case ValidationType.email:
+          final RegExp emailPattern = RegExp(
+            r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+          );
+          if (!emailPattern.hasMatch(v)) {
+            return 'Format email tidak valid';
+          }
+          break;
+        case ValidationType.password:
+          if (v.length < 6) {
+            return 'Password minimal 6 karakter';
+          }
+          break;
+        case ValidationType.none:
+          // Tidak ada validasi tambahan
+          break;
       }
 
       return null;

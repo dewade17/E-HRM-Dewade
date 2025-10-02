@@ -1,19 +1,39 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/detail_kunjungan/widget/visit_timeline_easy_full.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ContentDetailKunjungan extends StatefulWidget {
-  const ContentDetailKunjungan({super.key});
+class ContentDetailKunjungan extends StatelessWidget {
+  const ContentDetailKunjungan({
+    super.key,
+    required this.kategori,
+    required this.durationText,
+    required this.deskripsi,
+    required this.startDateText,
+    required this.startTimeText,
+    required this.startAddress,
+    required this.endDateText,
+    required this.endTimeText,
+    required this.endAddress,
+    this.lampiranUrl,
+    this.reports = const <KunjunganReportRecipient>[],
+  });
 
-  @override
-  State<ContentDetailKunjungan> createState() => _ContentDetailKunjunganState();
-}
+  final String kategori;
+  final String durationText;
+  final String deskripsi;
+  final String startDateText;
+  final String startTimeText;
+  final String startAddress;
+  final String endDateText;
+  final String endTimeText;
+  final String endAddress;
+  final String? lampiranUrl;
+  final List<KunjunganReportRecipient> reports;
 
-class _ContentDetailKunjunganState extends State<ContentDetailKunjungan> {
   @override
   Widget build(BuildContext context) {
-    // Tidak ada lagi variabel untuk teks, semua langsung ditulis di dalam widget.
     return Column(
       children: [
         const SizedBox(height: 20),
@@ -33,7 +53,7 @@ class _ContentDetailKunjunganState extends State<ContentDetailKunjungan> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Kategori: Kunjungan Rutin",
+                  "Kategori: $kategori",
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -51,7 +71,7 @@ class _ContentDetailKunjunganState extends State<ContentDetailKunjungan> {
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
-                    'Selesai',
+                    durationText,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -85,7 +105,7 @@ class _ContentDetailKunjunganState extends State<ContentDetailKunjungan> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "Ini adalah contoh deskripsi untuk kunjungan klien. Membahas mengenai progres project dan rencana selanjutnya.",
+                  deskripsi,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
@@ -93,22 +113,20 @@ class _ContentDetailKunjunganState extends State<ContentDetailKunjungan> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const VisitTimelineEasyFull(
-                  startDateText: '01 Oktober 2025',
-                  startTimeText: '09.00',
-                  startAddress:
-                      'Lat: -6.200000, Lng: 106.816666', //reverse opentsreetmap menjadi alamat
-                  endDateText: '01 Oktober 2025',
-                  endTimeText: '11.30',
+                VisitTimelineEasyFull(
+                  startDateText: startDateText,
+                  startTimeText: startTimeText,
+                  startAddress: startAddress,
+                  endDateText: endDateText,
+                  endTimeText: endTimeText,
                   labelGap: 20,
-                  endAddress:
-                      'Lat: -6.201234, Lng: 106.823456', //reverse opentsreetmap menjadi alamat
+                  endAddress: endAddress,
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 0),
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
                     child: Text(
                       "Bukti Kunjungan",
                       style: GoogleFonts.poppins(
@@ -119,42 +137,107 @@ class _ContentDetailKunjunganState extends State<ContentDetailKunjungan> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
-                //image.asset lampiran_kunjungan_url
-                SizedBox(height: 20),
-                Card(
-                  //kondisi jika belum disetujui
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                    child: Row(
-                      children: [
-                        Icon(Icons.person),
-                        SizedBox(width: 10),
-                        Text("Approver"),
-                      ],
+                const SizedBox(height: 10),
+                if (lampiranUrl != null && lampiranUrl!.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      lampiranUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 180,
+                        color: AppColors.backgroundColor,
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Gagal memuat gambar',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: AppColors.textDefaultColor,
+                          ),
+                        ),
+                      ),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 180,
+                          alignment: Alignment.center,
+                          color: AppColors.backgroundColor,
+                          child: const CircularProgressIndicator(),
+                        );
+                      },
+                    ),
+                  )
+                else
+                  Container(
+                    height: 180,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Tidak ada bukti kunjungan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColors.textDefaultColor,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: 10),
-                Card(
-                  //kondisi sudah disetujui
-                  color: AppColors.succesColor,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                    child: Row(
-                      children: [
-                        Icon(Icons.person),
-                        SizedBox(width: 10),
-                        Text("Approver"),
-                      ],
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 20),
+                ..._buildReportWidgets(),
               ],
             ),
           ),
         ),
       ],
     );
+  }
+
+  List<Widget> _buildReportWidgets() {
+    if (reports.isEmpty) {
+      return [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+            child: Row(
+              children: [
+                const Icon(Icons.person),
+                const SizedBox(width: 10),
+                Text("Belum ada approver", style: GoogleFonts.poppins()),
+              ],
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return reports.map((report) {
+      final status = report.status?.toLowerCase() ?? '';
+      final isApproved = status == 'approved' || status == 'disetujui';
+      final backgroundColor = isApproved ? AppColors.succesColor : null;
+      final textColor = isApproved ? Colors.white : AppColors.textDefaultColor;
+      final label = report.recipientRoleSnapshot?.isNotEmpty == true
+          ? report.recipientRoleSnapshot!
+          : 'Approver';
+
+      return Card(
+        color: backgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          child: Row(
+            children: [
+              Icon(Icons.person, color: isApproved ? Colors.white : null),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.poppins(color: textColor),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }).toList();
   }
 }

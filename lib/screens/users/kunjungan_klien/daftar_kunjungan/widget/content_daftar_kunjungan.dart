@@ -288,8 +288,10 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        const DetailKunjunganScreen(),
+                                    builder: (context) => DetailKunjunganScreen(
+                                      idKunjungan: item.idKunjungan,
+                                      initialData: item,
+                                    ),
                                   ),
                                 );
                               }

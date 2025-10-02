@@ -1,3 +1,5 @@
+// lib/screens/users/kunjungan_klien/detail_kunjungan/detail_kunjungan_screen.dart
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -210,14 +212,18 @@ class _DetailKunjunganScreenState extends State<DetailKunjunganScreen> {
     return 'Lat: ${lat.toStringAsFixed(6)}, Lng: ${lng.toStringAsFixed(6)}';
   }
 
+  // ✨ PERUBAHAN DISINI: Menghapus .toLocal()
   String _formatDate(DateTime? date) {
     if (date == null) return '-';
-    return DateFormat('dd MMMM yyyy', 'id_ID').format(date.toLocal());
+    // Menghapus .toLocal()
+    return DateFormat('dd MMMM yyyy', 'id_ID').format(date);
   }
 
+  // ✨ PERUBAHAN DISINI: Menghapus .toLocal()
   String _formatTime(DateTime? date) {
     if (date == null) return '--:--';
-    return DateFormat('HH.mm', 'id_ID').format(date.toLocal());
+    // Menghapus .toLocal()
+    return DateFormat('HH.mm', 'id_ID').format(date);
   }
 
   String _resolveKategori(Data data) {
@@ -227,16 +233,24 @@ class _DetailKunjunganScreenState extends State<DetailKunjunganScreen> {
   }
 
   String _resolveDuration(Data data) {
-    final duration = data.duration;
-    if (duration == null) {
+    final durationInSeconds = data.duration;
+    if (durationInSeconds == null || durationInSeconds < 0) {
       return 'Durasi tidak tersedia';
     }
-    final hours = duration ~/ 60;
-    final minutes = duration % 60;
+    if (durationInSeconds == 0) {
+      return '0 menit';
+    }
+
+    final hours = durationInSeconds ~/ 3600;
+    final minutes = (durationInSeconds % 3600) ~/ 60;
+
     final parts = <String>[];
-    if (hours > 0) parts.add('$hours jam');
-    if (minutes > 0) parts.add('$minutes menit');
-    if (parts.isEmpty) parts.add('0 menit');
+    if (hours > 0) {
+      parts.add('$hours jam');
+    }
+    if (minutes > 0) {
+      parts.add('$minutes menit');
+    }
     return parts.join(' ');
   }
 
@@ -266,8 +280,8 @@ class _DetailKunjunganScreenState extends State<DetailKunjunganScreen> {
             ? detail
             : _lastData;
 
-        final startDate = data?.jamCheckin ?? data?.jamMulai ?? data?.tanggal;
-        final endDate = data?.jamCheckout ?? data?.jamSelesai ?? data?.tanggal;
+        final startDate = data?.jamCheckin;
+        final endDate = data?.jamCheckout;
 
         final startAddress = _resolveAddress(
           isStart: true,
@@ -358,7 +372,11 @@ class _DetailKunjunganScreenState extends State<DetailKunjunganScreen> {
                   ),
                 ),
               ),
-              Positioned(top: 40, left: 10, child: HeaderDetailKunjungan()),
+              const Positioned(
+                top: 40,
+                left: 10,
+                child: HeaderDetailKunjungan(),
+              ),
             ],
           ),
         );

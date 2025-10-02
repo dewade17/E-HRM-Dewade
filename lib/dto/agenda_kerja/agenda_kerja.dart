@@ -35,6 +35,7 @@ class Data {
   final String status;
   final String? idAbsensi;
   final DateTime? startDate;
+  final String? kebutuhanAgenda;
   final DateTime? endDate;
   final int? durationSeconds;
   final DateTime? createdAt;
@@ -52,6 +53,7 @@ class Data {
     required this.status,
     this.idAbsensi,
     this.startDate,
+    this.kebutuhanAgenda,
     this.endDate,
     this.durationSeconds,
     this.createdAt,
@@ -70,6 +72,7 @@ class Data {
     status: (json['status'] ?? '').toString(),
     idAbsensi: _asString(json['id_absensi']),
     startDate: _parseDateTime(json['start_date']),
+    kebutuhanAgenda: _asString(json['kebutuhan_agenda']),
     endDate: _parseDateTime(json['end_date']),
     durationSeconds: _asInt(json['duration_seconds']),
     createdAt: _parseDateTime(json['created_at']),
@@ -88,6 +91,7 @@ class Data {
       'id_user': idUser,
       'deskripsi_kerja': deskripsiKerja,
       'start_date': startDate?.toIso8601String(),
+      'kebutuhan_agenda': kebutuhanAgenda,
       'end_date': endDate?.toIso8601String(),
       'duration_seconds': durationSeconds,
       'status': status,

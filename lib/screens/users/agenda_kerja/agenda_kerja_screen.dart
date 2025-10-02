@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/widget/calendar_agenda_kerja.dart';
+import 'package:e_hrm/screens/users/agenda_kerja/widget/header_agenda_kerja.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/widget/content_agenda_kerja.dart';
 import 'package:flutter/material.dart';
@@ -98,7 +99,7 @@ class _AgendaKerjaScreenState extends State<AgendaKerjaScreen> {
               right: false,
               child: SingleChildScrollView(
                 // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 5, 0, 24),
+                padding: const EdgeInsets.fromLTRB(0, 60, 0, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -126,6 +127,11 @@ class _AgendaKerjaScreenState extends State<AgendaKerjaScreen> {
                     builder: (context, provider, _) {
                       final selectedIds = provider.selectedAgendaKerjaIds;
                       final hasSelection = selectedIds.isNotEmpty;
+                      final isBusy =
+                          provider.loading ||
+                          provider.saving ||
+                          provider.deleting;
+                      final canConfirm = hasSelection && !isBusy;
 
                       return SizedBox(
                         width: double.infinity,
@@ -134,29 +140,58 @@ class _AgendaKerjaScreenState extends State<AgendaKerjaScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          color: hasSelection
+                          color: canConfirm
                               ? AppColors.textColor
                               : AppColors.textColor.withOpacity(0.6),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
-                            onTap: hasSelection
+                            onTap: canConfirm
                                 ? () => _handleConfirmSelection(selectedIds)
                                 : null,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Center(
-                                child: Text(
-                                  'Pilih',
-                                  style: GoogleFonts.poppins(
-                                    textStyle: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: hasSelection
-                                          ? AppColors.textDefaultColor
-                                          : AppColors.hintColor,
-                                    ),
-                                  ),
-                                ),
+                                child: isBusy
+                                    ? Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    AppColors.textDefaultColor,
+                                                  ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Memproses...',
+                                            style: GoogleFonts.poppins(
+                                              textStyle: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                                color:
+                                                    AppColors.textDefaultColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Text(
+                                        'Pilih',
+                                        style: GoogleFonts.poppins(
+                                          textStyle: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: canConfirm
+                                                ? AppColors.textDefaultColor
+                                                : AppColors.hintColor,
+                                          ),
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
@@ -167,6 +202,7 @@ class _AgendaKerjaScreenState extends State<AgendaKerjaScreen> {
                 ),
               ),
             ),
+          Positioned(top: 40, left: 10, child: HeaderAgendaKerja()),
         ],
       ),
     );

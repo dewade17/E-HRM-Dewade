@@ -32,6 +32,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
   bool? _hasAbsensi;
   String? _agendaId;
   String? _absensiId;
+  String? _kebutuhanAgenda;
   DateTime? _date;
 
   bool _isOffsetPaging = true;
@@ -67,6 +68,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
   bool? get currentHasAbsensi => _hasAbsensi;
   String? get currentAgendaId => _agendaId;
   String? get currentAbsensiId => _absensiId;
+  String? get currentKebutuhanAgenda => _kebutuhanAgenda;
   DateTime? get currentDate => _date;
   bool get isOffsetPaging => _isOffsetPaging;
 
@@ -194,6 +196,18 @@ class AgendaKerjaProvider extends ChangeNotifier {
     return mapped;
   }
 
+  String? _normalizeKebutuhanAgendaValue(Object? value) {
+    if (value == null) return null;
+    if (value is String) return _normalizeKebutuhanAgendaString(value);
+    throw ArgumentError('kebutuhanAgenda harus berupa String?');
+  }
+
+  String _normalizeKebutuhanAgendaString(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed.toUpperCase();
+  }
+
   bool _matchesCurrentFilters(Data item) {
     if (_userId != null && _userId!.isNotEmpty && item.idUser != _userId) {
       return false;
@@ -217,6 +231,15 @@ class AgendaKerjaProvider extends ChangeNotifier {
       final hasAbsensi = (item.idAbsensi ?? '').isNotEmpty;
       if (_hasAbsensi! && !hasAbsensi) return false;
       if (!_hasAbsensi! && hasAbsensi) return false;
+    }
+    if (_kebutuhanAgenda != null) {
+      final filterValue = _kebutuhanAgenda!;
+      final itemValue = (item.kebutuhanAgenda ?? '').trim().toUpperCase();
+      if (filterValue.isEmpty) {
+        if (itemValue.isNotEmpty) return false;
+      } else if (itemValue != filterValue) {
+        return false;
+      }
     }
     return true;
   }
@@ -325,6 +348,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
       _hasAbsensi = hasAbsensiValue;
       _agendaId = null;
       _absensiId = null;
+      _kebutuhanAgenda = null;
       _date = null;
       _isOffsetPaging = true;
       limit = metaValue?.limit ?? limitValue;
@@ -355,6 +379,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
     DateTime? date,
     DateTime? from,
     DateTime? to,
+    Object? kebutuhanAgenda = _noValue,
     int? page,
     int? perPage,
     bool append = false,
@@ -392,6 +417,9 @@ class AgendaKerjaProvider extends ChangeNotifier {
     final dateValue = date ?? _date;
     final fromValue = from ?? _from;
     final toValue = to ?? _to;
+    final kebutuhanAgendaValue = !identical(kebutuhanAgenda, _noValue)
+        ? _normalizeKebutuhanAgendaValue(kebutuhanAgenda)
+        : _kebutuhanAgenda;
 
     final query = <String, String>{
       'page': pageValue.toString(),
@@ -406,6 +434,8 @@ class AgendaKerjaProvider extends ChangeNotifier {
       if (dateValue != null) 'date': dateValue.toIso8601String(),
       if (fromValue != null) 'from': fromValue.toIso8601String(),
       if (toValue != null) 'to': toValue.toIso8601String(),
+      if (kebutuhanAgendaValue != null)
+        'kebutuhan_agenda': kebutuhanAgendaValue,
     };
 
     _setLoading(true);
@@ -448,6 +478,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
       _date = dateValue;
       _from = fromValue;
       _to = toValue;
+      _kebutuhanAgenda = kebutuhanAgendaValue;
       _hasAbsensi = null;
       _isOffsetPaging = false;
       perPage = metaValue?.perPage ?? perPageValue;
@@ -514,9 +545,13 @@ class AgendaKerjaProvider extends ChangeNotifier {
     DateTime? endDate,
     int? durationSeconds,
     String? idAbsensi,
+    String? kebutuhanAgenda,
   }) async {
     _setSaving(true);
     try {
+      final kebutuhanAgendaValue = _normalizeKebutuhanAgendaValue(
+        kebutuhanAgenda,
+      );
       final body = _buildBody(<String, dynamic>{
         'id_user': idUser.trim(),
         'id_agenda': idAgenda.trim(),
@@ -526,6 +561,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
         if (endDate != null) 'end_date': endDate.toIso8601String(),
         if (durationSeconds != null) 'duration_seconds': durationSeconds,
         'id_absensi': idAbsensi,
+        'kebutuhan_agenda': kebutuhanAgendaValue,
       });
 
       final res = await _api.postDataPrivate(Endpoints.agendaKerjaCrud, body);
@@ -576,6 +612,7 @@ class AgendaKerjaProvider extends ChangeNotifier {
     DateTime? endDate,
     int? durationSeconds,
     Object? idAbsensi = _noValue,
+    Object? kebutuhanAgenda = _noValue,
   }) async {
     _setSaving(true);
     try {
@@ -591,7 +628,11 @@ class AgendaKerjaProvider extends ChangeNotifier {
       if (idAbsensi != _noValue) {
         body['id_absensi'] = idAbsensi;
       }
-
+      if (kebutuhanAgenda != _noValue) {
+        body['kebutuhan_agenda'] = _normalizeKebutuhanAgendaValue(
+          kebutuhanAgenda,
+        );
+      }
       final res = await _api.updateDataPrivate(
         Endpoints.agendaKerjaDetail(idAgendaKerja),
         _buildBody(body),

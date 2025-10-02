@@ -135,11 +135,46 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
     FocusScope.of(context).unfocus();
 
     final deskripsi = keterangankunjungancontroller.text.trim();
+
+    final selectedUserMap = {
+      for (final user in approverProvider.selectedUsers) user.idUser: user,
+    };
+    final existingRecipientMap = {
+      for (final report in widget.item.reports)
+        if (report.idUser != null && report.idUser!.isNotEmpty)
+          report.idUser!: report,
+    };
+
     final recipients = approverProvider.selectedRecipientIds
         .where((id) => id.trim().isNotEmpty)
-        .map((id) => {'id_user': id})
+        .map((id) {
+          final user = selectedUserMap[id];
+          final existing = existingRecipientMap[id];
+          final name =
+              (user?.namaPengguna ?? existing?.recipientNamaSnapshot)?.trim() ??
+              '';
+          final role = (user?.role ?? existing?.recipientRoleSnapshot)?.trim();
+
+          return {
+            'id_user': id,
+            if (name.isNotEmpty) 'recipient_nama_snapshot': name,
+            if (role != null && role.isNotEmpty)
+              'recipient_role_snapshot': role.toUpperCase(),
+          };
+        })
         .toList();
 
+    if (recipients.isNotEmpty &&
+        recipients.any((recipient) {
+          final nameValue = recipient['recipient_nama_snapshot'];
+          return nameValue is! String || nameValue.trim().isEmpty;
+        })) {
+      _showSnackBar(
+        'Data approver tidak lengkap. Silakan muat ulang daftar approver.',
+        isError: true,
+      );
+      return;
+    }
     await kunjunganProvider.submitEndKunjungan(
       widget.item.idKunjungan,
       deskripsi: deskripsi.isEmpty ? null : deskripsi,

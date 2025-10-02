@@ -26,21 +26,33 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   final TextEditingController startTimeController = TextEditingController();
   final TextEditingController endTimeController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
+  final List<String> _urgensiItems = [
+    'PENTING MENDESAK',
+    'TIDAK PENTING TAPI MENDESAK',
+    'PENTING TAK MENDESAK',
+    'TIDAK PENTING TIDAK MENDESAK',
+  ];
   String _selectedStatus = _statusOptions.first.value;
   String? _selectedAgendaId;
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  bool _hasRequestedAgendaItems = false;
+  String? _lastRequestedAgendaId;
+
+  String? _selectedUrgensi;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final agendaProvider = context.read<AgendaProvider>();
-      if (!agendaProvider.loading && agendaProvider.items.isEmpty) {
-        agendaProvider.fetch();
-      }
+      final agendaKerjaProvider = context.read<AgendaKerjaProvider>();
+      _ensureAgendaOptionsLoaded(
+        agendaProvider,
+        agendaKerjaProvider.currentAgendaId,
+      );
+      _syncFromAgendaKerjaProvider(agendaKerjaProvider);
     });
   }
 
@@ -56,6 +68,15 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   Future<void> _submit() async {
     final formState = formKey.currentState;
     if (formState == null || !formState.validate()) return;
+    if (_selectedAgendaId == null || _selectedAgendaId!.isEmpty) {
+      _showSnackBar('Agenda wajib dipilih.', true);
+      return;
+    }
+
+    if (_selectedDate == null) {
+      _showSnackBar('Tanggal agenda wajib diisi.', true);
+      return;
+    }
 
     if (_startTime == null || _endTime == null) {
       _showSnackBar('Jam mulai dan selesai wajib diisi.', true);
@@ -132,10 +153,90 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
+  void _ensureAgendaOptionsLoaded(
+    AgendaProvider agendaProvider,
+    String? requiredAgendaId,
+  ) {
+    if (agendaProvider.loading) return;
+    final trimmedAgendaId =
+        requiredAgendaId != null && requiredAgendaId.trim().isNotEmpty
+        ? requiredAgendaId.trim()
+        : null;
+    final hasRequiredAgenda =
+        trimmedAgendaId != null &&
+        agendaProvider.items.any(
+          (agenda) => agenda.idAgenda == trimmedAgendaId,
+        );
+
+    final shouldFetch =
+        agendaProvider.items.isEmpty ||
+        (trimmedAgendaId != null && !hasRequiredAgenda);
+
+    final needsNewRequest = trimmedAgendaId != _lastRequestedAgendaId;
+
+    if (shouldFetch && (needsNewRequest || !_hasRequestedAgendaItems)) {
+      _hasRequestedAgendaItems = true;
+      _lastRequestedAgendaId = trimmedAgendaId;
+      agendaProvider.fetch();
+    }
+  }
+
+  void _syncFromAgendaKerjaProvider(AgendaKerjaProvider provider) {
+    final providerAgendaId = provider.currentAgendaId;
+    final providerStatus = provider.currentStatus?.trim().toLowerCase();
+    final providerDate = provider.currentDate;
+
+    String? nextAgendaId = _selectedAgendaId;
+    String nextStatus = _selectedStatus;
+    DateTime? nextDate = _selectedDate;
+    var shouldUpdate = false;
+
+    if (providerAgendaId != null &&
+        providerAgendaId.isNotEmpty &&
+        providerAgendaId != _selectedAgendaId) {
+      nextAgendaId = providerAgendaId;
+      shouldUpdate = true;
+    }
+
+    if (providerStatus != null &&
+        providerStatus.isNotEmpty &&
+        providerStatus != _selectedStatus &&
+        _statusOptions.any((option) => option.value == providerStatus)) {
+      nextStatus = providerStatus;
+      shouldUpdate = true;
+    }
+
+    if (providerDate != null &&
+        (_selectedDate == null || !_isSameDay(_selectedDate!, providerDate))) {
+      nextDate = providerDate;
+      shouldUpdate = true;
+    }
+
+    if (shouldUpdate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _selectedAgendaId = nextAgendaId;
+          _selectedStatus = nextStatus;
+          _selectedDate = nextDate;
+        });
+      });
+    }
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   @override
   Widget build(BuildContext context) {
     final agendaProvider = context.watch<AgendaProvider>();
     final agendaKerjaProvider = context.watch<AgendaKerjaProvider>();
+    _ensureAgendaOptionsLoaded(
+      agendaProvider,
+      agendaKerjaProvider.currentAgendaId,
+    );
+    _syncFromAgendaKerjaProvider(agendaKerjaProvider);
 
     return Form(
       key: formKey,
@@ -183,6 +284,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
             DatePickerFieldWidget(
               label: 'Tanggal Agenda',
               controller: calendarController,
+
               onDateChanged: (date) => setState(() => _selectedDate = date),
               isRequired: true,
             ),
@@ -212,7 +314,30 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               ],
             ),
             const SizedBox(height: 20),
-
+            DropdownFieldWidget<String>(
+              label: "Urgensi",
+              hintText: "Pilih tingkat urgensi",
+              value: _selectedUrgensi,
+              isRequired: true,
+              items: _urgensiItems.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedUrgensi = newValue;
+                });
+              },
+              validator: (value) {
+                if (value == 'PENTING MENDESAK') {
+                  return 'Opsi ini sementara tidak tersedia';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
             // --- Menggunakan DropdownFieldWidget ---
             DropdownFieldWidget<String>(
               label: 'Status',

@@ -35,6 +35,14 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
+  String? _selectedUrgensi;
+  final List<String> _urgensiItems = [
+    'PENTING MENDESAK',
+    'TIDAK PENTING TAPI MENDESAK',
+    'PENTING TAK MENDESAK',
+    'TIDAK PENTING TIDAK MENDESAK',
+  ];
+
   bool _initializing = true;
   String? _loadError;
 
@@ -268,6 +276,30 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 20),
+            DropdownFieldWidget<String>(
+              label: "Urgensi",
+              hintText: "Pilih tingkat urgensi",
+              value: _selectedUrgensi,
+              isRequired: true,
+              items: _urgensiItems.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedUrgensi = newValue;
+                });
+              },
+              validator: (value) {
+                if (value == 'PENTING MENDESAK') {
+                  return 'Opsi ini sementara tidak tersedia';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 20),
             DropdownFieldWidget<String>(

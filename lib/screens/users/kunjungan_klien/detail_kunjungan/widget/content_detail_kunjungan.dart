@@ -218,9 +218,20 @@ class ContentDetailKunjungan extends StatelessWidget {
       final isApproved = status == 'approved' || status == 'disetujui';
       final backgroundColor = isApproved ? AppColors.succesColor : null;
       final textColor = isApproved ? Colors.white : AppColors.textDefaultColor;
-      final label = report.recipientRoleSnapshot?.isNotEmpty == true
-          ? report.recipientRoleSnapshot!
-          : 'Approver';
+      final name = report.recipientNamaSnapshot;
+      final role = report.recipientRoleSnapshot;
+      final label = () {
+        if (name != null && name.isNotEmpty) {
+          if (role != null && role.isNotEmpty) {
+            return '$name ($role)';
+          }
+          return name;
+        }
+        if (role != null && role.isNotEmpty) {
+          return role;
+        }
+        return 'Approver';
+      }();
 
       return Card(
         color: backgroundColor,

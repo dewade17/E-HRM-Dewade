@@ -237,6 +237,7 @@ class KunjunganReportRecipient {
   KunjunganReportRecipient({
     required this.idKunjunganReportRecipient,
     this.idUser,
+    this.recipientNamaSnapshot,
     this.recipientRoleSnapshot,
     this.catatan,
     this.status,
@@ -250,6 +251,7 @@ class KunjunganReportRecipient {
   final String idKunjunganReportRecipient;
   final String? idUser;
   final String? recipientRoleSnapshot;
+  final String? recipientNamaSnapshot;
   final String? catatan;
   final String? status;
   final DateTime? notifiedAt;
@@ -263,6 +265,7 @@ class KunjunganReportRecipient {
       idKunjunganReportRecipient: (json['id_kunjungan_report_recipient'] ?? '')
           .toString(),
       idUser: _parseString(json['id_user']),
+      recipientNamaSnapshot: _parseString(json['recipient_nama_snapshot']),
       recipientRoleSnapshot: _parseString(json['recipient_role_snapshot']),
       catatan: _parseString(json['catatan']),
       status: _parseString(json['status']),
@@ -279,6 +282,8 @@ class KunjunganReportRecipient {
     if (idUser != null) 'id_user': idUser,
     if (recipientRoleSnapshot != null)
       'recipient_role_snapshot': recipientRoleSnapshot,
+    if (recipientNamaSnapshot != null)
+      'recipient_nama_snapshot': recipientNamaSnapshot,
     if (catatan != null) 'catatan': catatan,
     if (status != null) 'status': status,
     if (notifiedAt != null) 'notified_at': notifiedAt!.toIso8601String(),

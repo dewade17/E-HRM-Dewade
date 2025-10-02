@@ -24,29 +24,61 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
   final DateFormat _shortDateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
   final DateFormat _timeFormatter = DateFormat('HH:mm');
 
-  String _selectedStatus = _statusOptions.last.value; // default Diproses
+  late String _selectedStatus;
   String? _deletingId;
 
   @override
   void initState() {
     super.initState();
+    final provider = context.read<AgendaKerjaProvider>();
+    final currentStatus = provider.currentStatus;
+    final normalizedCurrent = _normalizeStatus(currentStatus);
+    final hasExistingOption =
+        normalizedCurrent.isNotEmpty &&
+        _statusOptions.any((option) => option.value == normalizedCurrent);
+    _selectedStatus = hasExistingOption
+        ? normalizedCurrent
+        : _statusOptions.last.value;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchAgenda();
+      if (!mounted) return;
+      _fetchAgenda(force: provider.items.isEmpty);
     });
   }
 
-  Future<void> _fetchAgenda({DateTime? date}) async {
+  Future<void> _fetchAgenda({DateTime? date, bool force = false}) async {
     final auth = context.read<AuthProvider>();
     final provider = context.read<AgendaKerjaProvider>();
     final userId = await resolveUserId(auth, context: context);
     if (userId == null || userId.isEmpty) {
       return;
     }
-    final targetDate = date ?? provider.currentDate ?? DateTime.now();
+    final targetDate = _stripTime(
+      date ?? provider.currentDate ?? DateTime.now(),
+    );
+
+    if (!force) {
+      final sameUser = provider.currentUserId == userId;
+      final currentDate = provider.currentDate;
+      final sameDate =
+          currentDate != null &&
+          _isSameDay(_stripTime(currentDate), targetDate);
+      final providerStatus = _normalizeStatus(provider.currentStatus);
+      final selectedStatus = _normalizeStatus(_selectedStatus);
+      final sameStatus = selectedStatus.isEmpty
+          ? providerStatus.isEmpty
+          : providerStatus == selectedStatus;
+
+      if (provider.items.isNotEmpty && sameUser && sameDate && sameStatus) {
+        return;
+      }
+    }
+
+    final normalizedStatus = _normalizeStatus(_selectedStatus);
     await provider.fetchAgendaKerja(
       userId: userId,
       date: targetDate,
-      status: _selectedStatus,
+      status: normalizedStatus.isEmpty ? null : normalizedStatus,
       append: false,
     );
   }
@@ -115,6 +147,16 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
     if (value.isEmpty) return '-';
     final lower = value.toLowerCase();
     return lower[0].toUpperCase() + lower.substring(1);
+  }
+
+  String _normalizeStatus(String? value) => value?.trim().toLowerCase() ?? '';
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  DateTime _stripTime(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
   }
 
   String _formatDate(DateTime? date) {
@@ -263,7 +305,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
                         : (val) {
                             if (val == null) return;
                             setState(() => _selectedStatus = val);
-                            _fetchAgenda();
+                            _fetchAgenda(force: true);
                           },
                   ),
                   if (provider.loading)
@@ -318,7 +360,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
                           ),
                         );
                         if (result == true) {
-                          _fetchAgenda();
+                          _fetchAgenda(force: true);
                         }
                       },
                       child: Container(
@@ -559,7 +601,7 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
                                     ),
                                   );
                               if (result == true) {
-                                _fetchAgenda();
+                                _fetchAgenda(force: true);
                               }
                             },
                             child: const Padding(

@@ -118,7 +118,7 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-            child: CalendarRencanaKunjungan(),
+            child: CalendarRencanaKunjungan(items: items),
           ),
           Container(
             width: double.infinity,

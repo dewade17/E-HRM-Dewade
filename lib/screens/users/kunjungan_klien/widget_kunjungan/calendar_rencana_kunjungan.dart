@@ -1,10 +1,13 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarRencanaKunjungan extends StatefulWidget {
-  const CalendarRencanaKunjungan({super.key});
+  const CalendarRencanaKunjungan({super.key, this.items = const <Data>[]});
+
+  final List<Data> items;
 
   @override
   State<CalendarRencanaKunjungan> createState() =>
@@ -18,11 +21,19 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
 
   late DateTime _focused;
   bool _expanded = false;
+  Map<DateTime, List<Data>> _eventsByDay = <DateTime, List<Data>>{};
 
   @override
   void initState() {
     super.initState();
     _focused = DateTime.now();
+    _rebuildEventsMap();
+  }
+
+  @override
+  void didUpdateWidget(covariant CalendarRencanaKunjungan oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _rebuildEventsMap();
   }
 
   String get _bulanTahun => DateFormat.yMMMM('id_ID').format(_focused);
@@ -37,6 +48,22 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
     setState(() {
       _focused = DateTime(_focused.year, _focused.month + 1, 1);
     });
+  }
+
+  void _rebuildEventsMap() {
+    final map = <DateTime, List<Data>>{};
+    for (final item in widget.items) {
+      final tanggal = item.tanggal;
+      if (tanggal == null) continue;
+      final key = DateTime(tanggal.year, tanggal.month, tanggal.day);
+      map.putIfAbsent(key, () => <Data>[]).add(item);
+    }
+    _eventsByDay = map;
+  }
+
+  List<Data> _getEventsForDay(DateTime day) {
+    final key = DateTime(day.year, day.month, day.day);
+    return _eventsByDay[key] ?? const <Data>[];
   }
 
   @override
@@ -113,11 +140,12 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
                     ),
                     child: Material(
                       color: Colors.transparent,
-                      child: TableCalendar<void>(
+                      child: TableCalendar<Data>(
                         firstDay: _firstDay,
                         lastDay: _lastDay,
                         focusedDay: _focused,
                         locale: 'id_ID',
+                        eventLoader: (day) => _getEventsForDay(day),
                         calendarFormat: CalendarFormat.month,
                         availableCalendarFormats: const {
                           CalendarFormat.month: 'Bulan',
@@ -142,7 +170,14 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
                             color: AppColors.secondaryColor,
                             shape: BoxShape.circle,
                           ),
+                          markersMaxCount: 1,
+                          markersAlignment: Alignment.bottomCenter,
+                          markerDecoration: BoxDecoration(
+                            color: AppColors.secondaryColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
+
                         // Tidak pakai onDaySelected / marker / eventLoader: UI saja
                         onPageChanged: (day) {
                           // Aman kalau nanti AvailableGestures diubah; sinkronkan header

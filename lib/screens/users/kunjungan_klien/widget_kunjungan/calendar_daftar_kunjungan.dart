@@ -28,6 +28,7 @@ class _CalendarDaftarKunjunganState extends State<CalendarDaftarKunjungan>
   late DateTime _focused;
   bool _expanded = false;
   DateTime? _selected;
+  PageController? _pageController;
 
   @override
   void initState() {
@@ -58,15 +59,25 @@ class _CalendarDaftarKunjunganState extends State<CalendarDaftarKunjungan>
       DateTime(date.year, date.month, date.day);
 
   void _goPrev() {
+    final previousMonth = DateTime(_focused.year, _focused.month - 1, 1);
     setState(() {
-      _focused = DateTime(_focused.year, _focused.month - 1, 1);
+      _focused = previousMonth;
     });
+    _pageController?.previousPage(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _goNext() {
+    final nextMonth = DateTime(_focused.year, _focused.month + 1, 1);
     setState(() {
-      _focused = DateTime(_focused.year, _focused.month + 1, 1);
+      _focused = nextMonth;
     });
+    _pageController?.nextPage(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -196,6 +207,9 @@ class _CalendarDaftarKunjunganState extends State<CalendarDaftarKunjungan>
                           markersAlignment: Alignment.bottomCenter,
                           markersMaxCount: 3,
                         ),
+                        onCalendarCreated: (controller) {
+                          _pageController = controller;
+                        },
                         eventLoader: (day) =>
                             eventMap[_normalize(day)] ?? const <Object?>[],
                         onDaySelected: (selectedDay, focusedDay) {

@@ -209,11 +209,32 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                       width: 100,
                       height: 120,
                       color: Colors.grey.shade200,
-                      child: const Icon(
-                        Icons.image,
-                        size: 50,
-                        color: Colors.grey,
-                      ),
+                      child:
+                          (item.lampiranKunjunganUrl != null &&
+                              item.lampiranKunjunganUrl!.isNotEmpty)
+                          ? Image.network(
+                              item.lampiranKunjunganUrl!,
+                              fit: BoxFit.cover,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  },
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.broken_image,
+                                  size: 50,
+                                  color: Colors.grey,
+                                );
+                              },
+                            )
+                          : const Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
                     ),
                   ),
                   const SizedBox(width: 12),

@@ -5,9 +5,16 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarRencanaKunjungan extends StatefulWidget {
-  const CalendarRencanaKunjungan({super.key, this.items = const <Data>[]});
+  const CalendarRencanaKunjungan({
+    super.key,
+    this.items = const <Data>[],
+    this.selectedDay,
+    this.onDaySelected,
+  });
 
   final List<Data> items;
+  final DateTime? selectedDay;
+  final ValueChanged<DateTime?>? onDaySelected;
 
   @override
   State<CalendarRencanaKunjungan> createState() =>
@@ -23,21 +30,35 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
   bool _expanded = false;
   Map<DateTime, List<Data>> _eventsByDay = <DateTime, List<Data>>{};
   PageController? _pageController;
+  DateTime? _selected;
 
   @override
   void initState() {
     super.initState();
-    _focused = DateTime.now();
+    final initialSelected = widget.selectedDay;
+    _selected = initialSelected;
+    _focused = _normalize(initialSelected ?? DateTime.now());
     _rebuildEventsMap();
   }
 
   @override
   void didUpdateWidget(covariant CalendarRencanaKunjungan oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final newSelected = widget.selectedDay;
+    if (!isSameDay(oldWidget.selectedDay, newSelected)) {
+      setState(() {
+        _selected = newSelected;
+        if (newSelected != null) {
+          _focused = _normalize(newSelected);
+        }
+      });
+    }
     _rebuildEventsMap();
   }
 
   String get _bulanTahun => DateFormat.yMMMM('id_ID').format(_focused);
+  DateTime _normalize(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   void _goPrev() {
     final previousMonth = DateTime(_focused.year, _focused.month - 1, 1);
@@ -75,6 +96,19 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
   List<Data> _getEventsForDay(DateTime day) {
     final key = DateTime(day.year, day.month, day.day);
     return _eventsByDay[key] ?? const <Data>[];
+  }
+
+  void _handleDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    setState(() {
+      if (isSameDay(_selected, selectedDay)) {
+        _selected = null;
+      } else {
+        _selected = selectedDay;
+      }
+      _focused = focusedDay;
+    });
+    final normalized = _selected == null ? null : _normalize(_selected!);
+    widget.onDaySelected?.call(normalized);
   }
 
   @override
@@ -157,6 +191,8 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
                         focusedDay: _focused,
                         locale: 'id_ID',
                         eventLoader: (day) => _getEventsForDay(day),
+                        selectedDayPredicate: (day) =>
+                            isSameDay(_selected, day),
                         onCalendarCreated: (controller) {
                           _pageController = controller;
                         },
@@ -191,6 +227,7 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
                             shape: BoxShape.circle,
                           ),
                         ),
+                        onDaySelected: _handleDaySelected,
 
                         // Tidak pakai onDaySelected / marker / eventLoader: UI saja
                         onPageChanged: (day) {

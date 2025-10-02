@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
@@ -7,7 +8,6 @@ import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/create_kunjungan/create_kunjungan_screen.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/calendar_rencana_kunjungan.dart';
 import 'package:e_hrm/screens/users/profile/widget/foto_profile.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/calendar_daftar_kunjungan.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -99,7 +99,53 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
 
     final message = provider.saveMessage ?? 'Check-in kunjungan berhasil.';
     messenger.showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.accentColor),
+      SnackBar(content: Text(message), backgroundColor: AppColors.succesColor),
+    );
+  }
+
+  // --- FUNGSI BARU UNTUK MENGHAPUS ---
+  Future<void> _handleDeleteKunjungan(Data item) async {
+    final provider = context.read<KunjunganKlienProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Rencana Kunjungan'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus rencana kunjungan "${item.kategori?.kategoriKunjungan ?? item.deskripsi ?? 'ini'}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.errorColor,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final success = await provider.deleteKunjungan(item.idKunjungan);
+    if (!mounted) return;
+
+    final message =
+        provider.saveMessage ??
+        (success
+            ? 'Rencana kunjungan berhasil dihapus.'
+            : provider.saveError ?? 'Gagal menghapus rencana kunjungan.');
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: success ? AppColors.succesColor : AppColors.errorColor,
+      ),
     );
   }
 
@@ -117,9 +163,16 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-            child: CalendarRencanaKunjungan(items: items),
+            padding: EdgeInsets.symmetric(vertical: 0, horizontal: 15),
+            child: CalendarRencanaKunjungan(
+              items: items,
+              selectedDay: kunjunganProvider.diprosesTanggalFilter,
+              onDaySelected: (day) {
+                kunjunganProvider.setTanggalStatusDiproses(day);
+              },
+            ),
           ),
+          SizedBox(height: 20),
           Container(
             width: double.infinity,
             height: 56,
@@ -223,6 +276,8 @@ class _ContentRencanaKunjunganState extends State<ContentRencanaKunjungan> {
                         tanggalText: _formatTanggal(item),
                         jamText: _formatJamRange(item),
                         onStart: () => _handleStartKunjungan(item),
+                        // --- MEMASANG FUNGSI HAPUS ---
+                        onDelete: () => _handleDeleteKunjungan(item),
                       ),
                     ),
                 ],
@@ -276,6 +331,7 @@ class _RencanaKunjunganCard extends StatelessWidget {
     required this.tanggalText,
     required this.jamText,
     required this.onStart,
+    required this.onDelete, // <-- DITAMBAHKAN
   });
 
   final Data item;
@@ -283,6 +339,7 @@ class _RencanaKunjunganCard extends StatelessWidget {
   final String tanggalText;
   final String jamText;
   final VoidCallback onStart;
+  final VoidCallback onDelete; // <-- DITAMBAHKAN
 
   @override
   Widget build(BuildContext context) {
@@ -300,82 +357,105 @@ class _RencanaKunjunganCard extends StatelessWidget {
           bottom: BorderSide(color: AppColors.primaryColor, width: 1),
         ),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Text(
-                kategoriText,
-                style: GoogleFonts.poppins(
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDefaultColor,
+          Column(
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
                   ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                const Icon(Icons.message),
-                const SizedBox(width: 10),
-                Expanded(
                   child: Text(
-                    deskripsi,
+                    kategoriText,
                     style: GoogleFonts.poppins(
                       textStyle: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textDefaultColor,
                       ),
                     ),
                   ),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.errorColor,
-                    foregroundColor: AppColors.menuColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: onStart,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    const Icon(Icons.message),
+                    const SizedBox(width: 10),
+                    Expanded(
                       child: Text(
-                        "Mulai",
+                        deskripsi,
                         style: GoogleFonts.poppins(
                           textStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textDefaultColor,
                           ),
                         ),
                       ),
                     ),
-                  ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.errorColor,
+                        foregroundColor: AppColors.menuColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: onStart,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(),
+                          child: Text(
+                            "Mulai",
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_month),
+                    const SizedBox(width: 10),
+                    Text(tanggalText),
+                    const SizedBox(width: 20),
+                    const Icon(Icons.access_time),
+                    Text(' $jamText'),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_month),
-                const SizedBox(width: 10),
-                Text(tanggalText),
-                const SizedBox(width: 20),
-                const Icon(Icons.access_time),
-                Text(' $jamText'),
-              ],
+          // --- TOMBOL HAPUS BARU ---
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IconButton(
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppColors.errorColor,
+              ),
+              tooltip: 'Hapus Rencana',
+              onPressed: onDelete,
             ),
           ),
         ],
@@ -384,6 +464,7 @@ class _RencanaKunjunganCard extends StatelessWidget {
   }
 }
 
+// Widget _StartKunjunganSheet tidak ada perubahan
 class _StartKunjunganSheet extends StatefulWidget {
   const _StartKunjunganSheet({required this.item});
 
@@ -423,11 +504,20 @@ class _StartKunjunganSheetState extends State<_StartKunjunganSheet> {
         return;
       }
 
+      final String? mimeType = lookupMimeType(_pickedFile!.path);
+      if (mimeType == null || !mimeType.startsWith('image/')) {
+        setState(() {
+          _errorMessage = 'File yang dipilih bukan gambar yang valid.';
+          _submitting = false;
+        });
+        return;
+      }
+
       final lampiran = await http.MultipartFile.fromPath(
         'lampiran_kunjungan',
         _pickedFile!.path,
+        contentType: MediaType.parse(mimeType), // <-- BARIS KUNCI
       );
-
       await provider.submitStartKunjungan(
         widget.item.idKunjungan,
         jamCheckin: DateTime.now(),

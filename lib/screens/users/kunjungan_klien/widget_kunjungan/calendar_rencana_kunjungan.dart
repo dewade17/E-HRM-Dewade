@@ -22,6 +22,7 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
   late DateTime _focused;
   bool _expanded = false;
   Map<DateTime, List<Data>> _eventsByDay = <DateTime, List<Data>>{};
+  PageController? _pageController;
 
   @override
   void initState() {
@@ -39,15 +40,25 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
   String get _bulanTahun => DateFormat.yMMMM('id_ID').format(_focused);
 
   void _goPrev() {
+    final previousMonth = DateTime(_focused.year, _focused.month - 1, 1);
     setState(() {
-      _focused = DateTime(_focused.year, _focused.month - 1, 1);
+      _focused = previousMonth;
     });
+    _pageController?.previousPage(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _goNext() {
+    final nextMonth = DateTime(_focused.year, _focused.month + 1, 1);
     setState(() {
-      _focused = DateTime(_focused.year, _focused.month + 1, 1);
+      _focused = nextMonth;
     });
+    _pageController?.nextPage(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _rebuildEventsMap() {
@@ -146,6 +157,9 @@ class _CalendarRencanaKunjunganState extends State<CalendarRencanaKunjungan>
                         focusedDay: _focused,
                         locale: 'id_ID',
                         eventLoader: (day) => _getEventsForDay(day),
+                        onCalendarCreated: (controller) {
+                          _pageController = controller;
+                        },
                         calendarFormat: CalendarFormat.month,
                         availableCalendarFormats: const {
                           CalendarFormat.month: 'Bulan',

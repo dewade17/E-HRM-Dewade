@@ -549,9 +549,11 @@ class AgendaKerjaProvider extends ChangeNotifier {
   }) async {
     _setSaving(true);
     try {
-      final kebutuhanAgendaValue = _normalizeKebutuhanAgendaValue(
-        kebutuhanAgenda,
-      );
+      // PERUBAHAN DI SINI
+      final kebutuhanAgendaValue = kebutuhanAgenda != null
+          ? _normalizeKebutuhanAgendaString(kebutuhanAgenda)
+          : null;
+
       final body = _buildBody(<String, dynamic>{
         'id_user': idUser.trim(),
         'id_agenda': idAgenda.trim(),
@@ -759,7 +761,5 @@ class AgendaKerjaProvider extends ChangeNotifier {
     if (_selectedAgendaKerjaIds.isEmpty) return;
     final validIds = items.map((Data e) => e.idAgendaKerja).toSet();
     _selectedAgendaKerjaIds.removeWhere((String id) => !validIds.contains(id));
-    // Tidak memanggil notifyListeners karena pemanggil sudah melakukannya
-    // setelah daftar item diperbarui.
   }
 }

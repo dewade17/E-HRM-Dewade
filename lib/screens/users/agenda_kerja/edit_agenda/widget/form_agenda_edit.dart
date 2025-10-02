@@ -90,6 +90,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
     }
 
     final normalizedStatus = _normalizeStatus(detail.status);
+    final normalizedUrgensi = _normalizeUrgensi(detail.kebutuhanAgenda);
     final selectedDate = detail.startDate ?? detail.endDate;
     final normalizedDate = selectedDate != null
         ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day)
@@ -112,6 +113,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       _selectedDate = normalizedDate;
       _startTime = startTime;
       _endTime = endTime;
+      _selectedUrgensi = normalizedUrgensi;
       _initializing = false;
     });
   }
@@ -131,6 +133,10 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       _showSnackBar('Jam selesai harus lebih besar dari jam mulai.', true);
       return;
     }
+    if (_selectedUrgensi == null || _selectedUrgensi!.trim().isEmpty) {
+      _showSnackBar('Urgensi wajib dipilih.', true);
+      return;
+    }
 
     final provider = context.read<AgendaKerjaProvider>();
     final updated = await provider.update(
@@ -141,6 +147,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       startDate: startDateTime,
       endDate: endDateTime,
       durationSeconds: endDateTime.difference(startDateTime).inSeconds,
+      kebutuhanAgenda: _selectedUrgensi,
     );
 
     if (!mounted) return;
@@ -218,7 +225,12 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
         ),
       );
     }
-
+    final urgensiOptions = List<String>.from(_urgensiItems);
+    if (_selectedUrgensi != null &&
+        _selectedUrgensi!.isNotEmpty &&
+        !urgensiOptions.contains(_selectedUrgensi)) {
+      urgensiOptions.insert(0, _selectedUrgensi!);
+    }
     return Form(
       key: formKey,
       child: Padding(
@@ -283,7 +295,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
               hintText: "Pilih tingkat urgensi",
               value: _selectedUrgensi,
               isRequired: true,
-              items: _urgensiItems.map((String value) {
+              items: urgensiOptions.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
@@ -293,12 +305,6 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
                 setState(() {
                   _selectedUrgensi = newValue;
                 });
-              },
-              validator: (value) {
-                if (value == 'PENTING MENDESAK') {
-                  return 'Opsi ini sementara tidak tersedia';
-                }
-                return null;
               },
             ),
             const SizedBox(height: 20),
@@ -369,6 +375,12 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
           orElse: () => _statusOptions.first,
         )
         .value;
+  }
+
+  String? _normalizeUrgensi(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed.toUpperCase();
   }
 }
 

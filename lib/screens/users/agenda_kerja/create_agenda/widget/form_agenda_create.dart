@@ -83,6 +83,12 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       return;
     }
 
+    // PERUBAHAN DI SINI: Validasi urgensi
+    if (_selectedUrgensi == null || _selectedUrgensi!.isEmpty) {
+      _showSnackBar('Urgensi wajib dipilih.', true);
+      return;
+    }
+
     final startDateTime = _combineDateTime(_selectedDate!, _startTime!);
     final endDateTime = _combineDateTime(_selectedDate!, _endTime!);
     if (!endDateTime.isAfter(startDateTime)) {
@@ -108,6 +114,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       startDate: startDateTime,
       endDate: endDateTime,
       durationSeconds: endDateTime.difference(startDateTime).inSeconds,
+      kebutuhanAgenda: _selectedUrgensi, // <-- MENGIRIM DATA URGENSI
     );
 
     if (!mounted) return;
@@ -212,14 +219,11 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       shouldUpdate = true;
     }
 
-    if (shouldUpdate) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        setState(() {
-          _selectedAgendaId = nextAgendaId;
-          _selectedStatus = nextStatus;
-          _selectedDate = nextDate;
-        });
+    if (shouldUpdate && mounted) {
+      setState(() {
+        _selectedAgendaId = nextAgendaId;
+        _selectedStatus = nextStatus;
+        _selectedDate = nextDate;
       });
     }
   }
@@ -232,19 +236,20 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   Widget build(BuildContext context) {
     final agendaProvider = context.watch<AgendaProvider>();
     final agendaKerjaProvider = context.watch<AgendaKerjaProvider>();
-    _ensureAgendaOptionsLoaded(
-      agendaProvider,
-      agendaKerjaProvider.currentAgendaId,
-    );
-    _syncFromAgendaKerjaProvider(agendaKerjaProvider);
-
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _ensureAgendaOptionsLoaded(
+        agendaProvider,
+        agendaKerjaProvider.currentAgendaId,
+      );
+      _syncFromAgendaKerjaProvider(agendaKerjaProvider);
+    });
     return Form(
       key: formKey,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
-            // --- Menggunakan DropdownFieldWidget ---
             DropdownFieldWidget<String>(
               label: 'Agenda',
               value: _selectedAgendaId,
@@ -268,8 +273,6 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
                 child: LinearProgressIndicator(),
               ),
             const SizedBox(height: 20),
-
-            // --- Menggunakan TextFieldWidget ---
             TextFieldWidget(
               label: 'Deskripsi Pekerjaan',
               controller: deskripsiController,
@@ -279,18 +282,14 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               keyboardType: TextInputType.multiline,
             ),
             const SizedBox(height: 20),
-
-            // --- Menggunakan DatePickerFieldWidget ---
             DatePickerFieldWidget(
               label: 'Tanggal Agenda',
               controller: calendarController,
-
+              initialDate: _selectedDate,
               onDateChanged: (date) => setState(() => _selectedDate = date),
               isRequired: true,
             ),
             const SizedBox(height: 20),
-
-            // --- Menggunakan 2 TimePickerFieldWidget ---
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -314,6 +313,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               ],
             ),
             const SizedBox(height: 20),
+            // --- PERUBAHAN DI SINI: MENGHAPUS VALIDATOR ---
             DropdownFieldWidget<String>(
               label: "Urgensi",
               hintText: "Pilih tingkat urgensi",
@@ -330,15 +330,9 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
                   _selectedUrgensi = newValue;
                 });
               },
-              validator: (value) {
-                if (value == 'PENTING MENDESAK') {
-                  return 'Opsi ini sementara tidak tersedia';
-                }
-                return null;
-              },
+              // Validator dihilangkan agar semua opsi bisa dipilih
             ),
             const SizedBox(height: 20),
-            // --- Menggunakan DropdownFieldWidget ---
             DropdownFieldWidget<String>(
               label: 'Status',
               value: _selectedStatus,
@@ -356,8 +350,6 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               },
             ),
             const SizedBox(height: 30),
-
-            // --- Tombol Submit ---
             GestureDetector(
               onTap: agendaKerjaProvider.saving ? null : _submit,
               child: Card(

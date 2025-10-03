@@ -41,23 +41,41 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   String? _lastRequestedAgendaId;
 
   String? _selectedUrgensi;
+  AgendaProvider? _agendaProvider;
+  AgendaKerjaProvider? _agendaKerjaProvider;
+  bool _didScheduleInitialSync = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final agendaProvider = context.read<AgendaProvider>();
-      final agendaKerjaProvider = context.read<AgendaKerjaProvider>();
-      _ensureAgendaOptionsLoaded(
-        agendaProvider,
-        agendaKerjaProvider.currentAgendaId,
-      );
-      _syncFromAgendaKerjaProvider(agendaKerjaProvider);
-    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final agendaProvider = context.read<AgendaProvider>();
+    final agendaKerjaProvider = context.read<AgendaKerjaProvider>();
+
+    _agendaProvider = agendaProvider;
+
+    if (_agendaKerjaProvider != agendaKerjaProvider) {
+      _agendaKerjaProvider?.removeListener(_handleAgendaKerjaChanged);
+      _agendaKerjaProvider = agendaKerjaProvider;
+      _agendaKerjaProvider?.addListener(_handleAgendaKerjaChanged);
+    }
+
+    if (!_didScheduleInitialSync) {
+      _didScheduleInitialSync = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _handleAgendaKerjaChanged();
+      });
+    }
   }
 
   @override
   void dispose() {
+    _agendaKerjaProvider?.removeListener(_handleAgendaKerjaChanged);
     deskripsiController.dispose();
     calendarController.dispose();
     startTimeController.dispose();
@@ -186,6 +204,18 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       _lastRequestedAgendaId = trimmedAgendaId;
       agendaProvider.fetch();
     }
+  }
+
+  void _handleAgendaKerjaChanged() {
+    if (!mounted) return;
+    final agendaProvider = _agendaProvider ?? context.read<AgendaProvider>();
+    final agendaKerjaProvider = _agendaKerjaProvider;
+    if (agendaKerjaProvider == null) return;
+    _ensureAgendaOptionsLoaded(
+      agendaProvider,
+      agendaKerjaProvider.currentAgendaId,
+    );
+    _syncFromAgendaKerjaProvider(agendaKerjaProvider);
   }
 
   void _syncFromAgendaKerjaProvider(AgendaKerjaProvider provider) {

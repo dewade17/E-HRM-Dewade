@@ -59,6 +59,7 @@ dependencies:
   camerawesome: ^2.5.0
   easy_stepper: ^0.8.5+1
   mime: ^2.0.0
+  quickalert: ^1.1.0
 
 dev_dependencies:
   flutter_test:

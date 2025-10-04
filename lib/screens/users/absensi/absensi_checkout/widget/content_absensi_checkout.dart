@@ -1,3 +1,5 @@
+// lib/screens/users/absensi/absensi_checkout/widget/content_absensi_checkout.dart
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/location/location.dart' as dto_loc;
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
@@ -48,9 +50,25 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
   }
 
   Future<void> _initializeData() async {
-    final agenda = context.read<AgendaKerjaProvider>();
-    final shift = context.read<ShiftKerjaRealtimeProvider>();
-    await agenda.fetchAgendaKerja(
+    // --- PERBAIKAN UTAMA DI SINI ---
+    final agendaProvider = context.read<AgendaKerjaProvider>();
+    final shiftProvider = context.read<ShiftKerjaRealtimeProvider>();
+    final absensiProvider = context.read<AbsensiProvider>();
+
+    // 1. Ambil status absensi hari ini untuk mendapatkan agenda yang sudah tertaut
+    if (absensiProvider.todayStatus?.mode != 'checkout') {
+      await absensiProvider.fetchTodayStatus(widget.userId);
+      if (!mounted) return;
+    }
+
+    // 2. Ambil ID agenda yang sudah tertaut dari status
+    final linkedIds = absensiProvider.todayStatus?.linkedAgendaIds ?? [];
+
+    // 3. Set ID tersebut sebagai pilihan awal di AgendaKerjaProvider
+    agendaProvider.replaceAgendaSelection(linkedIds);
+
+    // 4. Lanjutkan dengan fetch data seperti biasa untuk mengisi daftar
+    await agendaProvider.fetchAgendaKerja(
       userId: widget.userId,
       date: DateTime.now(),
       append: false,
@@ -58,16 +76,21 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
 
     if (!mounted) return;
 
-    await shift.fetch(idUser: widget.userId, date: DateTime.now());
+    await shiftProvider.fetch(idUser: widget.userId, date: DateTime.now());
   }
 
   String _formatShiftTime(String? raw) {
-    if (raw == null || raw.isEmpty) return '--:--';
-    final parts = raw.split(':');
-    if (parts.length >= 2) {
-      final hh = parts[0].padLeft(2, '0');
-      final mm = parts[1].padLeft(2, '0');
-      return '$hh:$mm';
+    if (raw == null || raw.isEmpty) return 'Libur';
+    try {
+      final dt = DateTime.parse(raw);
+      return DateFormat('HH:mm').format(dt.toLocal());
+    } catch (e) {
+      final parts = raw.split(':');
+      if (parts.length >= 2) {
+        final hh = parts[0].padLeft(2, '0');
+        final mm = parts[1].padLeft(2, '0');
+        return '$hh:$mm';
+      }
     }
     return raw;
   }
@@ -81,6 +104,11 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
     final start = _formatShiftTime(data?.polaKerja?.jamMulai);
     final end = _formatShiftTime(data?.polaKerja?.jamSelesai);
     final base = _dateFullFormatter.format(date);
+
+    if (start == 'Libur' || end == 'Libur') {
+      return '$base (Libur)';
+    }
+
     return '$base ($start - $end)';
   }
 
@@ -161,7 +189,10 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
     final monthYear = _monthYearFormatter.format(scheduleDate);
     final startTime = _formatShiftTime(shiftData?.polaKerja?.jamMulai);
     final endTime = _formatShiftTime(shiftData?.polaKerja?.jamSelesai);
-    final shiftName = shiftData?.polaKerja?.namaPolaKerja ?? '-';
+    final isLibur = startTime == 'Libur' || endTime == 'Libur';
+    final shiftName = isLibur
+        ? 'Hari Libur'
+        : (shiftData?.polaKerja?.namaPolaKerja ?? '-');
     final canSubmit =
         _inside && _nearest != null && _position != null && !absensi.saving;
 
@@ -172,30 +203,29 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
     return Column(
       children: [
         SizedBox(
-          height: 80, // Anda bisa sesuaikan tinggi ini
+          height: 80,
           child: Row(
-            // Agar semua konten berada di tengah secara vertikal
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 dayNumber,
                 style: GoogleFonts.poppins(
-                  textStyle: TextStyle(
+                  textStyle: const TextStyle(
                     fontSize: 60,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textDefaultColor,
                   ),
                 ),
               ),
-              SizedBox(width: 5),
+              const SizedBox(width: 5),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center, // Agar center
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     dayName,
                     style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
+                      textStyle: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textDefaultColor,
@@ -205,7 +235,7 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
                   Text(
                     monthYear,
                     style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
+                      textStyle: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textDefaultColor,
@@ -214,61 +244,72 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
                   ),
                 ],
               ),
-
-              // SEKARANG VERTICAL DIVIDER AKAN TERLIHAT
               const VerticalDivider(
                 width: 25,
-                thickness: 2, // Saya ubah agar lebih terlihat
+                thickness: 2,
                 color: AppColors.primaryColor,
-                indent: 10, // Memberi jarak dari atas
-                endIndent: 10, // Memberi jarak dari bawah
+                indent: 10,
+                endIndent: 10,
               ),
-
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center, // Agar center
-                children: [
-                  Row(
-                    children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isLibur)
                       Text(
-                        startTime, // Contoh jam
+                        'Libur',
                         style: GoogleFonts.poppins(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textDefaultColor,
                           ),
                         ),
-                      ),
-                      Icon(Icons.more_horiz_outlined),
-                      Text(
-                        endTime, // Contoh jam
-                        style: GoogleFonts.poppins(
-                          textStyle: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textDefaultColor,
+                      )
+                    else
+                      Row(
+                        children: [
+                          Text(
+                            startTime,
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textDefaultColor,
+                              ),
+                            ),
                           ),
-                        ),
+                          const Icon(Icons.more_horiz_outlined),
+                          Text(
+                            endTime,
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textDefaultColor,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  Text(
-                    shiftName, // nama_pola_kerja
-                    style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textDefaultColor,
+                    Text(
+                      shiftName,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textDefaultColor,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
         ),
-        // Beri tinggi finite agar flutter_map tidak error
         SizedBox(
           height: 280,
           child: GeofenceMap(
@@ -296,7 +337,6 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
           ),
         ),
         const SizedBox(height: 12),
-
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -320,8 +360,7 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
         const SizedBox(height: 8),
         const RecipientAbsensiCheckout(),
         const SizedBox(height: 16),
-
-        AgendaAbsensiCheckout(),
+        const AgendaAbsensiCheckout(),
         CatatanAbsensiCheckout(
           onChanged: (values) {
             _catatan
@@ -329,7 +368,7 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
               ..addAll(values);
           },
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         GestureDetector(
           onTap: canSubmit ? _handleVerify : null,
           child: Card(
@@ -339,7 +378,7 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
               child: Text(
                 absensi.saving ? "Memproses..." : "Verifikasi Wajah",
                 style: GoogleFonts.poppins(
-                  textStyle: TextStyle(
+                  textStyle: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textColor,

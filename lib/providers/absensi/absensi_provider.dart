@@ -1,8 +1,4 @@
 // lib/providers/absensi/absensi_provider.dart
-// Provider untuk checkin/checkout: ambil token dari SharedPreferences,
-// kirim multipart (user_id, location_id, lat, lng, image)
-// + dukungan multiple 'todo', multiple 'recipient',
-//   serta todo_status, todo_date, todo_start, todo_end (opsional).
 
 import 'dart:io';
 import 'dart:convert';
@@ -56,10 +52,8 @@ class AbsensiProvider extends ChangeNotifier {
     required double lat,
     required double lng,
     required File imageFile,
-
-    // --- tambahan opsional ---
     List<String> agendaKerjaIds = const [],
-    List<String> recipients = const [], // id_user penerima laporan
+    List<String> recipients = const [],
     List<AbsensiCatatanEntry> catatan = const [],
   }) async {
     final value = await _submit(
@@ -74,12 +68,10 @@ class AbsensiProvider extends ChangeNotifier {
       catatan: catatan,
       parser: (json) => AbsensiChekin.fromJson(json),
     );
-
     if (value != null) {
       checkinResult = value;
       notifyListeners();
     }
-
     return value;
   }
 
@@ -89,8 +81,6 @@ class AbsensiProvider extends ChangeNotifier {
     required double lat,
     required double lng,
     required File imageFile,
-
-    // --- tambahan opsional ---
     List<String> agendaKerjaIds = const [],
     List<String> recipients = const [],
     List<AbsensiCatatanEntry> catatan = const [],
@@ -107,24 +97,20 @@ class AbsensiProvider extends ChangeNotifier {
       catatan: catatan,
       parser: (json) => AbsensiChekout.fromJson(json),
     );
-
     if (value != null) {
       checkoutResult = value;
       notifyListeners();
     }
-
     return value;
   }
 
   Future<T?> _submit<T>({
-    required String path, // ex: "/api/absensi/checkin"
+    required String path,
     required String userId,
     String? locationId,
     required double lat,
     required double lng,
     required File imageFile,
-
-    // --- tambahan opsional ---
     List<String> agendaKerjaIds = const [],
     List<String> recipients = const [],
     List<AbsensiCatatanEntry> catatan = const [],
@@ -140,19 +126,16 @@ class AbsensiProvider extends ChangeNotifier {
         throw Exception('Unauthorized. Silakan login ulang.');
       }
 
+      // Logika URI tidak berubah
       final uri = () {
         final trimmed = path.trim();
         final parsed = Uri.tryParse(trimmed);
-        if (parsed != null && parsed.hasScheme) {
-          return parsed;
-        }
-
-        final baseUri = Uri.parse(Endpoints.baseURL);
+        if (parsed != null && parsed.hasScheme) return parsed;
+        final baseUri = Uri.parse(
+          Endpoints.faceBaseURL,
+        ); // Menggunakan faceBaseURL
         final origin = '${baseUri.scheme}://${baseUri.authority}';
-        if (trimmed.startsWith('/')) {
-          return Uri.parse('$origin$trimmed');
-        }
-
+        if (trimmed.startsWith('/')) return Uri.parse('$origin$trimmed');
         final basePath = baseUri.path.isEmpty
             ? '/'
             : (baseUri.path.endsWith('/') ? baseUri.path : '${baseUri.path}/');
@@ -160,68 +143,89 @@ class AbsensiProvider extends ChangeNotifier {
       }();
       final req = http.MultipartRequest('POST', uri);
 
-      // Auth header
       req.headers['Authorization'] = 'Bearer $token';
 
-      // --- field tunggal ---
+      // Fields (tidak ada perubahan)
       req.fields['user_id'] = userId;
-      if ((locationId ?? '').isNotEmpty) {
+      if ((locationId ?? '').isNotEmpty)
         req.fields['location_id'] = locationId!;
-      }
       req.fields['lat'] = lat.toString();
       req.fields['lng'] = lng.toString();
 
-      // --- multiple agenda_kerja_id ---
       for (final id in agendaKerjaIds) {
-        final value = id.trim();
-        if (value.isEmpty) continue;
-        req.files.add(http.MultipartFile.fromString('agenda_kerja_id', value));
+        if (id.trim().isNotEmpty)
+          req.files.add(
+            http.MultipartFile.fromString('agenda_kerja_id', id.trim()),
+          );
       }
-
-      // --- multiple 'recipient' (id_user penerima laporan) ---
       for (final rid in recipients) {
-        final v = (rid).trim();
-        if (v.isEmpty) continue;
-        req.files.add(http.MultipartFile.fromString('recipient', v));
+        if (rid.trim().isNotEmpty)
+          req.files.add(http.MultipartFile.fromString('recipient', rid.trim()));
       }
-
-      // --- multiple catatan (deskripsi + lampiran opsional) ---
       for (final entry in catatan) {
-        final desc = entry.description.trim();
-        if (desc.isEmpty) continue;
-        req.files.add(http.MultipartFile.fromString('deskripsi_catatan', desc));
-
-        final url = entry.attachmentUrl?.trim();
-        if (url != null && url.isNotEmpty) {
-          req.files.add(http.MultipartFile.fromString('lampiran_url', url));
+        if (entry.description.trim().isNotEmpty) {
+          req.files.add(
+            http.MultipartFile.fromString(
+              'deskripsi_catatan',
+              entry.description.trim(),
+            ),
+          );
+          if (entry.attachmentUrl?.trim().isNotEmpty ?? false) {
+            req.files.add(
+              http.MultipartFile.fromString(
+                'lampiran_url',
+                entry.attachmentUrl!.trim(),
+              ),
+            );
+          }
         }
       }
 
-      // --- image ---
       final img = await http.MultipartFile.fromPath('image', imageFile.path);
       req.files.add(img);
 
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
 
+      // --- PERBAIKAN UTAMA DI SINI ---
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final Map<String, dynamic> jsonMap =
             jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-        final parsed = parser(jsonMap);
+        final parsed = parser(
+          jsonMap['ok'] == true && jsonMap.containsKey('data')
+              ? jsonMap['data']
+              : jsonMap,
+        );
         return parsed;
       } else if (resp.statusCode == 401) {
+        // Blok ini sekarang HANYA akan berjalan jika token benar-benar invalid.
         await prefs.remove('token');
         throw Exception('Unauthorized. Silakan login ulang.');
       } else {
+        // Untuk semua kode error lain (400, 409, 500, dll.)
+        String errorMessage = 'Terjadi galat (${resp.statusCode})';
         try {
-          final j = jsonDecode(utf8.decode(resp.bodyBytes));
-          throw Exception(j['message'] ?? 'Gagal (${resp.statusCode})');
+          // Coba parse body untuk mendapatkan pesan error dari backend
+          final jsonMap = jsonDecode(utf8.decode(resp.bodyBytes));
+          // Backend menggunakan kunci 'error' dalam helper `error()`
+          if (jsonMap['error'] is String &&
+              (jsonMap['error'] as String).isNotEmpty) {
+            errorMessage = jsonMap['error'];
+          } else if (jsonMap['message'] is String &&
+              (jsonMap['message'] as String).isNotEmpty) {
+            errorMessage = jsonMap['message'];
+          }
         } catch (_) {
-          throw Exception('Gagal (${resp.statusCode})');
+          // Jika body bukan JSON atau tidak ada pesan, gunakan body mentah.
+          final bodyString = utf8.decode(resp.bodyBytes);
+          if (bodyString.isNotEmpty) {
+            errorMessage = bodyString;
+          }
         }
+        throw Exception(errorMessage);
       }
     } catch (e) {
-      _setErr(e.toString());
+      _setErr(e.toString().replaceFirst("Exception: ", ""));
       return null;
     } finally {
       _setSaving(false);

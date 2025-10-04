@@ -78,7 +78,7 @@ class Data {
     updatedAt: _parseDateTime(json['updated_at']),
     deletedAt: _parseDateTime(json['deleted_at']),
     user: _parseUser(json['user']),
-    polaKerja: _parsePolaKerja(json['polaKerja']),
+    polaKerja: _parsePolaKerja(json['polaKerja'] ?? json['pola_kerja']),
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{

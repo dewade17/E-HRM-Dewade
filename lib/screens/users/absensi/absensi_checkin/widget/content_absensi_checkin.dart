@@ -64,12 +64,17 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
   }
 
   String _formatShiftTime(String? raw) {
-    if (raw == null || raw.isEmpty) return '--:--';
-    final parts = raw.split(':');
-    if (parts.length >= 2) {
-      final hh = parts[0].padLeft(2, '0');
-      final mm = parts[1].padLeft(2, '0');
-      return '$hh:$mm';
+    if (raw == null || raw.isEmpty) return 'Libur';
+    try {
+      final dt = DateTime.parse(raw);
+      return DateFormat('HH:mm').format(dt.toLocal());
+    } catch (e) {
+      final parts = raw.split(':');
+      if (parts.length >= 2) {
+        final hh = parts[0].padLeft(2, '0');
+        final mm = parts[1].padLeft(2, '0');
+        return '$hh:$mm';
+      }
     }
     return raw;
   }
@@ -83,6 +88,11 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
     final start = _formatShiftTime(data?.polaKerja?.jamMulai);
     final end = _formatShiftTime(data?.polaKerja?.jamSelesai);
     final base = _dateFullFormatter.format(date);
+
+    if (start == 'Libur' || end == 'Libur') {
+      return '$base (Libur)';
+    }
+
     return '$base ($start - $end)';
   }
 
@@ -163,7 +173,10 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
     final monthYear = _monthYearFormatter.format(scheduleDate);
     final startTime = _formatShiftTime(shiftData?.polaKerja?.jamMulai);
     final endTime = _formatShiftTime(shiftData?.polaKerja?.jamSelesai);
-    final shiftName = shiftData?.polaKerja?.namaPolaKerja ?? '-';
+    final isLibur = startTime == 'Libur' || endTime == 'Libur';
+    final shiftName = isLibur
+        ? 'Hari Libur'
+        : (shiftData?.polaKerja?.namaPolaKerja ?? '-');
     final canSubmit =
         _inside && _nearest != null && _position != null && !absensi.saving;
 
@@ -173,9 +186,8 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
     return Column(
       children: [
         SizedBox(
-          height: 80, // Anda bisa sesuaikan tinggi ini
+          height: 80,
           child: Row(
-            // Agar semua konten berada di tengah secara vertikal
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
@@ -188,15 +200,15 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
                   ),
                 ),
               ),
-              SizedBox(width: 5),
+              const SizedBox(width: 5),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center, // Agar center
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     dayName,
                     style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
+                      textStyle: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textDefaultColor,
@@ -206,7 +218,7 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
                   Text(
                     monthYear,
                     style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
+                      textStyle: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textDefaultColor,
@@ -215,61 +227,72 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
                   ),
                 ],
               ),
-
-              // SEKARANG VERTICAL DIVIDER AKAN TERLIHAT
               const VerticalDivider(
                 width: 25,
-                thickness: 2, // Saya ubah agar lebih terlihat
+                thickness: 2,
                 color: AppColors.primaryColor,
-                indent: 10, // Memberi jarak dari atas
-                endIndent: 10, // Memberi jarak dari bawah
+                indent: 10,
+                endIndent: 10,
               ),
-
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center, // Agar center
-                children: [
-                  Row(
-                    children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isLibur)
                       Text(
-                        startTime, // Contoh jam
+                        'Libur',
                         style: GoogleFonts.poppins(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textDefaultColor,
                           ),
                         ),
-                      ),
-                      Icon(Icons.more_horiz_outlined),
-                      Text(
-                        endTime, // Contoh jam
-                        style: GoogleFonts.poppins(
-                          textStyle: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textDefaultColor,
+                      )
+                    else
+                      Row(
+                        children: [
+                          Text(
+                            startTime,
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textDefaultColor,
+                              ),
+                            ),
                           ),
-                        ),
+                          const Icon(Icons.more_horiz_outlined),
+                          Text(
+                            endTime,
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textDefaultColor,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  Text(
-                    shiftName, // nama_pola_kerja
-                    style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textDefaultColor,
+                    Text(
+                      shiftName,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textDefaultColor,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
         ),
-        // Beri tinggi finite agar flutter_map tidak error
         SizedBox(
           height: 280,
           child: GeofenceMap(
@@ -297,7 +320,6 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
           ),
         ),
         const SizedBox(height: 12),
-
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -321,7 +343,6 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
         const SizedBox(height: 8),
         const RecipientAbsensiCheckin(),
         const SizedBox(height: 16),
-
         AgendaAbsensiCheckin(),
         CatatanAbsensiCheckin(
           onChanged: (values) {
@@ -330,10 +351,9 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
               ..addAll(values);
           },
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         GestureDetector(
           onTap: canSubmit ? _handleVerify : null,
-
           child: Card(
             color: canSubmit ? AppColors.primaryColor : Colors.grey.shade400,
             child: Padding(
@@ -341,7 +361,7 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
               child: Text(
                 absensi.saving ? "Memproses..." : "Verifikasi Wajah",
                 style: GoogleFonts.poppins(
-                  textStyle: TextStyle(
+                  textStyle: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textColor,

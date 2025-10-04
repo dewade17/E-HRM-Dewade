@@ -120,10 +120,12 @@ class _FormProfileState extends State<FormProfile> {
     });
   }
 
+  // --- PERBAIKAN DI SINI ---
   String _asString(dynamic value) {
     if (value == null) return '';
     final text = value.toString();
-    if (text.toLowerCase() == 'null') return '';
+    // Anggap 'null' atau '-' sebagai string kosong
+    if (text.toLowerCase() == 'null' || text == '-') return '';
     return text;
   }
 

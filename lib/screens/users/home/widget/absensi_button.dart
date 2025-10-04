@@ -5,6 +5,7 @@
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
+import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkin/absensi_checkin_screen.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/absensi_checkout_screen.dart';
 import 'package:flutter/material.dart';
@@ -99,22 +100,35 @@ class _AbsensiButtonState extends State<AbsensiButton>
   @override
   Widget build(BuildContext context) {
     final abs = context.watch<AbsensiProvider>();
+    final shift = context.watch<ShiftKerjaRealtimeProvider>();
+    final jadwal = shift.items.isNotEmpty ? shift.items.first : null;
     final loading = abs.loadingStatus && abs.todayStatus == null;
+
+    // --- LOGIKA BARU UNTUK PENGECEKAN LIBUR ---
+    final isLibur =
+        (jadwal?.status.toUpperCase() == 'LIBUR') ||
+        (jadwal?.polaKerja?.jamMulai == null &&
+            jadwal?.polaKerja?.jamSelesai == null &&
+            jadwal?.polaKerja?.jamIstirahatMulai == null &&
+            jadwal?.polaKerja?.jamIstirahatSelesai == null);
 
     // Tentukan enable/disable tombol
     final String mode = abs.todayStatus?.mode ?? 'checkin';
     bool enabled =
         !loading &&
         _userId != null &&
+        !isLibur && // <-- Tombol dinonaktifkan jika libur
         (mode == 'checkin' || mode == 'checkout');
 
     return GestureDetector(
       onTap: enabled ? _handleTap : null,
       child: Card(
         color: enabled ? AppColors.errorColor : Colors.grey.shade400,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 110, vertical: 15),
-          child: _AbsensiButtonLabel(), // label reaktif dari provider
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 110, vertical: 15),
+          child: _AbsensiButtonLabel(
+            isLibur: isLibur,
+          ), // label reaktif dari provider
         ),
       ),
     );
@@ -123,7 +137,8 @@ class _AbsensiButtonState extends State<AbsensiButton>
 
 /// Widget kecil yang hanya mengurus label agar rebuild-nya ringan.
 class _AbsensiButtonLabel extends StatelessWidget {
-  const _AbsensiButtonLabel();
+  final bool isLibur;
+  const _AbsensiButtonLabel({required this.isLibur});
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +148,8 @@ class _AbsensiButtonLabel extends StatelessWidget {
     String label;
     if (loading) {
       label = 'Memuat...';
+    } else if (isLibur) {
+      label = 'Anda Sedang Libur';
     } else {
       switch (abs.todayStatus?.mode) {
         case 'checkin':

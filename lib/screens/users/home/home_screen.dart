@@ -2,13 +2,19 @@
 
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/absensi/absensi_provider.dart';
+import 'package:e_hrm/providers/auth/auth_provider.dart';
+import 'package:e_hrm/providers/profile/profile_provider.dart';
+import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
 import 'package:e_hrm/screens/payment.dart';
 import 'package:e_hrm/screens/users/dashboard.dart';
 import 'package:e_hrm/screens/users/home/widget/header_home.dart';
 import 'package:e_hrm/screens/users/home/widget/home_content.dart';
 import 'package:e_hrm/screens/users/home/widget/information_home.dart';
 import 'package:e_hrm/screens/users/home/widget/absensi_button.dart';
+import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -55,41 +61,70 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class HomeScreenContent extends StatelessWidget {
+class HomeScreenContent extends StatefulWidget {
   const HomeScreenContent({super.key});
 
   @override
+  State<HomeScreenContent> createState() => _HomeScreenContentState();
+}
+
+class _HomeScreenContentState extends State<HomeScreenContent> {
+  Future<void> _handleRefresh() async {
+    // 1. Ambil semua provider yang dibutuhkan
+    final authProvider = context.read<AuthProvider>();
+    final profileProvider = context.read<ProfileProvider>();
+    final shiftProvider = context.read<ShiftKerjaRealtimeProvider>();
+    final absensiProvider = context.read<AbsensiProvider>();
+
+    // 2. Dapatkan user ID yang sedang aktif
+    final userId = await resolveUserId(authProvider, context: context);
+    if (userId == null || userId.isEmpty) {
+      // Jika tidak ada user ID, hentikan proses refresh
+      return;
+    }
+
+    // 3. Jalankan semua proses fetch data secara bersamaan
+    await Future.wait([
+      profileProvider.fetchProfile(userId),
+      shiftProvider.fetch(idUser: userId, date: DateTime.now()),
+      absensiProvider.fetchTodayStatus(userId),
+    ]);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-              child: HeaderHome(),
-            ),
-            InformationHome(),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 50),
-                child: Text(
-                  "Menu",
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textDefaultColor,
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: const [
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                child: HeaderHome(),
+              ),
+              InformationHome(),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 50),
+                  child: Text(
+                    "Menu",
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textDefaultColor,
+                    ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(height: 15),
-            HomeContent(),
-            SizedBox(height: 20),
-
-            // >>> Absensi tombol sekarang terpisah, cukup panggil widget-nya:
-            AbsensiButton(),
-          ],
+              SizedBox(height: 15),
+              HomeContent(),
+              SizedBox(height: 20),
+              AbsensiButton(),
+            ],
+          ),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+// lib/screens/users/absensi/take_face_absensi/take_face_absensi_screen.dart
+
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
@@ -8,6 +10,7 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:quickalert/quickalert.dart';
 
 class TakeFaceAbsensiScreen extends StatefulWidget {
   const TakeFaceAbsensiScreen({
@@ -54,34 +57,19 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
   CameraController? _controller;
   Future<void>? _init;
   bool _taking = false;
-
-  // Mirror preview kamera depan (jadi seperti selfie app)
   final bool _mirrorFrontPreview = true;
-
-  // Nonaktifkan pinch-to-zoom agar tidak pernah "zoom"
   final bool _enablePinchZoom = false;
-
-  // Zoom state (tetap diset ke 1.0)
   double _minZoom = 1.0;
   double _maxZoom = 1.0;
   double _currentZoom = 1.0;
   final double _baseZoomOnScaleStart = 1.0;
-
-  // Simpan rasio & apakah kamera depan
-  final double _previewAspectRatio = 3 / 4;
-
-  // Simpan apakah kamera depan
   bool _isFront = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    // === Immersive fullscreen ===
-    // Sembunyikan status bar + nav bar agar preview terlihat benar-benar full
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
     _initCamera();
   }
 
@@ -89,24 +77,18 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
-
-    // Kembalikan UI sistem seperti semula
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final c = _controller;
-    if (c == null) return;
-
-    // Tangani lifecycle agar kamera tidak nge-freeze setelah resume
+    if (c == null || !c.value.isInitialized) return;
     if (state == AppLifecycleState.inactive) {
       c.dispose();
     } else if (state == AppLifecycleState.resumed) {
       _initCamera();
-      // Pastikan tetap immersive setelah kembali dari background
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
   }
@@ -114,14 +96,11 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
   Future<void> _initCamera() async {
     try {
       final cams = await availableCameras();
-      // Pilih kamera depan jika ada
       final selected = cams.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
         orElse: () => cams.first,
       );
       _isFront = selected.lensDirection == CameraLensDirection.front;
-
-      // Pakai preset tertinggi yang aman; kualitas foto tetap high-res.
       CameraController controller = CameraController(
         selected,
         ResolutionPreset.max,
@@ -129,6 +108,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
 
+      // Menggunakan serangkaian fallback resolusi jika `max` gagal
       Future<void> init = controller.initialize().catchError((_) async {
         controller.dispose();
         controller = CameraController(
@@ -155,21 +135,14 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
       });
 
       await init;
+      if (!mounted) return;
 
-      // Pastikan zoom di 1.0 (NO zoom) dan tetap di batas aman
-      try {
-        _minZoom = await controller.getMinZoomLevel();
-        _maxZoom = await controller.getMaxZoomLevel();
-        _currentZoom = 1.0.clamp(_minZoom, _maxZoom);
-        await controller.setZoomLevel(_currentZoom);
-      } catch (_) {}
-
-      // Auto exposure & focus; flash off untuk konsistensi
-      try {
-        await controller.setFocusMode(FocusMode.auto);
-        await controller.setExposureMode(ExposureMode.auto);
-        await controller.setFlashMode(FlashMode.off);
-      } catch (_) {}
+      _minZoom = await controller.getMinZoomLevel();
+      _maxZoom = await controller.getMaxZoomLevel();
+      await controller.setZoomLevel(_currentZoom.clamp(_minZoom, _maxZoom));
+      await controller.setFocusMode(FocusMode.auto);
+      await controller.setExposureMode(ExposureMode.auto);
+      await controller.setFlashMode(FlashMode.off);
 
       if (mounted) setState(() {});
     } catch (e) {
@@ -182,17 +155,14 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
     }
   }
 
-  // Mirror file hasil foto kalau kamera depan & preview dimirror
   Future<XFile> _mirrorIfNeeded(XFile file) async {
     if (!_isFront || !_mirrorFrontPreview) return file;
     try {
       final bytes = await file.readAsBytes();
       final imgSrc = img.decodeImage(bytes);
       if (imgSrc == null) return file;
-
       final flipped = img.flipHorizontal(imgSrc);
       final outBytes = img.encodeJpg(flipped, quality: 95);
-
       final dir = await getTemporaryDirectory();
       final outPath = p.join(
         dir.path,
@@ -203,21 +173,18 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
       return XFile(outFile.path);
     } catch (e) {
       debugPrint('Mirror file gagal: $e');
-      return file; // fallback: pakai file asli
+      return file;
     }
   }
 
   Future<void> _takePicture() async {
-    if (_controller == null || !_controller!.value.isInitialized) return;
-    if (_taking) return;
+    if (_controller == null || !_controller!.value.isInitialized || _taking) {
+      return;
+    }
     final absensi = context.read<AbsensiProvider>();
     setState(() => _taking = true);
-    try {
-      // Pastikan zoom tetap 1.0 sebelum ambil foto
-      try {
-        await _controller!.setZoomLevel(1.0.clamp(_minZoom, _maxZoom));
-      } catch (_) {}
 
+    try {
       final raw = await _controller!.takePicture();
       final mirrored = await _mirrorIfNeeded(raw);
       final file = File(mirrored.path);
@@ -244,34 +211,51 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
               catatan: widget.catatan,
             );
 
+      // --- REKOMENDASI: Tambah pengecekan `mounted` di sini ---
       if (!mounted) return;
 
       if (result != null) {
-        Navigator.pop(context, true);
+        await QuickAlert.show(
+          context: context,
+          type: QuickAlertType.success,
+          title: 'Berhasil!',
+          text: widget.isCheckin
+              ? 'Anda berhasil melakukan check-in.'
+              : 'Anda berhasil melakukan check-out.',
+          confirmBtnText: 'OK',
+          onConfirmBtnTap: () {
+            Navigator.of(context).pop(); // Tutup dialog
+            Navigator.of(context).pop(true); // Tutup halaman kamera
+          },
+        );
       } else {
-        final error = absensi.error ?? 'Gagal mengirim absensi.';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error)));
+        await QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: 'Oops...',
+          text: absensi.error ?? 'Gagal mengirim data absensi.',
+          confirmBtnText: 'Coba Lagi',
+        );
       }
     } catch (e) {
-      debugPrint('Take picture error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal mengambil foto')));
-      }
+      // --- REKOMENDASI: Tambah pengecekan `mounted` di sini ---
+      if (!mounted) return;
+      await QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Terjadi Kesalahan',
+        text: 'Gagal mengambil atau memproses foto: ${e.toString()}',
+        confirmBtnText: 'OK',
+      );
     } finally {
       if (mounted) setState(() => _taking = false);
     }
   }
 
-  // Preview kamera TANPA cropping/zoom: letterbox (contain).
-  // GANTI FUNGSI LAMA DENGAN YANG INI
+  // Widget _buildFullCamera() tidak ada perubahan
   Widget _buildFullCamera() {
     final c = _controller;
     if (c == null) return const SizedBox.shrink();
-
     return FutureBuilder(
       future: _init,
       builder: (context, snap) {
@@ -279,29 +263,17 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
             !c.value.isInitialized) {
           return const Center(child: CircularProgressIndicator());
         }
-
-        // === PERUBAHAN DIMULAI DI SINI ===
-
-        // 1. Dapatkan ukuran layar
         final size = MediaQuery.of(context).size;
-
-        // 2. Dapatkan ukuran pratinjau dari controller kamera
-        // Perlu dibalik karena orientasi sensor (biasanya landscape)
         final previewSize = Size(
           c.value.previewSize!.height,
           c.value.previewSize!.width,
         );
         final screenAspectRatio = size.aspectRatio;
         final previewAspectRatio = previewSize.aspectRatio;
-
-        // 3. Hitung faktor skala untuk "cover"
         var scale = screenAspectRatio > previewAspectRatio
             ? screenAspectRatio / previewAspectRatio
-            : 1.0; // Jika layar lebih "lebar" dari preview, skala. Jika tidak, tetap 1.0 (atau bisa juga diatur sebaliknya tergantung kebutuhan)
-
+            : 1.0;
         Widget preview = CameraPreview(c);
-
-        // MIRROR preview untuk kamera depan
         if (_mirrorFrontPreview && _isFront) {
           preview = Transform(
             alignment: Alignment.center,
@@ -309,10 +281,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
             child: preview,
           );
         }
-
-        // Gesture untuk tap-to-focus (tidak berubah)
         preview = GestureDetector(
-          // ... (kode GestureDetector Anda yang sudah ada tetap di sini)
           behavior: HitTestBehavior.opaque,
           onTapDown: (details) async {
             final box = context.findRenderObject() as RenderBox?;
@@ -320,20 +289,15 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
             final localPos = box.globalToLocal(details.globalPosition);
             final w = box.size.width;
             final h = box.size.height;
-
             var rel = Offset(
               (localPos.dx / w).clamp(0.0, 1.0),
               (localPos.dy / h).clamp(0.0, 1.0),
             );
-
             if (_mirrorFrontPreview && _isFront) {
               rel = Offset(1.0 - rel.dx, rel.dy);
             }
-
             try {
-              if (c.value.exposurePointSupported) {
-                await c.setExposurePoint(rel);
-              }
+              if (c.value.exposurePointSupported) await c.setExposurePoint(rel);
               if (c.value.focusPointSupported) {
                 await c.setFocusPoint(rel);
                 await c.setFocusMode(FocusMode.auto);
@@ -342,9 +306,6 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
           },
           child: preview,
         );
-
-        // 4. Terapkan scaling untuk mendapatkan efek BoxFit.cover
-        //    AspectRatio tidak lagi diperlukan di sini.
         return ClipRect(
           clipper: _OverflowClipper(size),
           child: Transform.scale(
@@ -353,15 +314,13 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
             child: Center(child: preview),
           ),
         );
-        // === AKHIR DARI PERUBAHAN ===
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    // Diameter lingkaran dibuat sedikit lebih besar agar lebih pas di tengah
+    final size = MediaQuery.of(context).size;
     final circleDiameter = (math.min(size.width, size.height) * 0.65).clamp(
       240.0,
       340.0,
@@ -371,12 +330,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1) FULLSCREEN CAMERA (tidak berubah)
           Positioned.fill(child: _buildFullCamera()),
-
-          // 2) OVERLAY LINGKARAN PANDUAN (YANG DIPERBARUI)
-          // LAMA: Menggunakan Positioned dengan properti 'top'
-          // BARU: Menggunakan Center agar posisi sempurna di tengah
           Center(
             child: IgnorePointer(
               child: Container(
@@ -384,7 +338,6 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
                 height: circleDiameter,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  // Sedikit lebih transparan agar tidak terlalu mendominasi
                   color: Colors.white.withOpacity(0.05),
                   border: Border.all(
                     color: Colors.white.withOpacity(0.8),
@@ -401,8 +354,6 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
               ),
             ),
           ),
-
-          // 3) Kartu info (tidak berubah)
           Positioned(
             left: 16,
             right: 16,
@@ -417,7 +368,6 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
               berkasCount: widget.berkasCount,
             ),
           ),
-          // 4) Tombol capture (tidak berubah)
           Positioned(
             left: 20,
             right: 20,
@@ -447,11 +397,8 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
                     ? 'Memproses...'
                     : (widget.isCheckin ? 'Presensi Masuk' : 'Presensi Keluar'),
               ),
-              // "Prensesi Masuk",
             ),
           ),
-
-          // 5) Back (tidak berubah)
           Positioned(
             left: 16,
             top: MediaQuery.of(context).padding.top + 12,
@@ -464,8 +411,6 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
               ),
             ),
           ),
-
-          // 6) Indikator zoom (tidak berubah)
           Positioned(
             right: 16,
             top: MediaQuery.of(context).padding.top + 16,
@@ -492,6 +437,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
   }
 }
 
+// _InfoCard dan _OverflowClipper tidak ada perubahan
 class _InfoCard extends StatelessWidget {
   const _InfoCard({
     required this.scheduleLabel,
@@ -502,7 +448,6 @@ class _InfoCard extends StatelessWidget {
     this.catatanCount = 0,
     this.berkasCount = 0,
   });
-
   final String scheduleLabel;
   final String locationName;
   final String? shiftName;
@@ -510,7 +455,6 @@ class _InfoCard extends StatelessWidget {
   final int agendaCount;
   final int catatanCount;
   final int berkasCount;
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -612,15 +556,11 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-// Tambahkan class helper ini di luar class State Anda
-// untuk memastikan preview tidak "bocor" keluar layar
 class _OverflowClipper extends CustomClipper<Rect> {
   final Size size;
   _OverflowClipper(this.size);
-
   @override
   Rect getClip(Size _) => Offset.zero & size;
-
   @override
   bool shouldReclip(CustomClipper<Rect> oldClipper) => true;
 }

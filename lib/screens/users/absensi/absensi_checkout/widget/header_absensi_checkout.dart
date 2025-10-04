@@ -24,7 +24,7 @@ class HeaderAbsensiCheckout extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "ABSENSI MASUK",
+              "ABSENSI PULANG",
               style: GoogleFonts.poppins(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -32,7 +32,7 @@ class HeaderAbsensiCheckout extends StatelessWidget {
               ),
             ),
             Text(
-              "Silahkan Melakukan Absen Masuk",
+              "Silahkan Melakukan Absen Pulang",
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,

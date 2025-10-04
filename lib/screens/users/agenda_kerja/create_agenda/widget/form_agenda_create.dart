@@ -1,4 +1,4 @@
-// lib/screens/users/agenda_kerja/create_agenda/widget/form_agenda.dart
+// lib/screens/users/agenda_kerja/create_agenda/widget/form_agenda_create.dart
 // ignore_for_file: deprecated_member_use
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
@@ -9,6 +9,7 @@ import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:e_hrm/shared_widget/time_picker_field_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,39 +38,35 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-  bool _hasRequestedAgendaItems = false;
-  String? _lastRequestedAgendaId;
 
   String? _selectedUrgensi;
-  AgendaProvider? _agendaProvider;
   AgendaKerjaProvider? _agendaKerjaProvider;
-  bool _didScheduleInitialSync = false;
 
   @override
   void initState() {
     super.initState();
+    // MEMANGGIL FETCH AGENDA DI AWAL
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final agendaProvider = context.read<AgendaProvider>();
+      if (agendaProvider.items.isEmpty && !agendaProvider.loading) {
+        agendaProvider.fetch();
+      }
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final agendaProvider = context.read<AgendaProvider>();
+    // Gunakan context.read karena kita hanya butuh instance untuk listener
     final agendaKerjaProvider = context.read<AgendaKerjaProvider>();
-
-    _agendaProvider = agendaProvider;
 
     if (_agendaKerjaProvider != agendaKerjaProvider) {
       _agendaKerjaProvider?.removeListener(_handleAgendaKerjaChanged);
       _agendaKerjaProvider = agendaKerjaProvider;
       _agendaKerjaProvider?.addListener(_handleAgendaKerjaChanged);
-    }
 
-    if (!_didScheduleInitialSync) {
-      _didScheduleInitialSync = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _handleAgendaKerjaChanged();
-      });
+      // Sinkronisasi state awal saat listener pertama kali di-set
+      _syncFromAgendaKerjaProvider(agendaKerjaProvider);
     }
   }
 
@@ -83,6 +80,28 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     super.dispose();
   }
 
+  void _handleAgendaKerjaChanged() {
+    // Listener ini sekarang aman karena tidak ada `watch` yang konflik
+    if (mounted && _agendaKerjaProvider != null) {
+      _syncFromAgendaKerjaProvider(_agendaKerjaProvider!);
+    }
+  }
+
+  void _syncFromAgendaKerjaProvider(AgendaKerjaProvider provider) {
+    final providerDate = provider.currentDate;
+    var shouldUpdate = false;
+
+    if (providerDate != null &&
+        (_selectedDate == null || !_isSameDay(_selectedDate!, providerDate))) {
+      _selectedDate = providerDate;
+      shouldUpdate = true;
+    }
+
+    if (shouldUpdate) {
+      setState(() {});
+    }
+  }
+
   Future<void> _submit() async {
     final formState = formKey.currentState;
     if (formState == null || !formState.validate()) return;
@@ -90,18 +109,14 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       _showSnackBar('Agenda wajib dipilih.', true);
       return;
     }
-
     if (_selectedDate == null) {
       _showSnackBar('Tanggal agenda wajib diisi.', true);
       return;
     }
-
     if (_startTime == null || _endTime == null) {
       _showSnackBar('Jam mulai dan selesai wajib diisi.', true);
       return;
     }
-
-    // PERUBAHAN DI SINI: Validasi urgensi
     if (_selectedUrgensi == null || _selectedUrgensi!.isEmpty) {
       _showSnackBar('Urgensi wajib dipilih.', true);
       return;
@@ -132,7 +147,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       startDate: startDateTime,
       endDate: endDateTime,
       durationSeconds: endDateTime.difference(startDateTime).inSeconds,
-      kebutuhanAgenda: _selectedUrgensi, // <-- MENGIRIM DATA URGENSI
+      kebutuhanAgenda: _selectedUrgensi,
     );
 
     if (!mounted) return;
@@ -151,11 +166,9 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   Future<String?> _ensureUserId(AuthProvider auth) async {
     final current = auth.currentUser?.user.idUser;
     if (current != null && current.isNotEmpty) return current;
-
     await auth.tryRestoreSession(context, silent: true);
     final restored = auth.currentUser?.user.idUser;
     if (restored != null && restored.isNotEmpty) return restored;
-
     try {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString('id_user');
@@ -178,102 +191,15 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
-  void _ensureAgendaOptionsLoaded(
-    AgendaProvider agendaProvider,
-    String? requiredAgendaId,
-  ) {
-    if (agendaProvider.loading) return;
-    final trimmedAgendaId =
-        requiredAgendaId != null && requiredAgendaId.trim().isNotEmpty
-        ? requiredAgendaId.trim()
-        : null;
-    final hasRequiredAgenda =
-        trimmedAgendaId != null &&
-        agendaProvider.items.any(
-          (agenda) => agenda.idAgenda == trimmedAgendaId,
-        );
-
-    final shouldFetch =
-        agendaProvider.items.isEmpty ||
-        (trimmedAgendaId != null && !hasRequiredAgenda);
-
-    final needsNewRequest = trimmedAgendaId != _lastRequestedAgendaId;
-
-    if (shouldFetch && (needsNewRequest || !_hasRequestedAgendaItems)) {
-      _hasRequestedAgendaItems = true;
-      _lastRequestedAgendaId = trimmedAgendaId;
-      agendaProvider.fetch();
-    }
-  }
-
-  void _handleAgendaKerjaChanged() {
-    if (!mounted) return;
-    final agendaProvider = _agendaProvider ?? context.read<AgendaProvider>();
-    final agendaKerjaProvider = _agendaKerjaProvider;
-    if (agendaKerjaProvider == null) return;
-    _ensureAgendaOptionsLoaded(
-      agendaProvider,
-      agendaKerjaProvider.currentAgendaId,
-    );
-    _syncFromAgendaKerjaProvider(agendaKerjaProvider);
-  }
-
-  void _syncFromAgendaKerjaProvider(AgendaKerjaProvider provider) {
-    final providerAgendaId = provider.currentAgendaId;
-    final providerStatus = provider.currentStatus?.trim().toLowerCase();
-    final providerDate = provider.currentDate;
-
-    String? nextAgendaId = _selectedAgendaId;
-    String nextStatus = _selectedStatus;
-    DateTime? nextDate = _selectedDate;
-    var shouldUpdate = false;
-
-    if (providerAgendaId != null &&
-        providerAgendaId.isNotEmpty &&
-        providerAgendaId != _selectedAgendaId) {
-      nextAgendaId = providerAgendaId;
-      shouldUpdate = true;
-    }
-
-    if (providerStatus != null &&
-        providerStatus.isNotEmpty &&
-        providerStatus != _selectedStatus &&
-        _statusOptions.any((option) => option.value == providerStatus)) {
-      nextStatus = providerStatus;
-      shouldUpdate = true;
-    }
-
-    if (providerDate != null &&
-        (_selectedDate == null || !_isSameDay(_selectedDate!, providerDate))) {
-      nextDate = providerDate;
-      shouldUpdate = true;
-    }
-
-    if (shouldUpdate && mounted) {
-      setState(() {
-        _selectedAgendaId = nextAgendaId;
-        _selectedStatus = nextStatus;
-        _selectedDate = nextDate;
-      });
-    }
-  }
-
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Perhatikan: agendaProvider di-'watch' karena dropdown perlu rebuild saat item berubah
     final agendaProvider = context.watch<AgendaProvider>();
-    final agendaKerjaProvider = context.watch<AgendaKerjaProvider>();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _ensureAgendaOptionsLoaded(
-        agendaProvider,
-        agendaKerjaProvider.currentAgendaId,
-      );
-      _syncFromAgendaKerjaProvider(agendaKerjaProvider);
-    });
+
     return Form(
       key: formKey,
       child: Padding(
@@ -343,7 +269,6 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               ],
             ),
             const SizedBox(height: 20),
-            // --- PERUBAHAN DI SINI: MENGHAPUS VALIDATOR ---
             DropdownFieldWidget<String>(
               label: "Urgensi",
               hintText: "Pilih tingkat urgensi",
@@ -360,7 +285,6 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
                   _selectedUrgensi = newValue;
                 });
               },
-              // Validator dihilangkan agar semua opsi bisa dipilih
             ),
             const SizedBox(height: 20),
             DropdownFieldWidget<String>(
@@ -380,41 +304,45 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               },
             ),
             const SizedBox(height: 30),
-            GestureDetector(
-              onTap: agendaKerjaProvider.saving ? null : _submit,
-              child: Card(
-                elevation: 5,
-                color: agendaKerjaProvider.saving
-                    ? AppColors.primaryColor.withOpacity(0.6)
-                    : AppColors.primaryColor,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15,
-                    horizontal: 70,
+            Consumer<AgendaKerjaProvider>(
+              builder: (context, agendaKerjaProvider, child) {
+                return GestureDetector(
+                  onTap: agendaKerjaProvider.saving ? null : _submit,
+                  child: Card(
+                    elevation: 5,
+                    color: agendaKerjaProvider.saving
+                        ? AppColors.primaryColor.withOpacity(0.6)
+                        : AppColors.primaryColor,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 15,
+                        horizontal: 70,
+                      ),
+                      child: agendaKerjaProvider.saving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.textColor,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              'Simpan Pekerjaan',
+                              style: GoogleFonts.poppins(
+                                textStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                            ),
+                    ),
                   ),
-                  child: agendaKerjaProvider.saving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.textColor,
-                            ),
-                          ),
-                        )
-                      : Text(
-                          'Simpan Pekerjaan',
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textColor,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

@@ -70,4 +70,11 @@ class Endpoints {
   static String get absensiCheckin => "$faceBaseURL/api/absensi/checkin";
   static String get absensiCheckout => "$faceBaseURL/api/absensi/checkout";
   static String get absensiStatus => "$faceBaseURL/api/absensi/status";
+
+  //istirahats
+  static const String istirahatStart =
+      "$faceBaseURL/api/absensi/istirahat/start";
+  static const String istirahatEnd = "$faceBaseURL/api/absensi/istirahat/end";
+  static const String istirahatStatus =
+      "$faceBaseURL/api/absensi/istirahat/status";
 }

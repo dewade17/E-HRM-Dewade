@@ -12,6 +12,7 @@ import 'package:e_hrm/screens/users/home/widget/header_home.dart';
 import 'package:e_hrm/screens/users/home/widget/home_content.dart';
 import 'package:e_hrm/screens/users/home/widget/information_home.dart';
 import 'package:e_hrm/screens/users/home/widget/absensi_button.dart';
+import 'package:e_hrm/screens/users/notification/notification_screen.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = const [
     HomeScreenContent(),
-    Dashboard(),
+    NotificationScreen(),
     Payment(),
   ];
 

@@ -25,15 +25,18 @@ class ApiService {
       },
     );
 
-    if (res.statusCode == 200) {
-      final decoded = utf8.decode(res.bodyBytes);
-      return jsonDecode(decoded);
+    final body = utf8.decode(res.bodyBytes);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(body);
     } else if (res.statusCode == 401) {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
-      print("API Error FETCH DATA [${res.statusCode}]: ${res.body}");
-      throw Exception('Failed to load data from $url');
+      print("API Error FETCH DATA [${res.statusCode}]: $body");
+      // PERBAIKAN: Sertakan body error dalam Exception
+      throw Exception(
+        'Failed to load data from $url (${res.statusCode}): $body',
+      );
     }
   }
 
@@ -53,13 +56,15 @@ class ApiService {
       body: jsonEncode(data),
     );
 
-    if (res.statusCode == 200 || res.statusCode == 201) {
-      return jsonDecode(res.body);
+    final body = utf8.decode(res.bodyBytes);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(body);
     } else if (res.statusCode == 401) {
       await prefs.remove('token');
       throw Exception('Unauthorized');
     } else {
-      throw Exception('Failed to post data');
+      // PERBAIKAN: Sertakan body error dalam Exception
+      throw Exception('Failed to post data (${res.statusCode}): $body');
     }
   }
 
@@ -79,13 +84,15 @@ class ApiService {
       body: jsonEncode(data),
     );
 
-    if (res.statusCode == 200 || res.statusCode == 201) {
-      return jsonDecode(res.body);
+    final body = utf8.decode(res.bodyBytes);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(body);
     } else if (res.statusCode == 401) {
       await prefs.remove('token');
       throw Exception('Unauthorized');
     } else {
-      throw Exception('Failed to update data');
+      // PERBAIKAN: Sertakan body error dalam Exception
+      throw Exception('Failed to update data (${res.statusCode}): $body');
     }
   }
 
@@ -101,13 +108,15 @@ class ApiService {
       },
     );
 
-    if (res.statusCode == 200) {
-      return jsonDecode(res.body);
+    final body = utf8.decode(res.bodyBytes);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(body);
     } else if (res.statusCode == 401) {
       await prefs.remove('token');
       throw Exception('Unauthorized');
     } else {
-      throw Exception('Failed to delete data');
+      // PERBAIKAN: Sertakan body error dalam Exception
+      throw Exception('Failed to delete data (${res.statusCode}): $body');
     }
   }
 
@@ -162,9 +171,9 @@ class ApiService {
       },
     );
 
+    final body = utf8.decode(res.bodyBytes);
     if (res.statusCode == 200) {
-      final decoded = utf8.decode(res.bodyBytes);
-      final jsonRes = jsonDecode(decoded);
+      final jsonRes = jsonDecode(body);
       if (jsonRes is List) return jsonRes;
       if (jsonRes is Map<String, dynamic> && jsonRes['data'] is List) {
         return List<dynamic>.from(jsonRes['data']);
@@ -174,7 +183,9 @@ class ApiService {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
-      throw Exception('Failed to load list from $url [${res.statusCode}]');
+      throw Exception(
+        'Failed to load list from $url (${res.statusCode}): $body',
+      );
     }
   }
 
@@ -197,14 +208,15 @@ class ApiService {
     final res = await request.send();
     final body = await res.stream.bytesToString();
 
-    if (res.statusCode == 200 || res.statusCode == 201) {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
       return jsonDecode(body);
     } else if (res.statusCode == 401) {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
       print("API Error POSTFORM [${res.statusCode}]: $body");
-      throw Exception('Failed to post form data');
+      // PERBAIKAN: Sertakan body error dalam Exception
+      throw Exception('Failed to post form data (${res.statusCode}): $body');
     }
   }
 
@@ -227,14 +239,15 @@ class ApiService {
     final res = await request.send();
     final body = await res.stream.bytesToString();
 
-    if (res.statusCode == 200 || res.statusCode == 201) {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
       return jsonDecode(body);
     } else if (res.statusCode == 401) {
       await prefs.remove('token');
       throw Exception('Unauthorized. Please login again.');
     } else {
       print("API Error PUTFORM [${res.statusCode}]: $body");
-      throw Exception('Failed to update form data');
+      // PERBAIKAN: Sertakan body error dalam Exception
+      throw Exception('Failed to update form data (${res.statusCode}): $body');
     }
   }
 
@@ -262,7 +275,10 @@ class ApiService {
       throw Exception('Unauthorized. Please login again.');
     } else {
       print("API Error DELETE [${res.statusCode}]: $body");
-      throw Exception('Failed to delete with form data');
+      // PERBAIKAN: Sertakan body error dalam Exception
+      throw Exception(
+        'Failed to delete with form data (${res.statusCode}): $body',
+      );
     }
   }
 }

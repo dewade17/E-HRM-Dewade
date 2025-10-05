@@ -2,6 +2,7 @@ import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/istirahat/istirahat_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/auth/reset_password_provider.dart';
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ShiftKerjaRealtimeProvider()),
         ChangeNotifierProvider(create: (_) => AgendaProvider()),
         ChangeNotifierProvider(create: (_) => KunjunganKlienProvider()),
+        ChangeNotifierProvider(create: (_) => IstirahatProvider()),
       ],
       child: MaterialApp(
         title: 'E-HRM',

@@ -46,12 +46,20 @@ class _InformationHomeState extends State<InformationHome> {
   /// Helper untuk memformat waktu dari string ISO 8601 atau format jam saja
   String _formatShiftTime(String? rawTime) {
     if (rawTime == null || rawTime.isEmpty) return '--:--';
+
+    // --- PERBAIKAN UTAMA DI SINI ---
+    // Hapus 'Z' jika ada, agar waktu di-parse sebagai waktu lokal, bukan UTC.
+    if (rawTime.endsWith('Z')) {
+      rawTime = rawTime.substring(0, rawTime.length - 1);
+    }
+    // --- AKHIR PERBAIKAN ---
+
     try {
-      // Coba parse sebagai DateTime penuh (ISO 8601)
-      final dt = DateTime.parse(rawTime).toLocal();
+      // Sekarang parsing akan menganggapnya sebagai waktu lokal
+      final dt = DateTime.parse(rawTime);
       return DateFormat('HH:mm').format(dt);
     } catch (e) {
-      // Jika gagal, coba parse sebagai "HH:mm:ss"
+      // Fallback jika formatnya bukan DateTime penuh (misal: "HH:mm:ss")
       try {
         final parts = rawTime.split(':');
         if (parts.length >= 2) {

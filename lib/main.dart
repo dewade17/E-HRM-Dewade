@@ -8,8 +8,8 @@ import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/auth/reset_password_provider.dart';
 import 'package:e_hrm/providers/departements/departements_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
-
 import 'package:e_hrm/providers/location/location_provider.dart';
+import 'package:e_hrm/providers/notifications/notifications_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
 import 'package:e_hrm/screens/auth/login/login_screen.dart';
@@ -20,8 +20,8 @@ import 'package:e_hrm/screens/users/profile/profile_screen.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/agenda_kerja_screen.dart';
 import 'package:e_hrm/screens/users/home/home_screen.dart';
 import 'package:e_hrm/screens/users/jam_isitirahat/jam_istirahat_screen.dart';
-
 import 'package:e_hrm/services/auth_wrapper.dart';
+import 'package:e_hrm/services/notification_handlers.dart';
 import 'package:e_hrm/utils/app_theme.dart';
 import 'package:e_hrm/providers/face/face_enroll/face_enroll_provider.dart';
 import 'package:e_hrm/screens/face/face_enroll_screen/face_enroll_screen.dart';
@@ -31,12 +31,22 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_core/firebase_core.dart'; // <-- Impor ini
+import 'firebase_options.dart'; // <-- Impor ini
 
 Future<void> main() async {
+  // Pastikan binding Flutter siap
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi Firebase sebagai langkah pertama
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   // Inisialisasi data locale (Indonesia)
   await initializeDateFormatting('id_ID', null);
-  Intl.defaultLocale = 'id_ID'; // opsional, biar default Indonesia
+  Intl.defaultLocale = 'id_ID';
+
+  // Setelah Firebase siap, baru inisialisasi handler notifikasi
+  await NotificationHandler().init();
 
   runApp(const MyApp());
 }
@@ -62,6 +72,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AgendaProvider()),
         ChangeNotifierProvider(create: (_) => KunjunganKlienProvider()),
         ChangeNotifierProvider(create: (_) => IstirahatProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
         title: 'E-HRM',
@@ -78,8 +89,9 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/reset-password': (context) => const ResetPasswordScreen(),
-          '/home-screen': (context) => AuthWrapper(child: HomeScreen()),
-          '/profile-screen': (context) => AuthWrapper(child: ProfileScreen()),
+          '/home-screen': (context) => AuthWrapper(child: const HomeScreen()),
+          '/profile-screen': (context) =>
+              AuthWrapper(child: const ProfileScreen()),
           // Route for face enrollment. Pass the userId via RouteSettings arguments.
           '/face-enroll': (context) {
             final args = ModalRoute.of(context)?.settings.arguments;
@@ -87,11 +99,12 @@ class MyApp extends StatelessWidget {
             final userId = (args is String) ? args : '';
             return AuthWrapper(child: FaceEnrollScreen(userId: userId));
           },
-          '/agenda-kerja': (context) => AuthWrapper(child: AgendaKerjaScreen()),
+          '/agenda-kerja': (context) =>
+              AuthWrapper(child: const AgendaKerjaScreen()),
           '/kunjungan-klien': (context) =>
-              AuthWrapper(child: KunjunganKlienScreen()),
+              AuthWrapper(child: const KunjunganKlienScreen()),
           '/jam-istirahat': (context) =>
-              AuthWrapper(child: JamIstirahatScreen()),
+              AuthWrapper(child: const JamIstirahatScreen()),
         },
       ),
     );

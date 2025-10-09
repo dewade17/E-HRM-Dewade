@@ -10,6 +10,10 @@ import 'package:e_hrm/services/api_services.dart';
 import 'package:e_hrm/dto/face/enroll_face/enroll_face.dart';
 import 'package:e_hrm/dto/face/device/device.dart';
 
+// --- TAMBAHKAN IMPORT INI ---
+// Import ini diperlukan untuk mengakses handler notifikasi
+import 'package:e_hrm/services/notification_handlers.dart';
+
 class FaceEnrollProvider extends ChangeNotifier {
   final ApiService _api;
   FaceEnrollProvider(this._api);
@@ -38,24 +42,50 @@ class FaceEnrollProvider extends ChangeNotifier {
   Future<bool> enrollFace({required String userId, required File image}) async {
     _setSaving(true);
     try {
-      // 1) kumpulkan device info (otomatis)
+      // --- PERBAIKAN DIMULAI DI SINI ---
+
+      // Langkah 1: Ambil FCM Token terlebih dahulu dan TUNGGU (await).
+      // Ini adalah perbaikan paling penting untuk mengatasi race condition.
+      print("Memulai pendaftaran: Mengambil FCM Token...");
+      final fcmToken = await NotificationHandler().getFcmToken();
+
+      // Langkah 2: Lakukan validasi. Jika token tidak ada, hentikan proses.
+      if (fcmToken == null || fcmToken.isEmpty) {
+        throw Exception(
+          'Gagal mendapatkan token notifikasi. Pastikan koneksi internet stabil dan coba lagi.',
+        );
+      }
+      print("FCM Token berhasil didapat.");
+
+      // Langkah 3: Kumpulkan informasi perangkat seperti biasa.
+      print("Mengumpulkan informasi perangkat...");
       final device = await _collectDeviceInfo();
+
+      // Langkah 4: Buat request DTO seperti biasa.
       final reqDto = EnrollRequest(
         userId: userId,
         images: [image],
         device: device,
       );
 
-      // 2) siapkan form fields & file
+      // Langkah 5: Siapkan form fields dari DTO, lalu tambahkan fcm_token secara manual.
       final fields = reqDto.toFormFields();
+      fields['fcm_token'] =
+          fcmToken; // <-- Token yang sudah didapat ditambahkan di sini
 
+      print("Payload yang akan dikirim ke server: $fields");
+
+      // --- AKHIR PERBAIKAN ---
+
+      // Siapkan file untuk diunggah
       final file = await http.MultipartFile.fromPath(
+        // 'images' adalah nama field di backend, sesuai spesifikasi Anda
         'images',
         image.path,
         contentType: _inferImageMediaType(image),
       );
 
-      // 3) panggil ApiService (biar header/token ditangani di sana)
+      // Panggil ApiService untuk mengirim data
       final endpoint = _trimLeadingSlash(Endpoints.faceEnroll);
       final resp = await _api.postFormDataPrivate(
         endpoint,
@@ -63,7 +93,7 @@ class FaceEnrollProvider extends ChangeNotifier {
         files: [file],
       );
 
-      // 4) parse response -> dukung envelope { message, data }
+      // Parse response dari server
       final data = (resp['data'] is Map<String, dynamic>)
           ? (resp['data'] as Map<String, dynamic>)
           : (resp as Map<String, dynamic>);
@@ -82,6 +112,7 @@ class FaceEnrollProvider extends ChangeNotifier {
   }
 
   /// Ambil device info otomatis (tanpa input user)
+  /// Fungsi ini tidak perlu diubah.
   Future<DeviceInfo> _collectDeviceInfo() async {
     final deviceInfo = DeviceInfoPlugin();
     final pkg = await PackageInfo.fromPlatform();

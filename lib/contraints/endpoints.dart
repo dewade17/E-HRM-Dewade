@@ -77,4 +77,9 @@ class Endpoints {
   static const String istirahatEnd = "$faceBaseURL/api/absensi/istirahat/end";
   static const String istirahatStatus =
       "$faceBaseURL/api/absensi/istirahat/status";
+
+  //notification
+  static const String getNotifications = "$baseURL/notifications";
+  static String markNotificationAsRead(String notificationId) =>
+      "$baseURL/notifications/$notificationId";
 }

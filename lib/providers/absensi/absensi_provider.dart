@@ -22,8 +22,8 @@ class AbsensiCatatanEntry {
 class AbsensiProvider extends ChangeNotifier {
   bool saving = false;
   String? error;
-  AbsensiChekin? checkinResult;
-  AbsensiChekout? checkoutResult;
+  Absensicheckin? checkinResult;
+  Absensicheckout? checkoutResult;
   final ApiService _api = ApiService();
   AbsensiStatus? todayStatus;
   bool loadingStatus = false;
@@ -46,7 +46,7 @@ class AbsensiProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<AbsensiChekin?> checkin({
+  Future<Absensicheckin?> checkin({
     required String userId,
     String? locationId,
     required double lat,
@@ -66,7 +66,7 @@ class AbsensiProvider extends ChangeNotifier {
       agendaKerjaIds: agendaKerjaIds,
       recipients: recipients,
       catatan: catatan,
-      parser: (json) => AbsensiChekin.fromJson(json),
+      parser: (json) => Absensicheckin.fromJson(json),
     );
     if (value != null) {
       checkinResult = value;
@@ -75,7 +75,7 @@ class AbsensiProvider extends ChangeNotifier {
     return value;
   }
 
-  Future<AbsensiChekout?> checkout({
+  Future<Absensicheckout?> checkout({
     required String userId,
     String? locationId,
     required double lat,
@@ -95,7 +95,7 @@ class AbsensiProvider extends ChangeNotifier {
       agendaKerjaIds: agendaKerjaIds,
       recipients: recipients,
       catatan: catatan,
-      parser: (json) => AbsensiChekout.fromJson(json),
+      parser: (json) => Absensicheckout.fromJson(json),
     );
     if (value != null) {
       checkoutResult = value;

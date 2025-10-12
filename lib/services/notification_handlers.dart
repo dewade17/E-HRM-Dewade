@@ -1,133 +1,221 @@
-// lib/services/notification_handler.dart
+// lib/services/notification_handlers.dart
 
 import 'dart:convert';
-import 'package:e_hrm/contraints/endpoints.dart'; // <-- TAMBAHKAN IMPORT INI
+import 'dart:collection';
+import 'dart:math';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:e_hrm/firebase_options.dart'; // File hasil flutterfire configure
-import 'package:e_hrm/services/api_services.dart'; // Sesuaikan dengan path ApiService Anda
+import 'package:e_hrm/contraints/endpoints.dart';
+import 'package:e_hrm/firebase_options.dart';
+import 'package:e_hrm/services/api_services.dart';
 
-// Handler untuk notifikasi saat aplikasi di-terminate/background
-// Harus berada di top-level (di luar class)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print("Handling a background message: ${message.messageId}");
+
+  final String uniqueLogId = DateTime.now().millisecondsSinceEpoch.toString();
+  print(
+    '[$uniqueLogId] BACKGROUND HANDLER TERPANGGIL messageId=${message.messageId}',
+  );
+
+  // Penting: jika payload bertipe "notification", biarkan sistem yang tampilkan (Android).
+  NotificationHandler().showLocalNotification(
+    message,
+    from: 'BackgroundHandler_$uniqueLogId',
+    fromBackground: true,
+  );
 }
 
 class NotificationHandler {
+  NotificationHandler._internal();
   static final NotificationHandler _instance = NotificationHandler._internal();
   factory NotificationHandler() => _instance;
-  NotificationHandler._internal();
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
-
-  // Plugin untuk menampilkan notifikasi di foreground (saat aplikasi dibuka)
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  // --- PERUBAHAN 1: Tambahkan variabel cache untuk token ---
   String? _cachedToken;
 
+  // --- Guard agar init hanya sekali ---
+  bool _initialized = false;
+
+  // --- De-dupe cache untuk messageId ---
+  final LinkedHashSet<String> _seenMessageIds = LinkedHashSet<String>();
+
   Future<void> init() async {
-    // 1. Minta izin notifikasi dari pengguna (untuk iOS & Web)
-    await _firebaseMessaging.requestPermission(
+    if (_initialized) return;
+    _initialized = true;
+
+    // Permission
+    await _firebaseMessaging.requestPermission();
+
+    // iOS (jaga-jaga): tampilkan notifikasi saat foreground
+    // Abaikan jika tidak pakai iOS
+    await _firebaseMessaging.setForegroundNotificationPresentationOptions(
       alert: true,
-      announcement: false,
       badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
       sound: true,
     );
 
-    // 2. Set up handler untuk pesan background
+    // Background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 3. Inisialisasi FlutterLocalNotificationsPlugin
+    // Inisialisasi plugin notifikasi lokal
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
     await _localNotifications.initialize(initializationSettings);
 
-    // 4. Dengarkan notifikasi saat aplikasi di foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
+    await _createAndroidNotificationChannel();
 
-      if (notification != null && android != null) {
-        _localNotifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'high_importance_channel', // ID channel
-              'High Importance Notifications', // Nama channel
-              channelDescription: 'Channel untuk notifikasi penting.',
-              importance: Importance.max,
-              priority: Priority.high,
-              icon: '@mipmap/ic_launcher',
-            ),
-          ),
-          payload: jsonEncode(message.data),
-        );
-      }
+    // Listener foreground — hanya didaftarkan sekali
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final String uniqueLogId = DateTime.now().millisecondsSinceEpoch
+          .toString();
+      print(
+        '[$uniqueLogId] FOREGROUND LISTENER TERPANGGIL messageId=${message.messageId}',
+      );
+      showLocalNotification(
+        message,
+        from: 'ForegroundListener_$uniqueLogId',
+        fromBackground: false,
+      );
     });
 
-    // 5. Ambil dan kirim token FCM ke server (saat init)
     await _getTokenAndSendToServer();
-
-    // 6. Dengarkan perubahan token (jika token di-refresh)
     _firebaseMessaging.onTokenRefresh.listen(_sendTokenToServer);
   }
 
-  // --- PERUBAHAN 2: Buat fungsi publik untuk mengambil token ---
-  /// Fungsi publik untuk mendapatkan token FCM secara paksa.
-  /// Akan mengambil dari cache jika ada, atau meminta yang baru jika belum ada.
-  Future<String?> getFcmToken() async {
-    if (_cachedToken != null) {
-      print("Mengembalikan FCM token dari cache.");
-      return _cachedToken;
+  // --- LOGIC: kapan kita BOLEH menampilkan notifikasi lokal? ---
+  bool _shouldShowLocal(RemoteMessage message, {required bool fromBackground}) {
+    final hasNotificationPayload =
+        message.notification != null &&
+        ((message.notification!.title?.isNotEmpty ?? false) ||
+            (message.notification!.body?.isNotEmpty ?? false));
+
+    // Jika dari background DAN ada payload notification:
+    // Android sudah menampilkan notifikasi sistem secara otomatis.
+    if (fromBackground && hasNotificationPayload) {
+      print(
+        'SKIP LOCAL: background + notification payload (biar sistem yang tampilkan).',
+      );
+      return false;
     }
+
+    // Selain itu, aman tampilkan lokal (foreground atau data-only di background).
+    return true;
+  }
+
+  // --- De-dupe berdasarkan messageId ---
+  bool _isDuplicate(RemoteMessage message) {
+    final id = message.messageId;
+    if (id == null) return false;
+    if (_seenMessageIds.contains(id)) return true;
+    _seenMessageIds.add(id);
+    // batasi ukuran set agar tidak membengkak
+    if (_seenMessageIds.length > 64) {
+      _seenMessageIds.remove(_seenMessageIds.first);
+    }
+    return false;
+  }
+
+  void showLocalNotification(
+    RemoteMessage message, {
+    String from = 'Unknown',
+    required bool fromBackground,
+  }) {
+    print(
+      'SHOW_LOCAL_NOTIFICATION dipanggil dari: [$from] messageId=${message.messageId}',
+    );
+
+    // (opsional) kalau kamu tetap pakai guard background vs notification payload
+    // if (!_shouldShowLocal(message, fromBackground: fromBackground)) return;
+
+    final String title =
+        message.data['title'] ?? message.notification?.title ?? 'No Title';
+    final String body =
+        message.data['body'] ?? message.notification?.body ?? 'No Body';
+
+    if (title.isEmpty && body.isEmpty) {
+      print('GAGAL MENAMPILKAN NOTIFIKASI: Title/Body kosong.');
+      return;
+    }
+
+    // --- KUNCI: ID deterministik untuk collapse duplikat ---
+    final String dedupeKey = message.data['dedupeKey'] ?? '$title|$body';
+    // pastikan positif
+    final int notificationId = dedupeKey.hashCode & 0x7fffffff;
+
+    print(
+      'MENAMPILKAN/UPDATE NOTIF LOKAL id=$notificationId tag=$dedupeKey (from=$from)',
+    );
+
+    _localNotifications.show(
+      notificationId,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          channelDescription: 'Channel untuk notifikasi penting.',
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          // (opsional) tambah tag supaya Android juga treat sebagai satu thread
+          tag: dedupeKey,
+          groupKey: 'e_hrm_general', // opsional: pengelompokan
+        ),
+      ),
+      payload: jsonEncode(message.data),
+    );
+  }
+
+  Future<void> _createAndroidNotificationChannel() async {
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel',
+      'High Importance Notifications',
+      description: 'Channel untuk notifikasi penting.',
+      importance: Importance.high,
+    );
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(channel);
+  }
+
+  Future<String?> getFcmToken() async {
+    if (_cachedToken != null) return _cachedToken;
     try {
-      print("Meminta FCM token baru dari Firebase...");
       _cachedToken = await _firebaseMessaging.getToken();
-      print("Token baru didapat: ${_cachedToken != null}");
       return _cachedToken;
     } catch (e) {
-      print("Gagal mendapatkan FCM token secara paksa: $e");
+      print('Gagal mendapatkan FCM token: $e');
       return null;
     }
   }
 
   Future<void> _getTokenAndSendToServer() async {
-    try {
-      // Modifikasi di sini untuk menggunakan fungsi yang baru dibuat
-      final token = await getFcmToken();
-      if (token != null) {
-        print("FCM Token (saat init): $token");
-        await _sendTokenToServer(token);
-      }
-    } catch (e) {
-      print("Error getting FCM token saat init: $e");
+    final String? token = await getFcmToken();
+    if (token != null) {
+      await _sendTokenToServer(token);
     }
   }
 
   Future<void> _sendTokenToServer(String token) async {
     try {
-      // --- PERBAIKAN UTAMA DI SINI ---
-      // Menggunakan endpoint absolut dari file endpoints.dart
       await _apiService.postDataPrivate(Endpoints.getNotifications, {
         'token': token,
       });
-      print("FCM token berhasil dikirim ke server.");
+      print('FCM token berhasil dikirim ke server.');
     } catch (e) {
-      print("Gagal mengirim FCM token ke server: $e");
+      print('Gagal mengirim FCM token ke server: $e');
     }
   }
 }

@@ -1,100 +1,58 @@
 import 'dart:convert';
 
-AbsensiChekin absensiChekinFromJson(String str) =>
-    AbsensiChekin.fromJson(json.decode(str));
+Absensicheckin absensicheckinFromJson(String str) =>
+    Absensicheckin.fromJson(json.decode(str));
 
-String absensiChekinToJson(AbsensiChekin data) => json.encode(data.toJson());
+String absensicheckinToJson(Absensicheckin data) => json.encode(data.toJson());
 
-class AbsensiChekin {
-  final int? agendasLinked;
-  final int? agendasSkipped;
-  final List<Catatan> catatan;
-  final double? distanceMeters;
-  final bool match;
-  final String metric;
-  final String mode;
-  final bool ok;
-  final int recipientsAdded;
-  final double score;
-  final double threshold;
-  final String userId;
+class Absensicheckin {
+  bool? accepted;
+  int? distanceMeters;
+  bool? match;
+  String? message;
+  String? metric;
+  bool? ok;
+  double? score;
+  String? taskId;
+  double? threshold;
+  String? userId;
 
-  AbsensiChekin({
-    this.agendasLinked,
-    this.agendasSkipped,
-    required this.catatan,
-    required this.distanceMeters,
-    required this.match,
-    required this.metric,
-    required this.mode,
-    required this.ok,
-    required this.recipientsAdded,
-    required this.score,
-    required this.threshold,
-    required this.userId,
+  Absensicheckin({
+    this.accepted,
+    this.distanceMeters,
+    this.match,
+    this.message,
+    this.metric,
+    this.ok,
+    this.score,
+    this.taskId,
+    this.threshold,
+    this.userId,
   });
 
-  factory AbsensiChekin.fromJson(Map<String, dynamic> json) {
-    final catatanList = json["catatan"] as List<dynamic>?;
-    final distanceRaw = json["distanceMeters"];
-
-    return AbsensiChekin(
-      agendasLinked: json["agendasLinked"],
-      agendasSkipped: json["agendasSkipped"],
-      catatan: catatanList == null
-          ? const <Catatan>[]
-          : catatanList
-                .map((x) => Catatan.fromJson(Map<String, dynamic>.from(x)))
-                .toList(),
-      distanceMeters: distanceRaw is num ? distanceRaw.toDouble() : null,
-      match: json["match"],
-      metric: json["metric"],
-      mode: json["mode"],
-      ok: json["ok"],
-      recipientsAdded: json["recipientsAdded"] ?? 0,
-      score: (json["score"] as num).toDouble(),
-      threshold: (json["threshold"] as num).toDouble(),
-      userId: json["user_id"],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    final data = <String, dynamic>{
-      "agendasLinked": agendasLinked,
-      "agendasSkipped": agendasSkipped,
-      "catatan": List<dynamic>.from(catatan.map((x) => x.toJson())),
-      "match": match,
-      "metric": metric,
-      "mode": mode,
-      "ok": ok,
-      "recipientsAdded": recipientsAdded,
-      "score": score,
-      "threshold": threshold,
-      "user_id": userId,
-    };
-    if (distanceMeters != null) {
-      data["distanceMeters"] = distanceMeters;
-    }
-    return data;
-  }
-}
-
-class Catatan {
-  String? deskripsiCatatan;
-  String? idCatatan;
-  dynamic lampiranUrl;
-
-  Catatan({this.deskripsiCatatan, this.idCatatan, this.lampiranUrl});
-
-  factory Catatan.fromJson(Map<String, dynamic> json) => Catatan(
-    deskripsiCatatan: json["deskripsi_catatan"],
-    idCatatan: json["id_catatan"],
-    lampiranUrl: json["lampiran_url"],
+  factory Absensicheckin.fromJson(Map<String, dynamic> json) => Absensicheckin(
+    accepted: json["accepted"],
+    distanceMeters: json["distanceMeters"],
+    match: json["match"],
+    message: json["message"],
+    metric: json["metric"],
+    ok: json["ok"],
+    score: json["score"]?.toDouble(),
+    taskId: json["task_id"],
+    threshold: json["threshold"]?.toDouble(),
+    userId: json["user_id"],
   );
 
   Map<String, dynamic> toJson() => {
-    "deskripsi_catatan": deskripsiCatatan,
-    "id_catatan": idCatatan,
-    "lampiran_url": lampiranUrl,
+    "accepted": accepted,
+    "distanceMeters": distanceMeters,
+    "match": match,
+    "message": message,
+    "metric": metric,
+    "ok": ok,
+    "score": score,
+    "task_id": taskId,
+    "threshold": threshold,
+    "user_id": userId,
   };
 }

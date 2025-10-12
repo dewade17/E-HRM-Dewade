@@ -1,5 +1,4 @@
 // lib/screens/face/face_enroll_screen.dart
-// Screen untuk enroll wajah: 1x take foto, kirim via FaceEnrollProvider.
 
 // ignore_for_file: deprecated_member_use
 
@@ -25,9 +24,8 @@ class _FaceEnrollScreenState extends State<FaceEnrollScreen> {
   @override
   void initState() {
     super.initState();
-    // Secara otomatis memunculkan kamera setelah layar dimuat.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _takePhoto();
+      if (mounted) _takePhoto();
     });
   }
 
@@ -39,39 +37,41 @@ class _FaceEnrollScreenState extends State<FaceEnrollScreen> {
         maxWidth: 1280,
         imageQuality: 90,
       );
-      if (x != null) {
+      if (x != null && mounted) {
         setState(() => _shot = x);
       }
     } catch (e) {
-      _snack('Gagal membuka kamera: $e', isError: true);
+      if (mounted) _snack('Gagal membuka kamera: $e', isError: true);
     }
   }
 
+  // --- FUNGSI INI YANG DIPERBARUI ---
   Future<void> _submit() async {
-    if (_shot == null) return;
     final prov = context.read<FaceEnrollProvider>();
+
+    // PERBAIKAN: Cek apakah proses sedang berjalan. Jika ya, jangan lakukan apa-apa.
+    if (prov.saving || _shot == null) return;
+
     final ok = await prov.enrollFace(
       userId: widget.userId,
       image: File(_shot!.path),
     );
 
     if (!mounted) return;
+
     if (ok) {
-      // Enrol berhasil, beri umpan balik ke pengguna
       _snack(prov.message ?? 'Enroll berhasil.');
-      // Tidak perlu menyimpan flag face_enrolled di lokal. Setelah sukses,
-      // langsung arahkan pengguna kembali ke home.
-      if (context.mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/home-screen', (r) => false);
-      }
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/home-screen', (r) => false);
     } else {
       _snack(prov.error ?? 'Enroll gagal.', isError: true);
     }
   }
+  // --- AKHIR PERBAIKAN ---
 
   void _snack(String msg, {bool isError = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -82,15 +82,17 @@ class _FaceEnrollScreenState extends State<FaceEnrollScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Anda sudah memantau state 'saving' di sini, ini sudah benar.
     final saving = context.watch<FaceEnrollProvider>().saving;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
+        // AbsorbPointer juga sudah benar, mencegah interaksi saat loading.
         child: AbsorbPointer(
           absorbing: saving,
           child: Stack(
             children: [
-              // Overlay progress saat saving
               if (saving)
                 const Positioned.fill(
                   child: ColoredBox(
@@ -160,6 +162,8 @@ class _FaceEnrollScreenState extends State<FaceEnrollScreen> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
+                        // Logika 'onPressed' Anda sudah baik, karena menggunakan 'saving'
+                        // dari provider untuk menonaktifkan tombol.
                         onPressed: saving
                             ? null
                             : () {

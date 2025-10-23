@@ -1,5 +1,7 @@
 // lib/screens/users/absensi/take_face_absensi/take_face_absensi_screen.dart
 
+// ignore_for_file: unused_field, prefer_final_fields, unnecessary_cast, use_build_context_synchronously, deprecated_member_use
+
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
@@ -11,6 +13,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:intl/intl.dart'; // <-- TAMBAHKAN INI
+import 'package:e_hrm/dto/absensi/absensi_checkin.dart'; // <-- TAMBAHKAN INI
 
 class TakeFaceAbsensiScreen extends StatefulWidget {
   const TakeFaceAbsensiScreen({
@@ -184,10 +188,30 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
     final absensi = context.read<AbsensiProvider>();
     setState(() => _taking = true);
 
+    // --- Perubahan 1: Tangkap waktu submission secara real-time ---
+    final DateTime submissionTime = DateTime.now();
+    // Gunakan formatter untuk memastikan format konsisten
+    final DateFormat formatter = DateFormat('HH:mm');
+    final String timeString = formatter.format(submissionTime.toLocal());
+    // ---------------------------------------------------------------
+
+    // Gunakan variabel ini agar kami bisa menutupnya
+    final BuildContext loadingContext = context;
+
     try {
       final raw = await _controller!.takePicture();
       final mirrored = await _mirrorIfNeeded(raw);
       final file = File(mirrored.path);
+
+      // --- Perubahan 2: Tampilkan QuickAlert Loading sebelum API Call ---
+      QuickAlert.show(
+        context: loadingContext,
+        type: QuickAlertType.loading,
+        title: 'Memproses...',
+        text: 'Mengirim data absensi dan memverifikasi wajah.',
+        showCancelBtn: false,
+        barrierDismissible: false,
+      );
 
       final result = widget.isCheckin
           ? await absensi.checkin(
@@ -211,17 +235,34 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
               catatan: widget.catatan,
             );
 
-      // --- REKOMENDASI: Tambah pengecekan `mounted` di sini ---
+      // --- Perubahan 3: Tutup QuickAlert Loading ---
+      if (Navigator.of(loadingContext).canPop()) {
+        Navigator.of(loadingContext).pop();
+      }
+
+      // --- Perubahan 4: Tampilkan QuickAlert Sukses dengan Jam Realtime ---
       if (!mounted) return;
 
       if (result != null) {
+        String finalTime = timeString;
+        String action = widget.isCheckin ? 'check-in' : 'check-out';
+
+        // Coba ambil jam dari respons DTO (khusus check-in, karena DTO check-in memiliki field jamMasuk)
+        if (widget.isCheckin && result is Absensicheckin) {
+          final checkinResult = result as Absensicheckin;
+          if (checkinResult.jamMasuk != null) {
+            // Gunakan jamMasuk dari response
+            finalTime = formatter.format(checkinResult.jamMasuk!.toLocal());
+          }
+        }
+        // Untuk checkout atau jika jamMasuk null, gunakan finalTime (waktu client-side)
+
         await QuickAlert.show(
           context: context,
           type: QuickAlertType.success,
           title: 'Berhasil!',
-          text: widget.isCheckin
-              ? 'Anda berhasil melakukan check-in.'
-              : 'Anda berhasil melakukan check-out.',
+          text:
+              'Anda berhasil melakukan $action pada pukul $finalTime.', // Pesan diperbarui
           confirmBtnText: 'OK',
           onConfirmBtnTap: () {
             Navigator.of(context).pop(); // Tutup dialog
@@ -238,7 +279,11 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
         );
       }
     } catch (e) {
-      // --- REKOMENDASI: Tambah pengecekan `mounted` di sini ---
+      // Pastikan loading alert ditutup jika terjadi error
+      if (Navigator.of(loadingContext).canPop()) {
+        Navigator.of(loadingContext).pop();
+      }
+
       if (!mounted) return;
       await QuickAlert.show(
         context: context,
@@ -252,7 +297,7 @@ class _TakeFaceAbsensiScreenState extends State<TakeFaceAbsensiScreen>
     }
   }
 
-  // Widget _buildFullCamera() tidak ada perubahan
+  // ... (Metode _buildFullCamera, build, _InfoCard, _OverflowClipper)
   Widget _buildFullCamera() {
     final c = _controller;
     if (c == null) return const SizedBox.shrink();

@@ -1,4 +1,4 @@
-// screens/users/absensi/absensi_checkin/widget/content_absensi_checkin.dart
+// lib/screens/users/absensi/absensi_checkin/widget/content_absensi_checkin.dart
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/location/location.dart' as dto_loc;
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
@@ -66,8 +66,9 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
   String _formatShiftTime(String? raw) {
     if (raw == null || raw.isEmpty) return 'Libur';
     try {
+      // Perbaikan: Hapus .toLocal()
       final dt = DateTime.parse(raw);
-      return DateFormat('HH:mm').format(dt.toLocal());
+      return DateFormat('HH:mm').format(dt);
     } catch (e) {
       final parts = raw.split(':');
       if (parts.length >= 2) {
@@ -343,7 +344,7 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
         const SizedBox(height: 8),
         const RecipientAbsensiCheckin(),
         const SizedBox(height: 16),
-        AgendaAbsensiCheckin(),
+        const AgendaAbsensiCheckin(),
         CatatanAbsensiCheckin(
           onChanged: (values) {
             _catatan

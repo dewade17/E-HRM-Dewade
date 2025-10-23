@@ -11,7 +11,7 @@ class ApproversProvider extends ChangeNotifier {
     bool? initialIncludeDeleted,
   }) : roles = (initialRoles?.isNotEmpty ?? false)
            ? initialRoles!
-           : <String>['HR', 'DIREKTUR', 'OPERASIONAL'],
+           : <String>['HR', 'DIREKTUR', 'OPERASIONAL, SUPERADMIN'],
        includeDeleted = initialIncludeDeleted ?? false;
 
   // ===== config =====

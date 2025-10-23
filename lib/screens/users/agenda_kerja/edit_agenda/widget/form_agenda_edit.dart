@@ -27,7 +27,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
   final TextEditingController startTimeController = TextEditingController();
   final TextEditingController endTimeController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
+  final bool _autoValidate = false;
   String _selectedStatus = _statusOptions.first.value;
   String? _selectedAgendaId;
   String? _detailAgendaName;
@@ -231,6 +231,10 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
         !urgensiOptions.contains(_selectedUrgensi)) {
       urgensiOptions.insert(0, _selectedUrgensi!);
     }
+
+    final autovalidateMode = _autoValidate
+        ? AutovalidateMode.always
+        : AutovalidateMode.disabled;
     return Form(
       key: formKey,
       child: Padding(
@@ -255,6 +259,21 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
               isRequired: true,
               prefixIcon: Icons.description_outlined,
               keyboardType: TextInputType.multiline,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return null;
+                }
+                final words = value
+                    .trim()
+                    .split(RegExp(r'\s+'))
+                    .where((s) => s.isNotEmpty)
+                    .toList();
+                if (words.length < 15) {
+                  return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
+                }
+                return null;
+              },
+              autovalidateMode: autovalidateMode,
             ),
             const SizedBox(height: 20),
             DatePickerFieldWidget(

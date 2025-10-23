@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -37,10 +38,15 @@ class GeofenceMap extends StatefulWidget {
 }
 
 class _GeofenceMapState extends State<GeofenceMap> {
-  static const LatLng _fallbackCenter = LatLng(-8.409518, 115.188919); //Bali
+  static const LatLng _fallbackCenter = LatLng(-8.409518, 115.188919); // Bali
   final MapController _map = MapController();
 
+  // Simpan provider supaya TIDAK lookup ancestor di dispose()
+  late final LocationProvider _lp;
+
   Position? _pos;
+  StreamSubscription<Position>? _posSub;
+
   dto_loc.Location? _nearest;
   double? _nearestDistM;
   bool _inside = false;
@@ -50,18 +56,55 @@ class _GeofenceMapState extends State<GeofenceMap> {
   double? _lastDist;
   bool? _lastInside;
 
+  // Listener yang kita pasang ke _lp
+  VoidCallback? _locationsListener;
+
   @override
   void initState() {
     super.initState();
-    // fetch lokasi bila kosong
+
+    // Ambil provider tanpa listening dan simpan referensinya
+    // (boleh di initState ketika pakai read / listen:false)
+    _lp = context.read<LocationProvider>();
+
+    // Mulai fetch lokasi kantor bila kosong
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final lp = context.read<LocationProvider>();
-      if (lp.items.isEmpty) lp.fetch();
+      if (_lp.items.isEmpty) _lp.fetch();
     });
-    _ensureLocation();
+
+    // Dengarkan perubahan data kantor → hitung ulang nearest
+    _locationsListener = () {
+      if (!mounted) return;
+      _recalcNearest();
+    };
+    _lp.addListener(_locationsListener!);
+
+    // Ambil izin & posisi awal + mulai stream
+    _ensureLocation(startStream: true);
   }
 
-  Future<void> _ensureLocation() async {
+  @override
+  void dispose() {
+    // Hentikan stream lebih dulu supaya tak ada callback terlambat
+    _posSub?.cancel();
+    _posSub = null;
+
+    // Lepas listener provider TANPA mengakses context di sini
+    if (_locationsListener != null) {
+      _lp.removeListener(_locationsListener!);
+      _locationsListener = null;
+    }
+
+    super.dispose();
+  }
+
+  /// Helper untuk memastikan nilai longitude berada di antara -180 dan 180
+  double _wrapLongitude(double longitude) {
+    if (longitude >= -180 && longitude <= 180) return longitude;
+    return (longitude + 180) % 360 - 180;
+  }
+
+  Future<void> _ensureLocation({bool startStream = false}) async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (!mounted) return;
@@ -82,6 +125,8 @@ class _GeofenceMapState extends State<GeofenceMap> {
       ).showSnackBar(const SnackBar(content: Text('Izin lokasi ditolak')));
       return;
     }
+
+    // Posisi awal
     final p = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -89,11 +134,28 @@ class _GeofenceMapState extends State<GeofenceMap> {
     setState(() => _pos = p);
     _map.move(LatLng(p.latitude, p.longitude), 17);
     _recalcNearest();
+
+    // Stream realtime (opsional)
+    if (startStream) {
+      await _posSub?.cancel();
+      _posSub =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5, // update jika bergerak ≥5m
+            ),
+          ).listen((pos) {
+            if (!mounted) return; // guard bila widget sudah disposed
+            setState(() => _pos = pos);
+            _recalcNearest();
+          });
+    }
   }
 
   void _recalcNearest() {
-    final items = context.read<LocationProvider>().items;
+    final items = _lp.items; // pakai referensi, bukan context.read
     if (_pos == null || items.isEmpty) {
+      if (!mounted) return;
       setState(() {
         _nearest = null;
         _nearestDistM = null;
@@ -112,16 +174,18 @@ class _GeofenceMapState extends State<GeofenceMap> {
         _pos!.latitude,
         _pos!.longitude,
         lat,
-        lng,
+        _wrapLongitude(lng),
       );
       if (d < best) {
         best = d;
         bestLoc = e;
       }
     }
-    final radius = ((bestLoc?.radius ?? widget.radiusFallback)).toDouble();
-    final inside = best <= radius;
 
+    final radius = ((bestLoc?.radius ?? widget.radiusFallback)).toDouble();
+    final inside = best.isFinite && best <= radius;
+
+    if (!mounted) return;
     setState(() {
       _nearest = bestLoc;
       _nearestDistM = best.isFinite ? best : null;
@@ -131,14 +195,15 @@ class _GeofenceMapState extends State<GeofenceMap> {
   }
 
   void _maybeNotify() {
-    if (widget.onStatus == null) return;
+    final cb = widget.onStatus;
+    if (cb == null) return;
     if (_nearest != _lastNearest ||
         _nearestDistM != _lastDist ||
         _inside != _lastInside) {
       _lastNearest = _nearest;
       _lastDist = _nearestDistM;
       _lastInside = _inside;
-      widget.onStatus!(_inside, _nearestDistM, _nearest);
+      cb(_inside, _nearestDistM, _nearest);
     }
   }
 
@@ -164,20 +229,22 @@ class _GeofenceMapState extends State<GeofenceMap> {
             math.sin(brng) * math.sin(d) * math.cos(lat),
             math.cos(d) - math.sin(lat) * math.sin(lat2),
           );
-      pts.add(LatLng(lat2 * 180 / math.pi, lng2 * 180 / math.pi));
+      final latDeg = lat2 * 180 / math.pi;
+      final lngDeg = lng2 * 180 / math.pi;
+      pts.add(LatLng(latDeg, _wrapLongitude(lngDeg)));
     }
     return pts;
   }
 
   void _fitAll() {
-    final items = context.read<LocationProvider>().items;
+    final items = _lp.items;
     final points = <LatLng>[];
     if (_pos != null) points.add(LatLng(_pos!.latitude, _pos!.longitude));
     for (final e in items) {
       final lat = double.tryParse(e.latitude) ?? 0.0;
       final lng = double.tryParse(e.longitude) ?? 0.0;
       if (!lat.isNaN && !lng.isNaN && (lat != 0.0 || lng != 0.0)) {
-        points.add(LatLng(lat, lng));
+        points.add(LatLng(lat, _wrapLongitude(lng)));
       }
     }
     if (points.isEmpty) return;
@@ -190,8 +257,8 @@ class _GeofenceMapState extends State<GeofenceMap> {
 
   @override
   Widget build(BuildContext context) {
-    final lp = context.watch<LocationProvider>();
-    final items = lp.items;
+    // Dengarkan perubahan items untuk redraw visual (tanpa listener manual)
+    final items = context.watch<LocationProvider>().items;
 
     // center awal
     final center = _pos != null
@@ -200,15 +267,12 @@ class _GeofenceMapState extends State<GeofenceMap> {
               ? LatLng(
                   double.tryParse(items.first.latitude) ??
                       _fallbackCenter.latitude,
-                  double.tryParse(items.first.longitude) ??
-                      _fallbackCenter.longitude,
+                  _wrapLongitude(
+                    double.tryParse(items.first.longitude) ??
+                        _fallbackCenter.longitude,
+                  ),
                 )
               : _fallbackCenter);
-
-    // Recalc nearest saat items berubah
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _recalcNearest();
-    });
 
     final polygons = <Polygon>[];
     final markers = <Marker>[];
@@ -218,8 +282,10 @@ class _GeofenceMapState extends State<GeofenceMap> {
       final lat = double.tryParse(e.latitude) ?? 0.0;
       final lng = double.tryParse(e.longitude) ?? 0.0;
       if (lat == 0.0 && lng == 0.0) continue;
-      final radius = (e.radius).toDouble();
-      final circle = _makeCircle(LatLng(lat, lng), radius);
+
+      final point = LatLng(lat, _wrapLongitude(lng));
+      final radius = ((e.radius)).toDouble();
+      final circle = _makeCircle(point, radius);
 
       polygons.add(
         Polygon(
@@ -232,7 +298,7 @@ class _GeofenceMapState extends State<GeofenceMap> {
 
       markers.add(
         Marker(
-          point: LatLng(lat, lng),
+          point: point,
           width: 36,
           height: 36,
           child: const Icon(Icons.apartment, size: 32),
@@ -298,7 +364,7 @@ class _GeofenceMapState extends State<GeofenceMap> {
                 children: [
                   FloatingActionButton.small(
                     heroTag: 'markMe',
-                    onPressed: _ensureLocation,
+                    onPressed: () => _ensureLocation(startStream: true),
                     child: const Icon(Icons.my_location),
                   ),
                   const SizedBox(height: 8),
@@ -313,10 +379,7 @@ class _GeofenceMapState extends State<GeofenceMap> {
           ],
         );
 
-        if (hasFiniteHeight) {
-          return stacked; // parent sudah memberi tinggi yang jelas
-        }
-        // Jika parent belum kasih tinggi, kita kasih default agar tidak NaN/Infinity
+        if (hasFiniteHeight) return stacked; // parent memberi tinggi yang jelas
         return SizedBox(height: widget.fallbackHeight, child: stacked);
       },
     );

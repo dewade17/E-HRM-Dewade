@@ -72,8 +72,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// LOGIN (tanpa refresh token)
-  /// LOGIN (tanpa refresh token)
   Future<void> login(BuildContext context, Login payload) async {
     final messenger = ScaffoldMessenger.of(context);
     _setLoading(true);
@@ -100,6 +98,9 @@ class AuthProvider extends ChangeNotifier {
       await _persistMinimalUserFields(dataPrivate.user.toJson());
       notifyListeners();
 
+      // --- TAMBAHKAN PEMERIKSAAN 'mounted' ---
+      if (!context.mounted) return;
+
       // 5) Feedback
       messenger.showSnackBar(
         SnackBar(
@@ -109,6 +110,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       // 6) Cek enrol wajah via GetFaceProvider (tanpa pakai flag lokal)
+      // --- 'context.mounted' sudah ada di sini, jadi aman ---
       if (context.mounted) {
         final uid = _currentUser?.user.idUser;
         if (uid != null) {
@@ -119,6 +121,8 @@ class AuthProvider extends ChangeNotifier {
                 ok && getFaceProvider.hasAny; // count > 0 dan ada item
             if (!hasData) {
               // Belum ada data → arahkan ke enrol
+              // --- TAMBAHKAN PEMERIKSAAN 'mounted' SEBELUM NAVIGASI ---
+              if (!context.mounted) return;
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
                   builder: (ctx) => FaceEnrollScreen(userId: uid),
@@ -129,6 +133,8 @@ class AuthProvider extends ChangeNotifier {
             }
           } catch (_) {
             // Gagal cek → default arahkan ke enrol
+            // --- TAMBAHKAN PEMERIKSAAN 'mounted' SEBELUM NAVIGASI ---
+            if (!context.mounted) return;
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                 builder: (ctx) => FaceEnrollScreen(userId: uid),
@@ -141,6 +147,7 @@ class AuthProvider extends ChangeNotifier {
       }
 
       // 7) Navigasi by role
+      // --- 'context.mounted' sudah ada di sini, jadi aman ---
       if (!context.mounted) return;
       final role = (_currentUser?.user.role ?? '').toUpperCase();
       String targetRoute = '/login';
@@ -152,6 +159,8 @@ class AuthProvider extends ChangeNotifier {
       }
       Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (r) => false);
     } catch (e) {
+      // --- TAMBAHKAN PEMERIKSAAN 'mounted' ---
+      if (!context.mounted) return;
       messenger.showSnackBar(
         SnackBar(
           backgroundColor: AppColors.errorColor,

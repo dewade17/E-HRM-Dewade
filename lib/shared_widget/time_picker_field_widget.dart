@@ -89,9 +89,25 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
       initialTime: _selectedTime ?? TimeOfDay.now(),
       helpText: 'Pilih ${widget.label}',
       builder: (ctx, child) {
-        return MediaQuery(
-          data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
+        return Theme(
+          data: Theme.of(ctx).copyWith(
+            // Mengatur skema warna utama
+            colorScheme: Theme.of(ctx).colorScheme.copyWith(
+              // Warna untuk tombol "OK" dan header
+              primary: AppColors.primaryColor,
+            ),
+            // Mengatur warna tombol "OK" dan "BATAL" (keduanya TextButton)
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor:
+                    AppColors.primaryColor, // Warna teks untuk "OK" dan "BATAL"
+              ),
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          ),
         );
       },
     );

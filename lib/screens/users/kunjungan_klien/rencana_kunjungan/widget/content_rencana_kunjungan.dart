@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
@@ -632,6 +633,7 @@ class _StartKunjunganSheetState extends State<_StartKunjunganSheet> {
                 _errorMessage = null;
               });
             },
+            pickSource: ImageSource.camera,
             onRemove: () {
               setState(() {
                 _pickedFile = null;

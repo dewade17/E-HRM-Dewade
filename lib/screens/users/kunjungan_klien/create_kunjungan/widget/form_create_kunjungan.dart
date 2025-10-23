@@ -212,6 +212,21 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
                       maxLines: 3,
                       label: "Keterangan",
                       controller: keterangankunjungancontroller,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return null;
+                        }
+                        final words = value
+                            .trim()
+                            .split(RegExp(r'\s+'))
+                            .where((s) => s.isNotEmpty)
+                            .toList();
+                        if (words.length < 15) {
+                          return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
+                        }
+                        return null;
+                      },
+                      autovalidateMode: autovalidateMode,
                     ),
                     const SizedBox(height: 20),
                     DatePickerFieldWidget(

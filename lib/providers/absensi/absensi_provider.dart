@@ -147,20 +147,23 @@ class AbsensiProvider extends ChangeNotifier {
 
       // Fields (tidak ada perubahan)
       req.fields['user_id'] = userId;
-      if ((locationId ?? '').isNotEmpty)
+      if ((locationId ?? '').isNotEmpty) {
         req.fields['location_id'] = locationId!;
+      }
       req.fields['lat'] = lat.toString();
       req.fields['lng'] = lng.toString();
 
       for (final id in agendaKerjaIds) {
-        if (id.trim().isNotEmpty)
+        if (id.trim().isNotEmpty) {
           req.files.add(
             http.MultipartFile.fromString('agenda_kerja_id', id.trim()),
           );
+        }
       }
       for (final rid in recipients) {
-        if (rid.trim().isNotEmpty)
+        if (rid.trim().isNotEmpty) {
           req.files.add(http.MultipartFile.fromString('recipient', rid.trim()));
+        }
       }
       for (final entry in catatan) {
         if (entry.description.trim().isNotEmpty) {

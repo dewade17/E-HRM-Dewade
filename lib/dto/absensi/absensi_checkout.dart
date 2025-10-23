@@ -1,4 +1,14 @@
+// lib/dto/absensi/absensi_checkout.dart
+
 import 'dart:convert';
+
+// Helper function to parse DateTime safely
+DateTime? _parseDateTime(dynamic value) {
+  if (value is String) {
+    return DateTime.tryParse(value);
+  }
+  return null;
+}
 
 Absensicheckout absensicheckoutFromJson(String str) =>
     Absensicheckout.fromJson(json.decode(str));
@@ -17,6 +27,7 @@ class Absensicheckout {
   String? taskId;
   double? threshold;
   String? userId;
+  final DateTime? jamPulang; // <-- FIELD BARU DITAMBAHKAN
 
   Absensicheckout({
     this.accepted,
@@ -29,6 +40,7 @@ class Absensicheckout {
     this.taskId,
     this.threshold,
     this.userId,
+    this.jamPulang, // <-- FIELD BARU DITAMBAHKAN
   });
 
   factory Absensicheckout.fromJson(Map<String, dynamic> json) =>
@@ -43,6 +55,7 @@ class Absensicheckout {
         taskId: json["task_id"],
         threshold: json["threshold"]?.toDouble(),
         userId: json["user_id"],
+        jamPulang: _parseDateTime(json["jam_pulang"]), // <-- PARSING DARI JSON
       );
 
   Map<String, dynamic> toJson() => {
@@ -56,5 +69,7 @@ class Absensicheckout {
     "task_id": taskId,
     "threshold": threshold,
     "user_id": userId,
+    if (jamPulang != null)
+      "jam_pulang": jamPulang!.toIso8601String(), // <-- SERIALISASI
   };
 }

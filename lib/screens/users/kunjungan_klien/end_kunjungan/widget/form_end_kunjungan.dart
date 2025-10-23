@@ -1,6 +1,6 @@
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart'; // Pastikan ini provider yang benar untuk kunjungan
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/mark_me_map.dart';
@@ -84,7 +84,9 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : AppColors.accentColor,
+        backgroundColor: isError
+            ? Colors.red
+            : AppColors.succesColor, // Gunakan successColor
       ),
     );
   }
@@ -101,14 +103,14 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
       return;
     }
 
+    // Validasi lokasi sudah ada di FormField, tidak perlu cek manual di sini
+
     final latitude = double.tryParse(latitudeEndcontroller.text.trim());
     final longitude = double.tryParse(longitudeEndcontroller.text.trim());
 
+    // Cek lagi setelah parse (meskipun validator sudah jalan)
     if (latitude == null || longitude == null) {
-      _showSnackBar(
-        'Silakan tandai lokasi akhir kunjungan terlebih dahulu.',
-        isError: true,
-      );
+      _showSnackBar('Lokasi akhir tidak valid.', isError: true);
       return;
     }
 
@@ -124,13 +126,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
         widget.item.idKategoriKunjungan ??
         widget.item.kategoriIdFromRelation;
 
-    if (kategoriId == null || kategoriId.isEmpty) {
-      _showSnackBar(
-        'Silakan pilih jenis kunjungan terlebih dahulu.',
-        isError: true,
-      );
-      return;
-    }
+    // Validasi Kategori Id sudah ada di DropdownFieldWidget, tidak perlu cek manual
 
     FocusScope.of(context).unfocus();
 
@@ -164,6 +160,8 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
         })
         .toList();
 
+    // Validasi approver sudah ada di FormField, tidak perlu cek manual
+
     if (recipients.isNotEmpty &&
         recipients.any((recipient) {
           final nameValue = recipient['recipient_nama_snapshot'];
@@ -181,7 +179,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
       jamCheckout: DateTime.now(),
       endLatitude: latitude,
       endLongitude: longitude,
-      idKategoriKunjungan: kategoriId,
+      idKategoriKunjungan: kategoriId, // Kategori ID harusnya sudah valid
       recipients: recipients.isEmpty ? null : recipients,
     );
 
@@ -206,8 +204,11 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
 
   @override
   Widget build(BuildContext context) {
+    // Pindahkan watch provider ke atas agar bisa diakses FormField validator
+    final approverProvider = context.watch<ApproversProvider>();
     final kategoriProvider = context.watch<KategoriKunjunganProvider>();
     final kunjunganProvider = context.watch<KunjunganKlienProvider>();
+
     final isSaving = kunjunganProvider.isSaving;
     final autovalidateMode = _autoValidate
         ? AutovalidateMode.always
@@ -261,14 +262,17 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                       onPicked: (lat, lng) {
                         latitudeEndcontroller.text = lat.toStringAsFixed(6);
                         longitudeEndcontroller.text = lng.toStringAsFixed(6);
+                        // Trigger validasi ulang setelah lokasi dipilih
+                        _formKey.currentState?.validate();
                       },
                     ),
                     FormField<bool>(
                       autovalidateMode: autovalidateMode,
+                      // Validasi sederhana untuk memastikan field tidak kosong
                       validator: (_) {
-                        if (latitudeEndcontroller.text.isEmpty ||
-                            longitudeEndcontroller.text.isEmpty) {
-                          return 'Silakan tandai lokasi terlebih dulu.';
+                        if (latitudeEndcontroller.text.trim().isEmpty ||
+                            longitudeEndcontroller.text.trim().isEmpty) {
+                          return 'Anda harus menandai lokasi akhir kunjungan.';
                         }
                         return null;
                       },
@@ -278,7 +282,10 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
                               state.errorText!,
-                              style: const TextStyle(color: Colors.red),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                                fontSize: 12,
+                              ),
                             ),
                           );
                         }
@@ -295,6 +302,22 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                 maxLines: 3,
                 label: 'Keterangan',
                 controller: keterangankunjungancontroller,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    // Jika keterangan boleh kosong: return null;
+                    // Jika wajib: return 'Keterangan tidak boleh kosong';
+                    return null; // Asumsi boleh kosong
+                  }
+                  final words = value
+                      .trim()
+                      .split(RegExp(r'\s+'))
+                      .where((s) => s.isNotEmpty)
+                      .toList();
+                  if (words.length < 15) {
+                    return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
+                  }
+                  return null;
+                },
                 autovalidateMode: autovalidateMode,
               ),
               const SizedBox(height: 20),
@@ -319,6 +342,41 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                 padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                 child: const RecipientKunjungan(),
               ),
+              // --- VALIDATOR UNTUK APPROVER ---
+              FormField<bool>(
+                autovalidateMode: autovalidateMode,
+                initialValue: approverProvider.selectedRecipientIds.isNotEmpty,
+                validator: (value) {
+                  // Akses provider lagi untuk mendapatkan state terbaru saat validasi
+                  final currentSelectedIds = context
+                      .read<ApproversProvider>()
+                      .selectedRecipientIds;
+                  if (currentSelectedIds.isEmpty) {
+                    return 'Anda harus memilih minimal satu penerima laporan.';
+                  }
+                  return null;
+                },
+                builder: (FormFieldState<bool> state) {
+                  if (state.hasError) {
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        top: 8.0,
+                        left: 20,
+                        right: 20,
+                      ),
+                      child: Text(
+                        state.errorText!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+              // --- AKHIR VALIDATOR APPROVER ---
               const SizedBox(height: 20),
               DropdownFieldWidget<String>(
                 width: 300,
@@ -327,6 +385,8 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                 hintText: 'Pilih jenis kunjungan...',
                 value: currentKategoriId,
                 items: dropdownItems,
+                isRequired:
+                    true, // Tambahkan isRequired agar validator bawaan jalan
                 autovalidateMode: autovalidateMode,
                 onChanged: isSaving
                     ? null
@@ -339,6 +399,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                         }
                       },
                 validator: (value) {
+                  // Validator bawaan sudah cukup jika isRequired=true
                   if ((value ?? '').isEmpty) {
                     return 'Anda harus memilih jenis kunjungan.';
                   }
@@ -362,11 +423,13 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
               ),
               if ((widget.item.lampiranKunjunganUrl ?? '').isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      // <-- INI PERUBAHANNYA
                       widget.item.lampiranKunjunganUrl!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
@@ -381,12 +444,24 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                           ),
                         );
                       },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 180,
+                          alignment: Alignment.center,
+                          color: Colors.grey.shade200,
+                          child: const CircularProgressIndicator(),
+                        );
+                      },
                     ),
                   ),
                 )
               else
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   child: Container(
                     height: 180,
                     decoration: BoxDecoration(
@@ -403,29 +478,37 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                     ),
                   ),
                 ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 30), // Mengurangi jarak sedikit
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.errorColor,
-                  foregroundColor: AppColors.menuColor,
+                  foregroundColor:
+                      AppColors.textColor, // Ganti ke textColor (putih)
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 50,
+                    vertical: 15,
+                  ), // Sesuaikan padding
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ), // Bentuk tombol
                 ),
                 onPressed: isSaving ? null : _handleSubmit,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: isSaving
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2.5),
-                        )
-                      : Text(
-                          'Selesai',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
                         ),
-                ),
+                      )
+                    : Text(
+                        'Selesai',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
               ),
               const SizedBox(height: 50),
             ],

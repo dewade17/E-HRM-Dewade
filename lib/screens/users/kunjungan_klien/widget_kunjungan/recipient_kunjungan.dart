@@ -60,7 +60,7 @@ class _RecipientKunjunganState extends State<RecipientKunjungan> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Total penerima: ${selected.length}',
+                        'Total Supervisi: ${selected.length}',
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

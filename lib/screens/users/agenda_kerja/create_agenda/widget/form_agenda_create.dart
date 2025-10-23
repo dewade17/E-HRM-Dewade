@@ -27,6 +27,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   final TextEditingController startTimeController = TextEditingController();
   final TextEditingController endTimeController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final bool _autoValidate = false;
   final List<String> _urgensiItems = [
     'PENTING MENDESAK',
     'TIDAK PENTING TAPI MENDESAK',
@@ -45,7 +46,12 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   @override
   void initState() {
     super.initState();
-    // MEMANGGIL FETCH AGENDA DI AWAL
+    // Pre-fill the date from the provider if it's already available
+    final initialProvider = context.read<AgendaKerjaProvider>();
+    if (initialProvider.currentDate != null) {
+      _selectedDate = initialProvider.currentDate;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final agendaProvider = context.read<AgendaProvider>();
       if (agendaProvider.items.isEmpty && !agendaProvider.loading) {
@@ -57,7 +63,6 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Gunakan context.read karena kita hanya butuh instance untuk listener
     final agendaKerjaProvider = context.read<AgendaKerjaProvider>();
 
     if (_agendaKerjaProvider != agendaKerjaProvider) {
@@ -65,8 +70,12 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       _agendaKerjaProvider = agendaKerjaProvider;
       _agendaKerjaProvider?.addListener(_handleAgendaKerjaChanged);
 
-      // Sinkronisasi state awal saat listener pertama kali di-set
-      _syncFromAgendaKerjaProvider(agendaKerjaProvider);
+      // Jadwalkan sinkronisasi setelah build selesai
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _syncFromAgendaKerjaProvider(agendaKerjaProvider);
+        }
+      });
     }
   }
 
@@ -81,10 +90,13 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   }
 
   void _handleAgendaKerjaChanged() {
-    // Listener ini sekarang aman karena tidak ada `watch` yang konflik
-    if (mounted && _agendaKerjaProvider != null) {
-      _syncFromAgendaKerjaProvider(_agendaKerjaProvider!);
-    }
+    // --- PERBAIKAN UNTUK KEAMANAN ---
+    // Pastikan listener juga menjalankan setState setelah build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _agendaKerjaProvider != null) {
+        _syncFromAgendaKerjaProvider(_agendaKerjaProvider!);
+      }
+    });
   }
 
   void _syncFromAgendaKerjaProvider(AgendaKerjaProvider provider) {
@@ -97,7 +109,8 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       shouldUpdate = true;
     }
 
-    if (shouldUpdate) {
+    if (shouldUpdate && mounted) {
+      // Pemanggilan setState sekarang aman karena berada di dalam post-frame callback
       setState(() {});
     }
   }
@@ -197,9 +210,11 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
 
   @override
   Widget build(BuildContext context) {
-    // Perhatikan: agendaProvider di-'watch' karena dropdown perlu rebuild saat item berubah
     final agendaProvider = context.watch<AgendaProvider>();
 
+    final autovalidateMode = _autoValidate
+        ? AutovalidateMode.always
+        : AutovalidateMode.disabled;
     return Form(
       key: formKey,
       child: Padding(
@@ -236,6 +251,21 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               isRequired: true,
               prefixIcon: Icons.description_outlined,
               keyboardType: TextInputType.multiline,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return null;
+                }
+                final words = value
+                    .trim()
+                    .split(RegExp(r'\s+'))
+                    .where((s) => s.isNotEmpty)
+                    .toList();
+                if (words.length < 15) {
+                  return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
+                }
+                return null;
+              },
+              autovalidateMode: autovalidateMode,
             ),
             const SizedBox(height: 20),
             DatePickerFieldWidget(

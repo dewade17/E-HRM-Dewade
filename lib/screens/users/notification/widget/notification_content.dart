@@ -1,10 +1,11 @@
-// lib/screens/users/notification/widget/notification_content.dart
+// ignore_for_file: deprecated_member_use
 
 import 'package:e_hrm/dto/notification/notification.dart' as history_dto;
 import 'package:e_hrm/providers/notifications/notifications_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:e_hrm/contraints/colors.dart';
 
 class NotificationContent extends StatefulWidget {
   const NotificationContent({super.key});
@@ -45,55 +46,115 @@ class _NotificationContentState extends State<NotificationContent> {
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
+  // Metode untuk menangani aksi 'Mark All As Read'
+  void _handleMarkAllAsRead() async {
+    final provider = context.read<NotificationProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Periksa apakah ada notifikasi yang belum dibaca
+    final hasUnread = provider.items.any((n) => n.status != 'read');
+    if (!hasUnread && !provider.isLoading) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Semua notifikasi sudah dibaca.')),
+      );
+      return;
+    }
+
+    await provider.markAllAsRead();
+
+    if (!mounted) return;
+
+    if (provider.error == null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Semua notifikasi telah ditandai dibaca.'),
+          backgroundColor: AppColors.succesColor,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, provider, child) {
+        final hasUnread = provider.items.any((n) => n.status != 'read');
+        final isBusy = provider.isLoading || provider.isLoadingMore;
+
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Header filter dropdown
-              Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: 160,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(10),
+              // [PERUBAHAN] Menggunakan Row untuk menampung tombol dan filter
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // [PENAMBAHAN BARU] Tombol Mark All As Read
+                  TextButton.icon(
+                    onPressed: (hasUnread && !isBusy)
+                        ? _handleMarkAllAsRead
+                        : null,
+                    icon: Icon(
+                      Icons.done_all,
+                      size: 20,
+                      color: (hasUnread && !isBusy)
+                          ? AppColors.primaryColor
+                          : Colors.grey,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: DropdownButton<NotificationFilter>(
-                        value: provider.filter,
-                        underline: const SizedBox.shrink(),
-                        isExpanded: true,
-                        icon: const Icon(Icons.arrow_drop_down),
-                        onChanged: (val) {
-                          if (val != null) {
-                            provider.setFilter(val);
-                          }
-                        },
-                        items: NotificationFilter.values
-                            .map(
-                              (f) => DropdownMenuItem(
-                                value: f,
-                                child: Text(
-                                  _capitalize(
-                                    // Mengganti nama enum agar lebih mudah dibaca
-                                    f.name.replaceAll('Dibaca', ' Dibaca'),
-                                  ),
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            )
-                            .toList(),
+                    label: Text(
+                      'Baca Semua',
+                      style: TextStyle(
+                        color: (hasUnread && !isBusy)
+                            ? AppColors.primaryColor
+                            : Colors.grey,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ),
+
+                  // Header filter dropdown
+                  SizedBox(
+                    width: 160,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: DropdownButton<NotificationFilter>(
+                          value: provider.filter,
+                          underline: const SizedBox.shrink(),
+                          isExpanded: true,
+                          icon: const Icon(Icons.arrow_drop_down),
+                          onChanged: isBusy
+                              ? null
+                              : (val) {
+                                  // Disable saat loading
+                                  if (val != null) {
+                                    provider.setFilter(val);
+                                  }
+                                },
+                          items: NotificationFilter.values
+                              .map(
+                                (f) => DropdownMenuItem(
+                                  value: f,
+                                  child: Text(
+                                    _capitalize(
+                                      // Mengganti nama enum agar lebih mudah dibaca
+                                      f.name.replaceAll('Dibaca', ' Dibaca'),
+                                    ),
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
@@ -126,7 +187,7 @@ class _NotificationContentState extends State<NotificationContent> {
     return ListView.separated(
       controller: _scrollController,
       itemCount: provider.items.length + (provider.isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (index >= provider.items.length) {
           // Menampilkan indikator loading di bagian bawah saat memuat lebih banyak
@@ -138,7 +199,6 @@ class _NotificationContentState extends State<NotificationContent> {
           );
         }
         final n = provider.items[index];
-        // **PEMBARUAN UTAMA ADA DI SINI**
         return GestureDetector(
           onTap: () {
             // Hanya panggil fungsi jika notifikasi belum dibaca

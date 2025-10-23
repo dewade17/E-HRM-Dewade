@@ -82,8 +82,9 @@ class _ContentAbsensiCheckoutState extends State<ContentAbsensiCheckout> {
   String _formatShiftTime(String? raw) {
     if (raw == null || raw.isEmpty) return 'Libur';
     try {
+      // Perbaikan: Hapus .toLocal()
       final dt = DateTime.parse(raw);
-      return DateFormat('HH:mm').format(dt.toLocal());
+      return DateFormat('HH:mm').format(dt);
     } catch (e) {
       final parts = raw.split(':');
       if (parts.length >= 2) {

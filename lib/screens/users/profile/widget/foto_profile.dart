@@ -10,6 +10,7 @@ class FotoProfile extends StatefulWidget {
   final VoidCallback? onRemove;
   final double radius;
   final bool enabled;
+  final ImageSource? pickSource;
 
   const FotoProfile({
     super.key,
@@ -19,6 +20,7 @@ class FotoProfile extends StatefulWidget {
     this.onRemove,
     this.radius = 60,
     this.enabled = true,
+    this.pickSource,
   });
 
   @override
@@ -164,8 +166,14 @@ class _FotoProfileState extends State<FotoProfile> {
       provider = _netImage;
     }
 
-    final cameraTap = widget.enabled ? _showPicker : null;
-
+    final cameraTap = widget.enabled
+        ? (widget.pickSource != null
+              ? () =>
+                    _pick(
+                      widget.pickSource!,
+                    ) // Jika pickSource ada, langsung panggil _pick
+              : _showPicker) // Jika tidak, panggil _showPicker (seperti sebelumnya)
+        : null;
     return SizedBox(
       width: diameter,
       height: diameter,

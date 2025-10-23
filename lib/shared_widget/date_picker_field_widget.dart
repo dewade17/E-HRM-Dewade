@@ -82,10 +82,14 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
   void didUpdateWidget(covariant DatePickerFieldWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialDate != oldWidget.initialDate) {
-      _updateDate(widget.initialDate);
+      // PERBAIKAN: Gunakan addPostFrameCallback untuk menunda update
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _updateDate(widget.initialDate);
+        }
+      });
     }
     if (widget.dateFormat != oldWidget.dateFormat) {
-      // Perbarui formatter jika format berubah
       _dateFormatter = DateFormat(widget.dateFormat, 'id_ID');
       _updateControllerText();
     }
@@ -130,6 +134,11 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primaryColor,
               ),
+            ),
+            textTheme: const TextTheme(
+              headlineLarge: TextStyle(fontSize: 20),
+              titleLarge: TextStyle(fontSize: 16),
+              bodyLarge: TextStyle(fontSize: 14),
             ),
           ),
           child: child!,

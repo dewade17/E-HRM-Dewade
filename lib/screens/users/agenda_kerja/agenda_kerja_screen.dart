@@ -1,4 +1,6 @@
 // screens/users/agenda_kerja/agenda_kerja_screen.dart
+// ignore_for_file: deprecated_member_use
+
 import 'dart:math' as math;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';

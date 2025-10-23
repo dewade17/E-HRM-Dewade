@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:e_hrm/providers/auth/auth_provider.dart'; // hanya untuk logout
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
@@ -25,7 +27,9 @@ class _HeaderHomeState extends State<HeaderHome> {
 
     final auth = context.read<AuthProvider>();
     final id = await resolveUserId(auth, context: context);
-    if (id == null || id.trim().isEmpty) {
+
+    // --- TAMBAHKAN PEMERIKSAAN 'mounted' SETELAH await ---
+    if (!mounted || id == null || id.trim().isEmpty) {
       return;
     }
 

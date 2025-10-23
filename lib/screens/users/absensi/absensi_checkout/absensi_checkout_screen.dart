@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:math' as math;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
@@ -18,6 +20,9 @@ class AbsensiCheckoutScreen extends StatefulWidget {
 class _AbsensiCheckoutScreenState extends State<AbsensiCheckoutScreen> {
   String? _userId;
   bool _loading = true;
+
+  // Tambahkan key seperti di check-in
+  Key _contentKey = UniqueKey();
 
   @override
   void initState() {
@@ -58,6 +63,13 @@ class _AbsensiCheckoutScreenState extends State<AbsensiCheckoutScreen> {
     }
   }
 
+  Future<void> _refreshData() async {
+    await _initUserId();
+    setState(() {
+      _contentKey = UniqueKey(); // paksa re-init konten checkout
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -65,53 +77,45 @@ class _AbsensiCheckoutScreenState extends State<AbsensiCheckoutScreen> {
       320.0,
       360.0,
     );
+
     return Scaffold(
       body: Stack(
         children: [
-          // BG ikon samar di tengah
+          // BG ikon samar
           Positioned.fill(
             child: IgnorePointer(
-              ignoring: true,
-              child: Center(
-                child: Opacity(
-                  opacity: 0.3,
-                  child: Image.asset(
-                    'lib/assets/image/icon_bg.png',
-                    width: iconMax,
-                  ),
+              child: Align(
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.logout_rounded,
+                  size: iconMax,
+                  color: AppColors.primaryColor.withOpacity(0.04),
                 ),
               ),
             ),
           ),
-          Positioned.fill(
-            child: IgnorePointer(
-              ignoring: true,
-              child: Image.asset(
-                'lib/assets/image/Pattern.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-              ),
-            ),
-          ),
-
-          // === Konten utama (scrollable) ===
-          Positioned.fill(
-            child: SafeArea(
-              // top/bottom tetap aman, kiri/kanan edge-to-edge
-              left: false,
-              right: false,
+          SafeArea(
+            left: false,
+            right: false,
+            child: RefreshIndicator(
+              onRefresh: _refreshData,
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : (_userId == null || _userId!.isEmpty)
                   ? const Center(child: Text("Silahkan Login Kembali."))
                   : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 5, 20, 24),
                       child: Column(
                         children: [
                           const SizedBox(height: 30),
                           const HeaderAbsensiCheckout(),
                           const SizedBox(height: 30),
-                          ContentAbsensiCheckout(userId: _userId!),
+                          // PASANG KEY DI SINI!
+                          ContentAbsensiCheckout(
+                            key: _contentKey,
+                            userId: _userId!,
+                          ),
                         ],
                       ),
                     ),

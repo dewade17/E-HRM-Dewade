@@ -117,13 +117,12 @@ class _AbsensiButtonState extends State<AbsensiButton>
     bool enabled =
         !loading &&
         _userId != null &&
-        !isLibur && // <-- Tombol dinonaktifkan jika libur
         (mode == 'checkin' || mode == 'checkout');
 
     return GestureDetector(
       onTap: enabled ? _handleTap : null,
       child: Card(
-        color: enabled ? AppColors.errorColor : Colors.grey.shade400,
+        color: enabled ? AppColors.succesColor : Colors.grey.shade400,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 110, vertical: 15),
           child: _AbsensiButtonLabel(
@@ -148,21 +147,19 @@ class _AbsensiButtonLabel extends StatelessWidget {
     String label;
     if (loading) {
       label = 'Memuat...';
-    } else if (isLibur) {
-      label = 'Anda Sedang Libur';
     } else {
       switch (abs.todayStatus?.mode) {
         case 'checkin':
-          label = 'Masuk (Check-in)';
+          label = 'Absen Masuk';
           break;
         case 'checkout':
-          label = 'Pulang (Check-out)';
+          label = 'Absen Pulang';
           break;
         case 'done':
           label = 'Sudah Selesai Hari Ini';
           break;
         default:
-          label = 'Masuk (Check-in)';
+          label = 'Absen Masuk';
       }
     }
 

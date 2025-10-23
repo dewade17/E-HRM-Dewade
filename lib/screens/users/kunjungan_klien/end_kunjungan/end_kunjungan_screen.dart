@@ -67,7 +67,7 @@ class _EndKunjunganScreenState extends State<EndKunjunganScreen> {
               right: false,
               child: SingleChildScrollView(
                 // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
+                padding: const EdgeInsets.fromLTRB(0, 80, 0, 24),
                 child: Stack(
                   children: [
                     SizedBox(height: 80),

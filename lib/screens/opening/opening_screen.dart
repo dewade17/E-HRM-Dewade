@@ -20,6 +20,8 @@ class _OpeningScreenState extends State<OpeningScreen> {
     super.initState();
     // Cek token setelah frame pertama supaya Navigator siap.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // --- TAMBAHKAN PEMERIKSAAN 'mounted' ---
+      if (!mounted) return;
       await AuthUtils.checkLoginStatus(context);
       if (!mounted) return;
       setState(() => _checking = false);

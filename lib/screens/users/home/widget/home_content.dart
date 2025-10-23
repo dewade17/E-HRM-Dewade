@@ -9,7 +9,7 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 30, //horizontal
+      spacing: 60, //horizontal
       runSpacing: 20, //vertikal
       children: [
         GestureDetector(
@@ -79,7 +79,7 @@ class HomeContent extends StatelessWidget {
               ),
               SizedBox(height: 10),
               Text(
-                "Agenda \nKerja",
+                "Agenda\nKerja",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -151,7 +151,7 @@ class HomeContent extends StatelessWidget {
               ),
               SizedBox(height: 10),
               Text(
-                "Jam \nIstirahat",
+                "Jam\nIstirahat",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -218,7 +218,7 @@ class HomeContent extends StatelessWidget {
             ),
             SizedBox(height: 10),
             Text(
-              "Request \nPocket Money",
+              "Finance",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,

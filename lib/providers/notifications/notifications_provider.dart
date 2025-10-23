@@ -111,6 +111,56 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> markAllAsRead() async {
+    // Pembaruan optimistik: tandai semua item di UI sebagai dibaca
+    final List<NotificationItem> updatedItems = [];
+    bool uiChanged = false;
+    for (final item in _items) {
+      if (item.status != 'read') {
+        updatedItems.add(
+          NotificationItem(
+            id: item.id,
+            title: item.title,
+            body: item.body,
+            status: 'read', // Ubah status menjadi 'read'
+            createdAt: item.createdAt,
+          ),
+        );
+        uiChanged = true;
+      } else {
+        updatedItems.add(item);
+      }
+    }
+
+    if (uiChanged) {
+      _items = updatedItems;
+      // Jika filter aktif adalah 'belumDibaca', kosongkan daftar agar langsung kosong di UI
+      if (_filter == NotificationFilter.belumDibaca) {
+        _items = [];
+      }
+      notifyListeners();
+    }
+
+    try {
+      // Panggil API (menggunakan PUT request)
+      await _api.updateDataPrivate(
+        Endpoints.markAllNotificationsAsRead,
+        {'status': 'read'}, // Payload yang dikirim ke API
+      );
+      // Jika di filter 'belumDibaca', refresh untuk memastikan data benar-benar kosong
+      if (_filter == NotificationFilter.belumDibaca) {
+        await refresh();
+      }
+    } catch (e) {
+      // Jika gagal, tampilkan error.
+      debugPrint("Gagal menandai semua notifikasi sebagai sudah dibaca: $e");
+      _error =
+          "Gagal memproses: ${e.toString().replaceFirst('Exception: ', '')}";
+      notifyListeners();
+      // Rollback implisit: user akan dipaksa refresh/fetch ulang data.
+    }
+  }
+
   Future<void> setFilter(NotificationFilter newFilter) async {
     if (_filter == newFilter) return;
     _filter = newFilter;

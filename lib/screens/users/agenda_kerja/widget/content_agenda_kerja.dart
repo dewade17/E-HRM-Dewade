@@ -33,12 +33,16 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
     final provider = context.read<AgendaKerjaProvider>();
     final currentStatus = provider.currentStatus;
     final normalizedCurrent = _normalizeStatus(currentStatus);
-    final hasExistingOption =
+
+    // Cek apakah status yang tersimpan ada di opsi kita (selain 'Semua')
+    final hasValidSavedStatus =
         normalizedCurrent.isNotEmpty &&
-        _statusOptions.any((option) => option.value == normalizedCurrent);
-    _selectedStatus = hasExistingOption
-        ? normalizedCurrent
-        : _statusOptions.last.value;
+        _statusOptions.any(
+          (option) => option.value == normalizedCurrent && option.value != '',
+        );
+
+    // Default ke 'Semua' ('') jika tidak ada status valid yang tersimpan
+    _selectedStatus = hasValidSavedStatus ? normalizedCurrent : '';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -546,6 +550,37 @@ class _ContentAgendaKerjaState extends State<ContentAgendaKerja> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              size: 20,
+                              color: Colors.deepOrange,
+                            ), // Ikon untuk urgensi
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                (item.kebutuhanAgenda?.isNotEmpty ?? false)
+                                    ? item.kebutuhanAgenda!
+                                    : 'Urgensi: -',
+                                style: GoogleFonts.poppins(
+                                  textStyle: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black54,
+                                    fontStyle:
+                                        (item.kebutuhanAgenda?.isNotEmpty ??
+                                            false)
+                                        ? FontStyle.normal
+                                        : FontStyle.italic,
+                                  ),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 4),
                       ],
                     ),
@@ -646,8 +681,10 @@ class _StatusOption {
   final String label;
 }
 
+// --- Status Options with "Semua" ---
 const List<_StatusOption> _statusOptions = <_StatusOption>[
-  _StatusOption(value: 'ditunda', label: 'Ditunda'),
-  _StatusOption(value: 'selesai', label: 'Selesai'),
+  _StatusOption(value: '', label: 'Semua'), // Added this line
   _StatusOption(value: 'diproses', label: 'Diproses'),
+  _StatusOption(value: 'selesai', label: 'Selesai'),
+  _StatusOption(value: 'ditunda', label: 'Ditunda'),
 ];

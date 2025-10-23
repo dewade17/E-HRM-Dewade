@@ -1,5 +1,7 @@
 // lib/screens/users/jam_isitirahat/widget/content_jam_istirahat.dart
 
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'dart:async';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
@@ -21,7 +23,6 @@ enum _KunjunganStatusTab { berlangsung, selesai }
 
 class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
   bool _didFetchInitial = false;
-  DateTime? _selectedDate;
   _KunjunganStatusTab _activeTab = _KunjunganStatusTab.berlangsung;
 
   @override

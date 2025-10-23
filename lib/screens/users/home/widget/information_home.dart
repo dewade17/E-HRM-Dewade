@@ -1,5 +1,7 @@
 // lib/screens/users/home/widget/information_home.dart
 
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';

@@ -46,7 +46,7 @@ class FaceEnrollProvider extends ChangeNotifier {
 
       // Langkah 1: Ambil FCM Token terlebih dahulu dan TUNGGU (await).
       // Ini adalah perbaikan paling penting untuk mengatasi race condition.
-      print("Memulai pendaftaran: Mengambil FCM Token...");
+      // print("Memulai pendaftaran: Mengambil FCM Token...");
       final fcmToken = await NotificationHandler().getFcmToken();
 
       // Langkah 2: Lakukan validasi. Jika token tidak ada, hentikan proses.
@@ -55,10 +55,10 @@ class FaceEnrollProvider extends ChangeNotifier {
           'Gagal mendapatkan token notifikasi. Pastikan koneksi internet stabil dan coba lagi.',
         );
       }
-      print("FCM Token berhasil didapat.");
+      // print("FCM Token berhasil didapat.");
 
       // Langkah 3: Kumpulkan informasi perangkat seperti biasa.
-      print("Mengumpulkan informasi perangkat...");
+      // print("Mengumpulkan informasi perangkat...");
       final device = await _collectDeviceInfo();
 
       // Langkah 4: Buat request DTO seperti biasa.
@@ -73,7 +73,7 @@ class FaceEnrollProvider extends ChangeNotifier {
       fields['fcm_token'] =
           fcmToken; // <-- Token yang sudah didapat ditambahkan di sini
 
-      print("Payload yang akan dikirim ke server: $fields");
+      // print("Payload yang akan dikirim ke server: $fields");
 
       // --- AKHIR PERBAIKAN ---
 

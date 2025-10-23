@@ -1,4 +1,6 @@
 // blur_half_oval_header.dart
+// ignore_for_file: deprecated_member_use
+
 import 'dart:ui'; // ImageFilter.blur
 import 'package:flutter/material.dart';
 import 'package:e_hrm/contraints/colors.dart';

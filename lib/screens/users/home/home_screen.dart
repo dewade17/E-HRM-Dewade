@@ -6,8 +6,7 @@ import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
-import 'package:e_hrm/screens/payment.dart';
-import 'package:e_hrm/screens/users/dashboard.dart';
+import 'package:e_hrm/screens/users/calender_view/calendar_view_screen.dart';
 import 'package:e_hrm/screens/users/home/widget/header_home.dart';
 import 'package:e_hrm/screens/users/home/widget/home_content.dart';
 import 'package:e_hrm/screens/users/home/widget/information_home.dart';
@@ -31,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = const [
     HomeScreenContent(),
     NotificationScreen(),
-    Payment(),
+    CalendarViewScreen(),
   ];
 
   @override
@@ -44,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           Icon(Icons.home, color: Colors.white),
           Icon(Icons.notifications, color: Colors.white),
-          Icon(Icons.person, color: Colors.white),
+          Icon(Icons.calendar_month, color: Colors.white),
         ],
         onTap: (index) {
           setState(() {

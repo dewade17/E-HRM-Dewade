@@ -238,7 +238,7 @@ class _DetailKunjunganScreenState extends State<DetailKunjunganScreen> {
       return 'Durasi tidak tersedia';
     }
     if (durationInSeconds == 0) {
-      return '0 menit';
+      return '0 detik'; // Menampilkan 0 detik jika durasi nol
     }
 
     final hours = durationInSeconds ~/ 3600;
@@ -251,6 +251,12 @@ class _DetailKunjunganScreenState extends State<DetailKunjunganScreen> {
     if (minutes > 0) {
       parts.add('$minutes menit');
     }
+
+    // ✨ PERBAIKAN: Jika durasi kurang dari 1 menit, tampilkan dalam detik.
+    if (hours == 0 && minutes == 0) {
+      parts.add('$durationInSeconds detik');
+    }
+
     return parts.join(' ');
   }
 

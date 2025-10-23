@@ -66,7 +66,7 @@ class _ApproverSelectionSheetState extends State<ApproverSelectionSheet> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Cari penerima laporan...',
+                    hintText: 'Cari Supervisi ...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -104,7 +104,7 @@ class _ApproverSelectionSheetState extends State<ApproverSelectionSheet> {
                     if (users.isEmpty) {
                       return Center(
                         child: Text(
-                          'Tidak ada data penerima.',
+                          'Tidak ada data Supervisi.',
                           style: GoogleFonts.poppins(
                             textStyle: const TextStyle(
                               fontSize: 13,

@@ -74,7 +74,7 @@ class _RecipientAbsensiCheckoutState extends State<RecipientAbsensiCheckout> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Total penerima: ${selected.length}',
+                        'Total Supervisi: ${selected.length}',
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

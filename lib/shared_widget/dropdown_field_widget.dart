@@ -1,4 +1,4 @@
-import 'package:e_hrm/contraints/colors.dart'; // Pastikan path ini benar
+import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -21,6 +21,7 @@ class DropdownFieldWidget<T> extends StatefulWidget {
     this.elevation = 3,
     this.borderRadius = 12,
     this.autovalidateMode,
+    this.backgroundColor, // <-- Ditambahkan
   });
 
   /// Teks label di atas field (contoh: "Pilih Kategori")
@@ -69,6 +70,9 @@ class DropdownFieldWidget<T> extends StatefulWidget {
   /// Autovalidate (opsional).
   final AutovalidateMode? autovalidateMode;
 
+  /// Ditambahkan: Warna background untuk Card (opsional)
+  final Color? backgroundColor;
+
   @override
   State<DropdownFieldWidget<T>> createState() => _DropdownFieldWidgetState<T>();
 }
@@ -88,9 +92,7 @@ class _DropdownFieldWidgetState<T> extends State<DropdownFieldWidget<T>> {
         widget.requiredIndicatorColor ??
         AppColors.errorColor; // Pastikan warna ini ada
 
-    final BorderSide cardBorder = widget.borderColor != null
-        ? BorderSide(color: widget.borderColor!, width: widget.borderWidth)
-        : BorderSide.none;
+    // --- Logika cardBorder LAMA dihapus, dipindahkan ke builder ---
 
     return SizedBox(
       width: widget.width,
@@ -110,53 +112,109 @@ class _DropdownFieldWidgetState<T> extends State<DropdownFieldWidget<T>> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            height: widget.height,
-            child: Card(
-              elevation: widget.elevation,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(widget.borderRadius),
-                side: cardBorder,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButtonFormField<T>(
-                  value: widget.value,
-                  items: widget.items,
-                  onChanged: widget.onChanged,
-                  validator: widget.validator ?? _defaultValidator,
-                  autovalidateMode: widget.autovalidateMode,
-                  isExpanded: true, // Membuat dropdown memenuhi lebar Card
-                  decoration: InputDecoration(
-                    hintText: widget.hintText,
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontStyle: FontStyle.italic,
+
+          // --- DIUBAH: Menggunakan FormField builder ---
+          // Ini agar kita bisa mengontrol border Card saat error,
+          // membuatnya konsisten dengan AgendaSelectionField
+          FormField<T>(
+            validator: widget.validator ?? _defaultValidator,
+            autovalidateMode: widget.autovalidateMode,
+            initialValue: widget.value,
+            builder: (FormFieldState<T> state) {
+              // Logika border didefinisikan di dalam builder
+              final BorderSide errorBorder = BorderSide(
+                color: AppColors.errorColor, // Gunakan warna error
+                width: 1.0,
+              );
+              final BorderSide defaultBorder = widget.borderColor != null
+                  ? BorderSide(
+                      color: widget.borderColor!,
+                      width: widget.borderWidth,
+                    )
+                  : BorderSide.none;
+
+              return SizedBox(
+                height: widget.height,
+                child: Card(
+                  // Ditambahkan: Menerapkan background color
+                  color: widget.backgroundColor,
+                  elevation: widget.elevation,
+                  margin: EdgeInsets.zero, // Penting agar pas
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
+                    // Diubah: Logika border dinamis berdasarkan state error
+                    side: state.hasError ? errorBorder : defaultBorder,
+                  ),
+                  child: Padding(
+                    // Padding tetap sama
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    // Diubah: Menggunakan Row manual untuk prefix dan DropdownButton
+                    child: Row(
+                      children: [
+                        // Tampilkan prefix icon jika ada
+                        if (widget.prefixIcon != null)
+                          _buildPrefixWithDivider(widget.prefixIcon),
+
+                        // DropdownButton dibungkus Expanded
+                        Expanded(
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<T>(
+                              value: state.value, // Gunakan value dari state
+                              items: widget.items,
+                              onChanged: (T? newValue) {
+                                state.didChange(
+                                  newValue,
+                                ); // Update state FormField
+                                if (widget.onChanged != null) {
+                                  widget.onChanged!(
+                                    newValue,
+                                  ); // Panggil callback eksternal
+                                }
+                              },
+                              isExpanded: true,
+                              hint: Text(
+                                widget.hintText ?? '',
+                                style: TextStyle(
+                                  color: Colors.grey.shade400,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                              // Style untuk item yang dipilih
+                              style: GoogleFonts.poppins(
+                                textStyle: const TextStyle(
+                                  color: AppColors.textDefaultColor,
+                                  fontSize: 14, // Sesuaikan jika perlu
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    prefixIcon: widget.prefixIcon != null
-                        ? _buildPrefixWithDivider(widget.prefixIcon)
-                        : null,
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
+  // --- DIUBAH: Helper prefix icon disesuaikan agar bekerja di dalam Row ---
+  // (Menggunakan padding dan MainAxisSize.min, bukan SizedBox fixed width)
   Widget _buildPrefixWithDivider(IconData? icon) {
     if (icon == null) return const SizedBox.shrink();
 
-    return SizedBox(
-      width: 60,
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0), // Beri jarak ke kanan
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Agar row tidak mengambil lebar penuh
         children: [
-          Icon(icon),
+          Icon(
+            icon,
+            color: AppColors.primaryColor,
+          ), // Sesuaikan warna ikon jika perlu
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
             width: 1,

@@ -15,7 +15,11 @@ class _HeaderEditAgendaState extends State<HeaderEditAgenda> {
     return Row(
       children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: AppColors.textDefaultColor,
+            size: 30,
+          ),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -29,7 +33,7 @@ class _HeaderEditAgendaState extends State<HeaderEditAgenda> {
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textColor,
+                color: AppColors.textDefaultColor,
               ),
             ),
             Text(
@@ -37,7 +41,7 @@ class _HeaderEditAgendaState extends State<HeaderEditAgenda> {
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textColor,
+                color: AppColors.textDefaultColor,
               ),
             ),
           ],

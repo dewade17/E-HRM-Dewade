@@ -109,7 +109,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primaryColor
-              : AppColors.backgroundColor,
+              : AppColors.hintColor.withOpacity(0.1),
           borderRadius: const BorderRadius.all(Radius.circular(10)),
           border: Border.all(
             color: isSelected ? AppColors.primaryColor : AppColors.hintColor,
@@ -119,7 +119,9 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? Colors.white : AppColors.textDefaultColor,
+              color: isSelected
+                  ? AppColors.textDefaultColor
+                  : AppColors.textDefaultColor,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -249,7 +251,7 @@ class _ContentDaftarKunjunganState extends State<ContentDaftarKunjungan> {
                             textStyle: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primaryColor,
+                              color: AppColors.textDefaultColor,
                             ),
                           ),
                           maxLines: 2,

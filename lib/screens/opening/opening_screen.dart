@@ -56,7 +56,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 30,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primaryColor,
+                        color: AppColors.secondaryColor,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -66,7 +66,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.secondaryColor,
+                        color: AppColors.backgroundColor,
                       ),
                     ),
                     const SizedBox(height: 30),
@@ -82,7 +82,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
                       width: 200,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryColor,
+                          backgroundColor: AppColors.secondaryColor,
                           foregroundColor: AppColors.accentColor,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: const StadiumBorder(),

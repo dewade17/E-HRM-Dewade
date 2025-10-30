@@ -44,7 +44,7 @@ class ContentDetailKunjungan extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              colors: [AppColors.backgroundColor, AppColors.textColor],
+              colors: [AppColors.primaryColor, AppColors.textColor],
             ),
             borderRadius: const BorderRadius.all(Radius.circular(10)),
           ),

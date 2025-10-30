@@ -9,6 +9,7 @@ import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkin/absensi_checkin_screen.dart';
 import 'package:e_hrm/screens/users/absensi/absensi_checkout/absensi_checkout_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
 
@@ -165,10 +166,10 @@ class _AbsensiButtonLabel extends StatelessWidget {
 
     return Text(
       label,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        color: AppColors.accentColor,
+      style: GoogleFonts.poppins(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textColor,
       ),
     );
   }

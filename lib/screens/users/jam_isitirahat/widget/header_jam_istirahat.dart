@@ -12,7 +12,7 @@ class HeaderJamIstirahat extends StatelessWidget {
         IconButton(
           icon: const Icon(
             Icons.arrow_back,
-            color: AppColors.secondaryColor,
+            color: AppColors.textDefaultColor,
             size: 30,
           ),
           onPressed: () {

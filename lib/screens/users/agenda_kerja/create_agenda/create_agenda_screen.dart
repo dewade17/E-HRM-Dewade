@@ -58,7 +58,7 @@ class _CreateAgendaScreenState extends State<CreateAgendaScreen> {
             child: SizedBox(
               width: double.infinity,
               height: 300,
-              child: CustomPaint(painter: HalfOvalPainterAgenda()),
+              child: HalfOvalPainterAgenda(height: 40, sigma: 0),
             ),
           ),
 

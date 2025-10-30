@@ -51,7 +51,7 @@ class _EditAgendaScreenState extends State<EditAgendaScreen> {
           SizedBox(
             width: double.infinity,
             height: 300,
-            child: CustomPaint(painter: HalfOvalPainterAgendaEdit()),
+            child: HalfOvalPainterAgendaEdit(height: 40, sigma: 0),
           ),
           Positioned.fill(
             child: SafeArea(

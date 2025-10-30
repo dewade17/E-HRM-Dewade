@@ -10,7 +10,11 @@ class HeaderCreateKunjungan extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: AppColors.textDefaultColor,
+            size: 30,
+          ),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -24,7 +28,7 @@ class HeaderCreateKunjungan extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textColor,
+                color: AppColors.textDefaultColor,
               ),
             ),
             Text(
@@ -32,7 +36,7 @@ class HeaderCreateKunjungan extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textColor,
+                color: AppColors.textDefaultColor,
               ),
             ),
           ],

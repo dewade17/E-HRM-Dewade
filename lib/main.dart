@@ -16,6 +16,7 @@ import 'package:e_hrm/screens/auth/login/login_screen.dart';
 import 'package:e_hrm/screens/auth/reset_password/reset_password_screen.dart';
 import 'package:e_hrm/screens/opening/opening_screen.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/kunjungan_klien_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/pengajuan_screen.dart';
 import 'package:e_hrm/screens/users/profile/profile_screen.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/agenda_kerja_screen.dart';
 import 'package:e_hrm/screens/users/home/home_screen.dart';
@@ -105,6 +106,8 @@ class MyApp extends StatelessWidget {
               AuthWrapper(child: const KunjunganKlienScreen()),
           '/jam-istirahat': (context) =>
               AuthWrapper(child: const JamIstirahatScreen()),
+          '/pengajuan-cuti': (context) =>
+              AuthWrapper(child: const PengajuanScreen()),
         },
       ),
     );

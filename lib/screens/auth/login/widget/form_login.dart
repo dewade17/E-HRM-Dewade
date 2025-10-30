@@ -22,7 +22,7 @@ class FormLogin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Form(
-      key: formKey, // <-- tadinya "key", harusnya "formKey"
+      key: formKey,
       child: Column(
         children: [
           SizedBox(

@@ -9,226 +9,102 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 60, //horizontal
-      runSpacing: 20, //vertikal
+      spacing: 20,
+      runSpacing: 20,
+      alignment: WrapAlignment.center,
+
       children: [
-        GestureDetector(
+        HomeMenuItem(
+          imagePath: 'lib/assets/image/menu_home/kunjungan.png',
+          label: "Kunjungan",
           onTap: () {
             Navigator.pushNamed(context, '/kunjungan-klien');
           },
-          child: Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [AppColors.textColor, AppColors.backgroundColor],
-                  ),
-                  shape: BoxShape.circle,
-                  // color: AppColors.secondaryColor.withOpacity(0.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2), // warna shadow
-                      blurRadius: 8, // seberapa blur
-                      offset: Offset(0, 4), // posisi shadow
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(20),
-                child: Icon(Icons.wallet_travel_rounded),
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Kunjungan",
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
-                ),
-              ),
-            ],
-          ),
         ),
-
-        GestureDetector(
+        HomeMenuItem(
+          imagePath: 'lib/assets/image/menu_home/agendakerja.png',
+          label: "Agenda Kerja",
           onTap: () {
             Navigator.pushNamed(context, '/agenda-kerja');
           },
-          child: Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [AppColors.textColor, AppColors.backgroundColor],
-                  ),
-                  shape: BoxShape.circle,
-                  // color: AppColors.secondaryColor.withOpacity(0.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2), // warna shadow
-                      blurRadius: 8, // seberapa blur
-                      offset: Offset(0, 4), // posisi shadow
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(20),
-                child: Icon(Icons.assignment_add),
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Agenda\nKerja",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
-                ),
-              ),
-            ],
-          ),
         ),
-        Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.textColor, AppColors.backgroundColor],
-                ),
-                shape: BoxShape.circle,
-                // color: AppColors.secondaryColor.withOpacity(0.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2), // warna shadow
-                    blurRadius: 8, // seberapa blur
-                    offset: Offset(0, 4), // posisi shadow
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(20),
-              child: Icon(Icons.insert_invitation),
-            ),
-            SizedBox(height: 10),
-            Text(
-              "Cuti/izin",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textDefaultColor,
-              ),
-            ),
-          ],
+        HomeMenuItem(
+          imagePath: 'lib/assets/image/menu_home/cuti.png',
+          label: "Cuti/Izin",
+          onTap: () {
+            Navigator.pushNamed(context, '/pengajuan-cuti');
+          },
         ),
-        GestureDetector(
+        HomeMenuItem(
+          imagePath: 'lib/assets/image/menu_home/istirahat.png',
+          label: "Jam Istirahat",
           onTap: () {
             Navigator.pushNamed(context, '/jam-istirahat');
           },
-          child: Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [AppColors.textColor, AppColors.backgroundColor],
-                  ),
-                  shape: BoxShape.circle,
-                  // color: AppColors.secondaryColor.withOpacity(0.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2), // warna shadow
-                      blurRadius: 8, // seberapa blur
-                      offset: Offset(0, 4), // posisi shadow
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(20),
-                child: Icon(Icons.coffee_maker_outlined),
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Jam\nIstirahat",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
-                ),
-              ),
-            ],
-          ),
         ),
-        Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.textColor, AppColors.backgroundColor],
-                ),
-                shape: BoxShape.circle,
-                // color: AppColors.secondaryColor.withOpacity(0.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2), // warna shadow
-                    blurRadius: 8, // seberapa blur
-                    offset: Offset(0, 4), // posisi shadow
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(20),
-              child: Icon(Icons.more_time),
-            ),
-            SizedBox(height: 10),
-            Text(
-              "Lembur",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textDefaultColor,
-              ),
-            ),
-          ],
+        HomeMenuItem(
+          imagePath: 'lib/assets/image/menu_home/lembur.png',
+          label: "Lembur",
+          onTap: () {},
         ),
-        Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.textColor, AppColors.backgroundColor],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2), // warna shadow
-                    blurRadius: 8, // seberapa blur
-                    offset: Offset(0, 4), // posisi shadow
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(20),
-              child: Icon(Icons.monetization_on_sharp),
-            ),
-            SizedBox(height: 10),
-            Text(
-              "Finance",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textDefaultColor,
-              ),
-            ),
-          ],
+        HomeMenuItem(
+          imagePath: 'lib/assets/image/menu_home/finance.png',
+          label: "Finance",
+          onTap: () {},
         ),
       ],
+    );
+  }
+}
+
+class HomeMenuItem extends StatelessWidget {
+  final String imagePath;
+  final String label;
+  final VoidCallback onTap;
+
+  const HomeMenuItem({
+    super.key,
+    required this.imagePath,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16.0),
+      child: Container(
+        // KITA UBAH UKURANNYA AGAR MUAT 3 DALAM SATU BARIS
+        height: 100,
+        width: 100, // <-- LEBAR DIKURANGI
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.hintColor.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              imagePath, // <-- Menggunakan parameter
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+            ),
+            SizedBox(height: 8),
+            Text(
+              label, // <-- Menggunakan parameter
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textDefaultColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

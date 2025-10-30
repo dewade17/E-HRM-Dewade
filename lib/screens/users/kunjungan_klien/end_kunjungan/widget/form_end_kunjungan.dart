@@ -1,11 +1,15 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/kunjungan/kategori_kunjungan.dart'; // <-- Import DTO Kategori
 import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart'; // Pastikan ini provider yang benar untuk kunjungan
+import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/mark_me_map.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/recipient_kunjungan.dart';
-import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
+// import 'package:e_hrm/shared_widget/dropdown_field_widget.dart'; // <-- Dihapus
+import 'package:e_hrm/shared_widget/kategori_kunjungan_selection_field.dart'; // <-- Ditambahkan
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,7 +30,8 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
   late final TextEditingController latitudeEndcontroller;
   late final TextEditingController longitudeEndcontroller;
   late final TextEditingController keterangankunjungancontroller;
-  String? _selectedKategoriId;
+  // String? _selectedKategoriId; // <-- Diganti
+  KategoriKunjunganItem? _selectedKategori; // <-- Menjadi ini
   bool _didInitProviders = false;
 
   @override
@@ -46,7 +51,8 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
     keterangankunjungancontroller = TextEditingController(
       text: item.deskripsi ?? '',
     );
-    _selectedKategoriId =
+    // Simpan ID awal untuk lookup nanti
+    final initialKategoriId =
         item.idKategoriKunjungan ?? item.kategoriIdFromRelation;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -54,21 +60,71 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
       _didInitProviders = true;
 
       final kategoriProvider = context.read<KategoriKunjunganProvider>();
-      kategoriProvider.ensureLoaded();
-      if (_selectedKategoriId != null) {
-        kategoriProvider.setSelectedId(_selectedKategoriId);
-      }
+      // Pastikan data kategori dimuat SEBELUM mencoba mencari item
+      kategoriProvider.ensureLoaded().then((_) {
+        // Setelah data dimuat, cari objek Kategori berdasarkan ID awal
+        if (mounted && initialKategoriId != null) {
+          final initialItem = kategoriProvider.itemById(initialKategoriId);
+          if (initialItem != null) {
+            // Set state HANYA jika _selectedKategori masih null
+            if (_selectedKategori == null) {
+              setState(() {
+                _selectedKategori = initialItem;
+              });
+              // Update juga selectedId di provider agar konsisten
+              kategoriProvider.setSelectedId(initialKategoriId);
+            }
+          } else {
+            // Jika tidak ketemu di list, buat objek sementara agar tampil
+            if (_selectedKategori == null) {
+              setState(() {
+                // Buat objek sementara DENGAN nama dari data kunjungan jika ada
+                _selectedKategori = KategoriKunjunganItem(
+                  idKategoriKunjungan: initialKategoriId,
+                  kategoriKunjungan:
+                      item.kategori?.kategoriKunjungan ?? 'Kategori Tersimpan',
+                );
+              });
+            }
+          }
+        } else if (mounted &&
+            kategoriProvider.selectedItem != null &&
+            _selectedKategori == null) {
+          // Fallback ke selected item di provider jika initialId null
+          setState(() {
+            _selectedKategori = kategoriProvider.selectedItem;
+          });
+        }
+      });
 
       final approverProvider = context.read<ApproversProvider>();
-      approverProvider.clearSelection();
-      for (final report in widget.item.reports) {
-        final id = report.idUser;
-        if (id != null &&
-            id.isNotEmpty &&
-            !approverProvider.selectedRecipientIds.contains(id)) {
-          approverProvider.toggleSelect(id);
+      approverProvider.clearSelection(); // Pastikan clear dulu
+      // Ambil data approver terbaru SEBELUM set pilihan lama
+      approverProvider.refresh().then((_) {
+        if (!mounted) return;
+        // Set approver terpilih dari data 'reports' kunjungan
+        for (final report in widget.item.reports) {
+          final id = report.idUser;
+          if (id != null && id.isNotEmpty) {
+            // Cari User di provider
+            final userExists = approverProvider.users.any(
+              (u) => u.idUser == id,
+            );
+            if (userExists &&
+                !approverProvider.selectedRecipientIds.contains(id)) {
+              // Gunakan toggleSelect agar state internal provider terupdate
+              approverProvider.toggleSelect(id);
+            } else if (!userExists) {
+              // Tampilkan peringatan jika approver lama tidak ditemukan di daftar terbaru
+              // print(
+              //   "Warning: Approver with ID $id from report not found in current list.",
+              // );
+            }
+          }
         }
-      }
+        // Panggil notifyListeners jika toggleSelect tidak otomatis notify dan ada perubahan
+        // approverProvider.notifyListeners();
+      });
     });
   }
 
@@ -81,12 +137,12 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
+    // Tambah cek mounted
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError
-            ? Colors.red
-            : AppColors.succesColor, // Gunakan successColor
+        backgroundColor: isError ? Colors.red : AppColors.succesColor,
       ),
     );
   }
@@ -100,38 +156,33 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
     });
 
     if (!formState.validate()) {
+      _showSnackBar('Harap periksa kembali isian form.', isError: true);
       return;
     }
 
-    // Validasi lokasi sudah ada di FormField, tidak perlu cek manual di sini
-
+    // Validasi lokasi sudah ada di FormField
     final latitude = double.tryParse(latitudeEndcontroller.text.trim());
     final longitude = double.tryParse(longitudeEndcontroller.text.trim());
+    // Tidak perlu cek null lagi
 
-    // Cek lagi setelah parse (meskipun validator sudah jalan)
-    if (latitude == null || longitude == null) {
-      _showSnackBar('Lokasi akhir tidak valid.', isError: true);
+    // Validasi Kategori sudah ditangani oleh KategoriKunjunganSelectionField
+    // Pastikan _selectedKategori tidak null
+    if (_selectedKategori == null) {
+      _showSnackBar('Jenis kunjungan belum dipilih.', isError: true);
       return;
     }
 
-    final kategoriProvider = context.read<KategoriKunjunganProvider>();
     final kunjunganProvider = context.read<KunjunganKlienProvider>();
     if (kunjunganProvider.isSaving) return;
 
     final approverProvider = context.read<ApproversProvider>();
-
-    final kategoriId =
-        _selectedKategoriId ??
-        kategoriProvider.selectedId ??
-        widget.item.idKategoriKunjungan ??
-        widget.item.kategoriIdFromRelation;
-
-    // Validasi Kategori Id sudah ada di DropdownFieldWidget, tidak perlu cek manual
+    // Validasi Approver sudah ditangani oleh FormField
 
     FocusScope.of(context).unfocus();
 
     final deskripsi = keterangankunjungancontroller.text.trim();
 
+    // Logika recipients (tidak berubah)
     final selectedUserMap = {
       for (final user in approverProvider.selectedUsers) user.idUser: user,
     };
@@ -151,8 +202,16 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
               '';
           final role = (user?.role ?? existing?.recipientRoleSnapshot)?.trim();
 
+          if (name.isEmpty && (user != null || existing != null)) {
+            // print(
+            //   "Warning: Recipient name is empty for user ID $id. Using fallback.",
+            // );
+            // Anda mungkin ingin memberi nama default atau handle error di sini
+          }
+
           return {
             'id_user': id,
+            // Hanya kirim snapshot jika namanya valid
             if (name.isNotEmpty) 'recipient_nama_snapshot': name,
             if (role != null && role.isNotEmpty)
               'recipient_role_snapshot': role.toUpperCase(),
@@ -160,31 +219,21 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
         })
         .toList();
 
-    // Validasi approver sudah ada di FormField, tidak perlu cek manual
-
-    if (recipients.isNotEmpty &&
-        recipients.any((recipient) {
-          final nameValue = recipient['recipient_nama_snapshot'];
-          return nameValue is! String || nameValue.trim().isEmpty;
-        })) {
-      _showSnackBar(
-        'Data approver tidak lengkap. Silakan muat ulang daftar approver.',
-        isError: true,
-      );
-      return;
-    }
+    // --- Kirim ke API ---
     await kunjunganProvider.submitEndKunjungan(
       widget.item.idKunjungan,
       deskripsi: deskripsi.isEmpty ? null : deskripsi,
-      jamCheckout: DateTime.now(),
-      endLatitude: latitude,
-      endLongitude: longitude,
-      idKategoriKunjungan: kategoriId, // Kategori ID harusnya sudah valid
+      jamCheckout: DateTime.now(), // Gunakan waktu saat submit
+      endLatitude: latitude!, // Aman karena sudah divalidasi
+      endLongitude: longitude!, // Aman karena sudah divalidasi
+      idKategoriKunjungan:
+          _selectedKategori!.idKategoriKunjungan, // Ambil ID dari objek
       recipients: recipients.isEmpty ? null : recipients,
     );
 
     if (!mounted) return;
 
+    // --- Handle Response ---
     final error = kunjunganProvider.saveError;
     final message = kunjunganProvider.saveMessage;
 
@@ -199,14 +248,27 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
       _showSnackBar('Kunjungan berhasil diselesaikan.');
     }
 
-    Navigator.of(context).maybePop(true);
+    // Pop dua kali jika sukses untuk kembali ke daftar utama
+    int popCount = 0;
+    Navigator.of(context).popUntil((route) {
+      // Kembali sampai ke route SEBELUM halaman EndKunjunganScreen
+      // atau maksimal 2 kali pop
+      return popCount++ >= 1 &&
+          route.settings.name !=
+              '/end-kunjungan'; // Ganti '/end-kunjungan' jika nama route berbeda
+      // Atau cara sederhana: pop 2x
+      // return popCount++ == 2;
+    });
+    // Jika hanya ingin pop 1x (kembali ke detail):
+    // Navigator.of(context).maybePop(true);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Pindahkan watch provider ke atas agar bisa diakses FormField validator
-    final approverProvider = context.watch<ApproversProvider>();
-    final kategoriProvider = context.watch<KategoriKunjunganProvider>();
+    // Pindahkan watch provider ke atas
+    context.watch<ApproversProvider>();
+    // Watch KategoriKunjunganProvider agar field bisa rebuild jika datanya berubah
+    context.watch<KategoriKunjunganProvider>();
     final kunjunganProvider = context.watch<KunjunganKlienProvider>();
 
     final isSaving = kunjunganProvider.isSaving;
@@ -214,44 +276,31 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
         ? AutovalidateMode.always
         : AutovalidateMode.disabled;
 
-    final dropdownItems = kategoriProvider.items
-        .map(
-          (item) => DropdownMenuItem<String>(
-            value: item.idKategoriKunjungan,
-            child: Text(item.kategoriKunjungan),
-          ),
-        )
-        .toList();
-
-    final currentKategoriId = _selectedKategoriId;
-    final hasExistingInItems =
-        currentKategoriId != null &&
-        dropdownItems.any((element) => element.value == currentKategoriId);
-    if (currentKategoriId != null && !hasExistingInItems) {
-      final fallbackLabel =
-          widget.item.kategori?.kategoriKunjungan ?? 'Kategori tersimpan';
-      dropdownItems.insert(
-        0,
-        DropdownMenuItem<String>(
-          value: currentKategoriId,
-          child: Text(fallbackLabel),
-        ),
-      );
-    }
-
     return Center(
       child: Container(
         width: 338,
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.backgroundColor),
+          // Gunakan warna solid atau gradient sesuai desain
+          color: Colors.white, // Contoh warna solid
+          border: Border.all(color: AppColors.secondaryColor),
           borderRadius: const BorderRadius.all(Radius.circular(8)),
+          boxShadow: [
+            // Tambahkan shadow halus (opsional)
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Form(
           key: _formKey,
-          autovalidateMode: autovalidateMode,
+          autovalidateMode: autovalidateMode, // Set di Form
           child: Column(
             children: [
               const SizedBox(height: 20),
+              // MarkMeMap dan validator lokasi
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Column(
@@ -259,27 +308,40 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                     MarkMeMap(
                       latitudeController: latitudeEndcontroller,
                       longitudeController: longitudeEndcontroller,
+                      autoFetchOnInit: true,
                       onPicked: (lat, lng) {
+                        if (!mounted) return; // Cek mounted setelah async
                         latitudeEndcontroller.text = lat.toStringAsFixed(6);
                         longitudeEndcontroller.text = lng.toStringAsFixed(6);
-                        // Trigger validasi ulang setelah lokasi dipilih
-                        _formKey.currentState?.validate();
+                        // Trigger validasi jika form sudah pernah divalidasi
+                        if (_autoValidate) {
+                          _formKey.currentState?.validate();
+                        }
                       },
                     ),
-                    FormField<bool>(
+                    FormField<String>(
+                      // Validator untuk lokasi
                       autovalidateMode: autovalidateMode,
-                      // Validasi sederhana untuk memastikan field tidak kosong
                       validator: (_) {
-                        if (latitudeEndcontroller.text.trim().isEmpty ||
-                            longitudeEndcontroller.text.trim().isEmpty) {
+                        final latText = latitudeEndcontroller.text.trim();
+                        final lonText = longitudeEndcontroller.text.trim();
+                        if (latText.isEmpty || lonText.isEmpty) {
                           return 'Anda harus menandai lokasi akhir kunjungan.';
                         }
-                        return null;
+                        if (double.tryParse(latText) == null ||
+                            double.tryParse(lonText) == null) {
+                          return 'Format lokasi tidak valid.';
+                        }
+                        return null; // Lolos validasi
                       },
                       builder: (state) {
                         if (state.hasError) {
                           return Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.only(
+                              top: 6,
+                              left: 4,
+                              right: 4,
+                            ), // Beri padding
                             child: Text(
                               state.errorText!,
                               style: TextStyle(
@@ -296,17 +358,19 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                 ),
               ),
               const SizedBox(height: 20),
+              // Text Field Keterangan
               TextFieldWidget(
+                backgroundColor: AppColors.textColor,
+                borderColor: AppColors.hintColor,
                 width: 300,
                 prefixIcon: Icons.message,
                 maxLines: 3,
                 label: 'Keterangan',
                 controller: keterangankunjungancontroller,
                 validator: (value) {
+                  // Keterangan sekarang wajib minimal 15 kata
                   if (value == null || value.trim().isEmpty) {
-                    // Jika keterangan boleh kosong: return null;
-                    // Jika wajib: return 'Keterangan tidak boleh kosong';
-                    return null; // Asumsi boleh kosong
+                    return 'Keterangan tidak boleh kosong.';
                   }
                   final words = value
                       .trim()
@@ -314,13 +378,14 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                       .where((s) => s.isNotEmpty)
                       .toList();
                   if (words.length < 15) {
-                    return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
+                    return 'Keterangan minimal 15 kata. (${words.length}/15)';
                   }
                   return null;
                 },
-                autovalidateMode: autovalidateMode,
+                isRequired: true, // Tandai wajib di label
               ),
               const SizedBox(height: 20),
+              // Label "Laporan Ke"
               Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
@@ -331,23 +396,24 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                   child: Text(
                     'Laporan Ke',
                     style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textDefaultColor,
                     ),
-                  ),
+                  ), // Sesuaikan style label
                 ),
               ),
+              // RecipientKunjungan (pemilihan approver)
               Padding(
                 padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                 child: const RecipientKunjungan(),
               ),
-              // --- VALIDATOR UNTUK APPROVER ---
+              // Validator untuk Approver
               FormField<bool>(
                 autovalidateMode: autovalidateMode,
-                initialValue: approverProvider.selectedRecipientIds.isNotEmpty,
+                // Cek approverProvider langsung di validator
                 validator: (value) {
-                  // Akses provider lagi untuk mendapatkan state terbaru saat validasi
+                  // Gunakan read karena hanya perlu nilai saat validasi
                   final currentSelectedIds = context
                       .read<ApproversProvider>()
                       .selectedRecipientIds;
@@ -376,37 +442,45 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                   return const SizedBox.shrink();
                 },
               ),
-              // --- AKHIR VALIDATOR APPROVER ---
               const SizedBox(height: 20),
-              DropdownFieldWidget<String>(
+              // --- FIELD PEMILIHAN KATEGORI BARU ---
+              KategoriKunjunganSelectionField(
+                backgroundColor: AppColors.textColor,
+                borderColor: AppColors.textDefaultColor,
                 width: 300,
-                prefixIcon: Icons.add_box_outlined,
+                prefixIcon: Icons.category_outlined, // Ganti ikon jika mau
                 label: 'Jenis Kunjungan',
                 hintText: 'Pilih jenis kunjungan...',
-                value: currentKategoriId,
-                items: dropdownItems,
-                isRequired:
-                    true, // Tambahkan isRequired agar validator bawaan jalan
-                autovalidateMode: autovalidateMode,
-                onChanged: isSaving
-                    ? null
-                    : (String? newValue) {
-                        setState(() {
-                          _selectedKategoriId = newValue;
-                        });
-                        if (newValue != null) {
-                          kategoriProvider.setSelectedId(newValue);
-                        }
-                      },
+                selectedKategori: _selectedKategori, // Kirim objek
+                isRequired: true, // Tandai wajib
+                onKategoriSelected: (selected) {
+                  // Cek mounted sebelum setState
+                  if (!mounted) return;
+                  setState(() => _selectedKategori = selected);
+                  // Update juga ID di KategoriKunjunganProvider
+                  final kategoriProv = context
+                      .read<KategoriKunjunganProvider>();
+                  if (selected != null) {
+                    kategoriProv.setSelectedId(selected.idKategoriKunjungan);
+                  } else {
+                    kategoriProv.clearSelection();
+                  }
+                  // Trigger validasi jika form sudah pernah divalidasi
+                  if (_autoValidate) {
+                    _formKey.currentState?.validate();
+                  }
+                },
                 validator: (value) {
-                  // Validator bawaan sudah cukup jika isRequired=true
-                  if ((value ?? '').isEmpty) {
+                  // Validator sederhana
+                  if (value == null) {
                     return 'Anda harus memilih jenis kunjungan.';
                   }
                   return null;
                 },
               ),
+              // --- AKHIR FIELD PEMILIHAN KATEGORI BARU ---
               const SizedBox(height: 20),
+              // Tampilan Bukti Kunjungan (Image)
               Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
@@ -421,76 +495,77 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                   ),
                 ),
               ),
-              if ((widget.item.lampiranKunjunganUrl ?? '').isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      widget.item.lampiranKunjunganUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 180,
-                          color: Colors.grey.shade200,
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.broken_image_outlined,
-                            size: 42,
-                            color: Colors.black38,
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: AspectRatio(
+                    // Gunakan AspectRatio agar ukuran konsisten
+                    aspectRatio: 16 / 9, // Sesuaikan rasio jika perlu
+                    child:
+                        (widget.item.lampiranKunjunganUrl != null &&
+                            widget.item.lampiranKunjunganUrl!.isNotEmpty)
+                        ? Image.network(
+                            widget.item.lampiranKunjunganUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              /* ... error builder ... */
+                              return Container(
+                                color: Colors.grey.shade200,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 42,
+                                  color: Colors.black38,
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              /* ... loading builder ... */
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                alignment: Alignment.center,
+                                color: Colors.grey.shade200,
+                                child: const CircularProgressIndicator(),
+                              );
+                            },
+                          )
+                        : Container(
+                            // Placeholder jika tidak ada gambar
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Belum ada bukti kunjungan.',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
                           ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          height: 180,
-                          alignment: Alignment.center,
-                          color: Colors.grey.shade200,
-                          child: const CircularProgressIndicator(),
-                        );
-                      },
-                    ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  child: Container(
-                    height: 180,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Belum ada bukti kunjungan.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
-                    ),
                   ),
                 ),
-              const SizedBox(height: 30), // Mengurangi jarak sedikit
+              ),
+              const SizedBox(height: 30),
+              // Tombol Selesai
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.errorColor,
-                  foregroundColor:
-                      AppColors.textColor, // Ganti ke textColor (putih)
+                  backgroundColor:
+                      AppColors.errorColor, // Warna merah untuk selesai
+                  foregroundColor: AppColors.textColor,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 50,
                     vertical: 15,
-                  ), // Sesuaikan padding
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                  ), // Bentuk tombol
+                  ),
+                  elevation: 4, // Tambah sedikit shadow
                 ),
                 onPressed: isSaving ? null : _handleSubmit,
                 child: isSaving
@@ -503,14 +578,14 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                         ),
                       )
                     : Text(
-                        'Selesai',
+                        'Selesaikan Kunjungan', // Ubah teks tombol
                         style: GoogleFonts.poppins(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.w500,
-                        ),
+                        ), // Ubah ukuran/ketebalan font
                       ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 30), // Beri jarak lebih di bawah tombol
             ],
           ),
         ),

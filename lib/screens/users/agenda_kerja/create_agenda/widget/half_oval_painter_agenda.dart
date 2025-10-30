@@ -1,15 +1,60 @@
-import 'package:e_hrm/contraints/colors.dart';
+// blur_half_oval_header.dart
+// ignore_for_file: deprecated_member_use
+
+import 'dart:ui'; // ImageFilter.blur
 import 'package:flutter/material.dart';
+import 'package:e_hrm/contraints/colors.dart';
 
-class HalfOvalPainterAgenda extends CustomPainter {
+/// Header setengah-oval yang MEMBURAMKAN konten di belakangnya.
+/// - [height] tinggi area blur
+/// - [sigma] intensitas blur (Gaussian)
+/// - [tintColor] opsional, warna tipis di atas blur agar “berglow”
+class HalfOvalPainterAgenda extends StatelessWidget {
+  const HalfOvalPainterAgenda({
+    super.key,
+    this.height = 220,
+    this.sigma = 16,
+    this.tintColor,
+  });
+
+  final double height;
+  final double sigma;
+  final Color? tintColor;
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors
-          .primaryColor // Menggunakan warna solid
-      ..style = PaintingStyle.fill;
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: ClipPath(
+        clipper: _HalfOvalClipper(),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+          child: Container(
+            // Lapisan tipis warna supaya efeknya lebih “kaca beku”
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  (tintColor ?? AppColors.primaryColor).withOpacity(0.35),
+                  (tintColor ?? AppColors.primaryColor).withOpacity(0.10),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-    final path = Path()
+/// Memotong area menjadi kurva setengah-oval seperti di contohmu.
+/// Ini menyalin bentuk dari CustomPainter jadi Clipper.
+class _HalfOvalClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    return Path()
       ..moveTo(0, 0)
       ..lineTo(0, size.height * 0.7)
       ..quadraticBezierTo(
@@ -20,10 +65,8 @@ class HalfOvalPainterAgenda extends CustomPainter {
       )
       ..lineTo(size.width, 0)
       ..close();
-
-    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

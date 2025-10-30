@@ -22,6 +22,10 @@ class DatePickerFieldWidget extends StatefulWidget {
     this.width = 350,
     this.elevation = 3,
     this.borderRadius = 12,
+    // Ditambahkan: Properti baru
+    this.backgroundColor,
+    this.borderColor,
+    this.borderWidth = 1.0,
   });
 
   /// Teks label di atas field.
@@ -62,6 +66,16 @@ class DatePickerFieldWidget extends StatefulWidget {
 
   /// Radius sudut pada Card.
   final double borderRadius;
+
+  // Ditambahkan: Properti kustom untuk background dan border
+  /// Warna background untuk Card (opsional).
+  final Color? backgroundColor;
+
+  /// Warna border luar field (opsional).
+  final Color? borderColor;
+
+  /// Ketebalan border (default 1.0).
+  final double borderWidth;
 
   @override
   State<DatePickerFieldWidget> createState() => _DatePickerFieldWidgetState();
@@ -113,7 +127,11 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
     }
   }
 
-  Future<void> _pickDate(BuildContext context) async {
+  // Diubah: Menerima FormFieldState
+  Future<void> _pickDate(
+    BuildContext context,
+    FormFieldState<String> state,
+  ) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -126,13 +144,13 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primaryColor,
+              primary: AppColors.secondaryColor,
               onPrimary: Colors.white,
               onSurface: AppColors.textDefaultColor,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryColor,
+                foregroundColor: AppColors.secondaryColor,
               ),
             ),
             textTheme: const TextTheme(
@@ -148,6 +166,8 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
 
     if (picked != null && picked != _selectedDate) {
       _updateDate(picked);
+      // Diubah: Beri tahu FormField tentang nilai baru
+      state.didChange(widget.controller.text);
     }
   }
 
@@ -179,44 +199,80 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
             ),
           ),
           const SizedBox(height: 8),
-          Card(
-            elevation: widget.elevation,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
-            ),
-            child: InkWell(
-              onTap: () => _pickDate(context),
-              borderRadius: BorderRadius.circular(widget.borderRadius),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: AbsorbPointer(
-                  child: TextFormField(
-                    controller: widget.controller,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      hintText: widget.hintText ?? 'Pilih tanggal...',
-                      hintStyle: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontStyle: FontStyle.italic,
+
+          // Diubah: Dibungkus dengan FormField
+          FormField<String>(
+            initialValue: widget.controller.text,
+            validator: (value) {
+              if (widget.isRequired && (value == null || value.isEmpty)) {
+                return '${widget.label} tidak boleh kosong';
+              }
+              return null;
+            },
+            builder: (FormFieldState<String> state) {
+              // Sinkronkan state jika controller berubah (misal oleh _updateDate)
+              if (widget.controller.text != state.value) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    state.didChange(widget.controller.text);
+                  }
+                });
+              }
+
+              // Tentukan border
+              final BorderSide errorBorder = const BorderSide(
+                color: AppColors.errorColor,
+                width: 1.0,
+              );
+              final BorderSide defaultBorder = widget.borderColor != null
+                  ? BorderSide(
+                      color: widget.borderColor!,
+                      width: widget.borderWidth,
+                    )
+                  : BorderSide.none;
+
+              return Card(
+                elevation: widget.elevation,
+                margin: EdgeInsets.zero,
+                // Ditambahkan: Terapkan background color
+                color: widget.backgroundColor ?? Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  // Diubah: Terapkan border dinamis
+                  side: state.hasError ? errorBorder : defaultBorder,
+                ),
+                child: InkWell(
+                  // Diubah: Kirim state ke _pickDate
+                  onTap: () => _pickDate(context, state),
+                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: AbsorbPointer(
+                      child: TextFormField(
+                        controller: widget.controller,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          hintText: widget.hintText ?? 'Pilih tanggal...',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
+                          prefixIcon: widget.prefixIcon != null
+                              ? _buildPrefixWithDivider(widget.prefixIcon!)
+                              : null,
+                        ),
+                        // Diubah: Validator dipindahkan ke FormField
+                        validator: null,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                      prefixIcon: widget.prefixIcon != null
-                          ? _buildPrefixWithDivider(widget.prefixIcon!)
-                          : null,
                     ),
-                    validator: (value) {
-                      if (widget.isRequired &&
-                          (value == null || value.isEmpty)) {
-                        return '${widget.label} tidak boleh kosong';
-                      }
-                      return null;
-                    },
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),
@@ -229,7 +285,7 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: AppColors.primaryColor),
+          Icon(icon, color: AppColors.secondTextColor),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
             width: 1,

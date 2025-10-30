@@ -1,9 +1,11 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/kunjungan/kategori_kunjungan.dart'; // <-- Import DTO Kategori
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/rencana_kunjungan/rencana_kunjungan_screen.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
-import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
+// import 'package:e_hrm/shared_widget/dropdown_field_widget.dart'; // <-- Hapus ini
+import 'package:e_hrm/shared_widget/kategori_kunjungan_selection_field.dart'; // <-- Import Field Baru
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:e_hrm/shared_widget/time_picker_field_widget.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +24,9 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
   bool _autoValidate = false;
   bool _didFetchInitial = false;
 
-  String? _selectedKategoriId;
+  // String? _selectedKategoriId; // <-- Ganti ini
+  KategoriKunjunganItem? _selectedKategori; // <-- Dengan ini
+
   DateTime? _selectedTanggal;
   TimeOfDay? _selectedJamMulai;
   TimeOfDay? _selectedJamSelesai;
@@ -42,7 +46,17 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
 
     Future.microtask(() {
       if (!mounted) return;
-      context.read<KategoriKunjunganProvider>().ensureLoaded();
+      final kategoriProvider = context.read<KategoriKunjunganProvider>();
+      kategoriProvider.ensureLoaded().then((_) {
+        // Setelah data dimuat, coba set state awal jika ada selectedId di provider
+        if (mounted &&
+            kategoriProvider.selectedItem != null &&
+            _selectedKategori == null) {
+          setState(() {
+            _selectedKategori = kategoriProvider.selectedItem;
+          });
+        }
+      });
     });
   }
 
@@ -67,24 +81,36 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
       return;
     }
 
-    final kategoriProvider = context.read<KategoriKunjunganProvider>();
-    final kategoriId = _selectedKategoriId ?? kategoriProvider.selectedId;
-    if (kategoriId == null) {
-      _showSnackBar(
-        'Silakan pilih jenis kunjungan terlebih dahulu.',
-        isError: true,
-      );
-      return;
-    }
+    // Validasi kategori sudah ditangani oleh KategoriKunjunganSelectionField
+    // if (_selectedKategori == null) { ... } // Tidak perlu lagi
 
     final tanggal = _selectedTanggal;
     if (tanggal == null) {
       _showSnackBar('Silakan pilih tanggal kunjungan.', isError: true);
       return;
     }
+    // Validasi jam mulai dan selesai
+    if (_selectedJamMulai == null || _selectedJamSelesai == null) {
+      _showSnackBar('Jam mulai dan jam selesai wajib diisi.', isError: true);
+      return;
+    }
+    final startDateTime = _combineDateTime(tanggal, _selectedJamMulai!);
+    final endDateTime = _combineDateTime(tanggal, _selectedJamSelesai!);
+    if (endDateTime != null &&
+        startDateTime != null &&
+        !endDateTime.isAfter(startDateTime)) {
+      _showSnackBar('Jam selesai harus setelah jam mulai.', isError: true);
+      return;
+    }
 
     final provider = context.read<KunjunganKlienProvider>();
     final deskripsi = keterangankunjungancontroller.text.trim();
+
+    // Pastikan _selectedKategori tidak null sebelum mengakses id
+    if (_selectedKategori == null) {
+      _showSnackBar('Jenis kunjungan belum dipilih.', isError: true);
+      return;
+    }
 
     final normalizedDate = DateTime(
       tanggal.year,
@@ -98,10 +124,11 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
     );
 
     await provider.createKunjungan(
-      idKategoriKunjungan: kategoriId,
+      idKategoriKunjungan:
+          _selectedKategori!.idKategoriKunjungan, // <-- Ambil ID dari objek
       tanggal: tanggalUtc,
-      jamMulai: _combineDateTime(normalizedDate, _selectedJamMulai),
-      jamSelesai: _combineDateTime(normalizedDate, _selectedJamSelesai),
+      jamMulai: startDateTime, // Kirim DateTime
+      jamSelesai: endDateTime, // Kirim DateTime
       deskripsi: deskripsi.isEmpty ? null : deskripsi,
     );
 
@@ -130,7 +157,9 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : AppColors.accentColor,
+        backgroundColor: isError
+            ? Colors.red
+            : AppColors.succesColor, // <-- Perbaiki warna sukses
       ),
     );
   }
@@ -142,22 +171,12 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch provider tetap diperlukan untuk status loading/saving
     final kategoriProvider = context.watch<KategoriKunjunganProvider>();
     final kunjunganProvider = context.watch<KunjunganKlienProvider>();
     final isSaving = kunjunganProvider.isSaving;
 
-    final dropdownItems = kategoriProvider.items
-        .map(
-          (item) => DropdownMenuItem<String>(
-            value: item.idKategoriKunjungan,
-            child: Text(item.kategoriKunjungan),
-          ),
-        )
-        .toList();
-
-    final selectedKategoriId =
-        _selectedKategoriId ?? kategoriProvider.selectedId;
-
+    // Autovalidate mode
     final autovalidateMode = _autoValidate
         ? AutovalidateMode.always
         : AutovalidateMode.disabled;
@@ -166,45 +185,52 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
       child: Container(
         width: 338,
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.backgroundColor),
-          borderRadius: BorderRadius.all(Radius.circular(8)),
+          border: Border.all(color: AppColors.secondaryColor),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
         ),
         child: Form(
           key: _formKey,
-          autovalidateMode: autovalidateMode,
+          autovalidateMode: autovalidateMode, // Set autovalidate di Form
           child: Column(
             children: [
-              SizedBox(height: 60),
+              const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    DropdownFieldWidget<String>(
+                    // --- GANTI DROPDOWN DENGAN FIELD BARU ---
+                    KategoriKunjunganSelectionField(
                       width: 290,
                       prefixIcon: Icons.add_box_outlined,
                       label: "Jenis Kunjungan",
                       hintText: "Pilih jenis kunjungan...",
-                      value: selectedKategoriId,
-                      items: dropdownItems,
-                      onChanged:
-                          kategoriProvider.isLoading && dropdownItems.isEmpty
-                          ? null
-                          : (String? newValue) {
-                              setState(() {
-                                _selectedKategoriId = newValue;
-                              });
-                              if (newValue != null) {
-                                kategoriProvider.setSelectedId(newValue);
-                              }
-                            },
+                      selectedKategori: _selectedKategori, // Kirim objek
+                      isRequired: true, // Tandai wajib
+                      onKategoriSelected: (selected) {
+                        setState(() => _selectedKategori = selected);
+                        // Update juga ID di KategoriKunjunganProvider jika perlu
+                        if (selected != null) {
+                          kategoriProvider.setSelectedId(
+                            selected.idKategoriKunjungan,
+                          );
+                        } else {
+                          kategoriProvider.clearSelection();
+                        }
+                        // Trigger validasi jika form sudah pernah divalidasi
+                        if (_autoValidate) {
+                          _formKey.currentState?.validate();
+                        }
+                      },
                       validator: (value) {
+                        // Validator sederhana
                         if (value == null) {
                           return 'Anda harus memilih jenis kunjungan.';
                         }
                         return null;
                       },
-                      autovalidateMode: autovalidateMode,
+                      // autovalidateMode: autovalidateMode, // Dihapus dari field
                     ),
+                    // --- AKHIR PERGANTIAN ---
                     const SizedBox(height: 20),
                     TextFieldWidget(
                       width: 290,
@@ -213,8 +239,11 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
                       label: "Keterangan",
                       controller: keterangankunjungancontroller,
                       validator: (value) {
+                        // Validator keterangan
                         if (value == null || value.trim().isEmpty) {
-                          return null;
+                          // Keterangan boleh kosong? Jika ya, return null. Jika tidak:
+                          // return 'Keterangan tidak boleh kosong';
+                          return null; // Asumsi boleh kosong, hapus jika wajib
                         }
                         final words = value
                             .trim()
@@ -222,48 +251,105 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
                             .where((s) => s.isNotEmpty)
                             .toList();
                         if (words.length < 15) {
-                          return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
+                          return 'Keterangan minimal 15 kata. (${words.length}/15)';
                         }
                         return null;
                       },
-                      autovalidateMode: autovalidateMode,
+                      // autovalidateMode: autovalidateMode, // Dihapus dari field
                     ),
                     const SizedBox(height: 20),
                     DatePickerFieldWidget(
                       label: "Pilih Tanggal",
                       controller: calendarkunjunganController,
                       width: 290,
-                      isRequired: true,
+                      isRequired: true, // Tandai wajib
+                      initialDate: _selectedTanggal, // Berikan nilai awal
                       onDateChanged: (date) {
-                        _selectedTanggal = date;
+                        setState(() => _selectedTanggal = date);
+                        // Trigger validasi jika perlu
+                        if (_autoValidate) {
+                          _formKey.currentState?.validate();
+                        }
                       },
+                      // Validator otomatis ditangani jika isRequired = true
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisAlignment: MainAxisAlignment
+                          .spaceBetween, // Ganti ke spaceBetween
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start, // Agar pesan error rapi
                       children: [
-                        TimePickerFieldWidget(
-                          label: "Jam mulai",
-                          controller: jamMulaiController,
-                          width: 135,
-                          onChanged: (value) {
-                            _selectedJamMulai = value;
-                          },
+                        // Gunakan Flexible atau Expanded agar lebar terbagi
+                        Flexible(
+                          child: TimePickerFieldWidget(
+                            label: "Jam mulai",
+                            controller: jamMulaiController,
+                            width: null, // Biarkan Flexible mengatur lebar
+                            initialTime:
+                                _selectedJamMulai, // Berikan nilai awal
+                            isRequired: true,
+                            onChanged: (value) {
+                              setState(() => _selectedJamMulai = value);
+                              // Trigger validasi jika perlu
+                              if (_autoValidate) {
+                                _formKey.currentState?.validate();
+                              }
+                            },
+                            validator: (value) {
+                              // Tambah validator
+                              if (_selectedJamMulai == null) {
+                                return 'Wajib diisi';
+                              }
+                              return null;
+                            },
+                          ),
                         ),
-                        TimePickerFieldWidget(
-                          label: "Jam selesai",
-                          controller: jamSelesaiController,
-                          width: 135,
-                          onChanged: (value) {
-                            _selectedJamSelesai = value;
-                          },
+                        const SizedBox(width: 20), // Jarak antar field
+                        Flexible(
+                          child: TimePickerFieldWidget(
+                            label: "Jam selesai",
+                            controller: jamSelesaiController,
+                            width: null, // Biarkan Flexible mengatur lebar
+                            initialTime:
+                                _selectedJamSelesai, // Berikan nilai awal
+                            isRequired: true,
+                            onChanged: (value) {
+                              setState(() => _selectedJamSelesai = value);
+                              // Trigger validasi jika perlu
+                              if (_autoValidate) {
+                                _formKey.currentState?.validate();
+                              }
+                            },
+                            validator: (value) {
+                              // Tambah validator
+                              if (_selectedJamSelesai == null) {
+                                return 'Wajib diisi';
+                              }
+                              // Validasi vs jam mulai
+                              if (_selectedJamMulai != null &&
+                                  _selectedJamSelesai != null) {
+                                final startMinutes =
+                                    _selectedJamMulai!.hour * 60 +
+                                    _selectedJamMulai!.minute;
+                                final endMinutes =
+                                    _selectedJamSelesai!.hour * 60 +
+                                    _selectedJamSelesai!.minute;
+                                if (endMinutes <= startMinutes) {
+                                  return 'Harus > jam mulai';
+                                }
+                              }
+                              return null;
+                            },
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
+              // Tombol Simpan
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentColor,
@@ -271,7 +357,10 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
                 ),
                 onPressed: isSaving ? null : _submit,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 30,
+                  ),
                   child: isSaving
                       ? const SizedBox(
                           height: 24,
@@ -279,7 +368,8 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.textDefaultColor,
+                              AppColors
+                                  .textDefaultColor, // Atau warna lain yg kontras
                             ),
                           ),
                         )
@@ -293,7 +383,7 @@ class _FormCreateKunjunganState extends State<FormCreateKunjungan> {
                         ),
                 ),
               ),
-              SizedBox(height: 50),
+              const SizedBox(height: 50),
             ],
           ),
         ),

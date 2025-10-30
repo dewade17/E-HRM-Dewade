@@ -29,6 +29,8 @@ class TextFieldWidget extends StatefulWidget {
     this.maxLines = 1,
     // Ditambahkan: Properti untuk menentukan tipe validasi default
     this.validationType = ValidationType.none,
+    // Ditambahkan: Properti untuk background color
+    this.backgroundColor,
   });
 
   /// Teks label di atas field (contoh: "Email", "Password")
@@ -88,6 +90,10 @@ class TextFieldWidget extends StatefulWidget {
 
   /// Ditambahkan: Tipe validasi default yang akan digunakan jika validator custom null.
   final ValidationType validationType;
+
+  // Ditambahkan: Warna background
+  /// Warna background untuk Card (opsional)
+  final Color? backgroundColor;
 
   @override
   State<TextFieldWidget> createState() => _TextFieldWidgetState();
@@ -149,6 +155,8 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
           SizedBox(
             height: widget.height,
             child: Card(
+              // Ditambahkan: Menggunakan properti backgroundColor
+              color: widget.backgroundColor,
               elevation: widget.elevation,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(widget.borderRadius),

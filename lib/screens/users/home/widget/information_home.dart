@@ -101,7 +101,7 @@ class _InformationHomeState extends State<InformationHome> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, color: AppColors.accentColor, size: 16),
+        Icon(icon, color: AppColors.textDefaultColor, size: 16),
         const SizedBox(width: 8),
         Text(
           text,
@@ -109,7 +109,7 @@ class _InformationHomeState extends State<InformationHome> {
             textStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: AppColors.accentColor,
+              color: AppColors.textDefaultColor,
             ),
           ),
         ),
@@ -189,7 +189,7 @@ class _InformationHomeState extends State<InformationHome> {
                                 textStyle: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
-                                  color: AppColors.accentColor,
+                                  color: AppColors.textDefaultColor,
                                 ),
                               ),
                             ),
@@ -200,7 +200,7 @@ class _InformationHomeState extends State<InformationHome> {
                                 textStyle: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w400,
-                                  color: AppColors.accentColor,
+                                  color: AppColors.textDefaultColor,
                                 ),
                               ),
                             ),
@@ -220,7 +220,7 @@ class _InformationHomeState extends State<InformationHome> {
             width: mainCardWidth * 0.95,
             child: Card(
               elevation: 5,
-              color: AppColors.accentColor,
+              color: AppColors.menuColor,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: isLoadingJadwal
@@ -233,7 +233,7 @@ class _InformationHomeState extends State<InformationHome> {
                               "Jadwal Kamu Hari Ini",
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.primaryColor,
+                                color: AppColors.textDefaultColor,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -251,7 +251,7 @@ class _InformationHomeState extends State<InformationHome> {
                                           textStyle: const TextStyle(
                                             fontSize: 30,
                                             fontWeight: FontWeight.w700,
-                                            color: AppColors.primaryColor,
+                                            color: AppColors.textDefaultColor,
                                           ),
                                         ),
                                       ),
@@ -268,7 +268,7 @@ class _InformationHomeState extends State<InformationHome> {
                                           textStyle: const TextStyle(
                                             fontSize: 30,
                                             fontWeight: FontWeight.w700,
-                                            color: AppColors.primaryColor,
+                                            color: AppColors.textDefaultColor,
                                           ),
                                         ),
                                       ),
@@ -302,7 +302,7 @@ class _InformationHomeState extends State<InformationHome> {
                               style: GoogleFonts.poppins(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.primaryColor,
+                                color: AppColors.textDefaultColor,
                               ),
                             ),
                             const SizedBox(height: 8),

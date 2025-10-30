@@ -684,6 +684,7 @@ class _StatusOption {
 // --- Status Options with "Semua" ---
 const List<_StatusOption> _statusOptions = <_StatusOption>[
   _StatusOption(value: '', label: 'Semua'), // Added this line
+  _StatusOption(value: 'teragenda', label: 'Teragenda'),
   _StatusOption(value: 'diproses', label: 'Diproses'),
   _StatusOption(value: 'selesai', label: 'Selesai'),
   _StatusOption(value: 'ditunda', label: 'Ditunda'),

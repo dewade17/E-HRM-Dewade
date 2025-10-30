@@ -37,7 +37,7 @@ class ButtonLogin extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.accentColor,
+                  color: AppColors.textDefaultColor,
                 ),
               ),
       ),

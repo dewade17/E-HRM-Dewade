@@ -2,8 +2,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/agenda/agenda.dart'; // <-- Import DTO Agenda
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
+import 'package:e_hrm/shared_widget/agenda_selection_field.dart'; // <-- Import Field Baru
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
@@ -27,10 +29,11 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
   final TextEditingController startTimeController = TextEditingController();
   final TextEditingController endTimeController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  final bool _autoValidate = false;
+  bool _autoValidate = false; // Ubah ke false
   String _selectedStatus = _statusOptions.first.value;
-  String? _selectedAgendaId;
-  String? _detailAgendaName;
+  // String? _selectedAgendaId; // <-- Ganti ini
+  AgendaItem? _selectedAgenda; // <-- Dengan ini
+  // String? _detailAgendaName; // <-- Bisa dihapus jika _selectedAgenda menyimpan objeknya
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -72,10 +75,12 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       _loadError = null;
     });
 
+    // Ambil daftar agenda master terlebih dahulu
     if (!agendaProvider.loading && agendaProvider.items.isEmpty) {
       await agendaProvider.fetch();
     }
 
+    // Ambil detail agenda kerja
     final detail = await agendaKerjaProvider.fetchDetail(widget.agendaKerjaId);
 
     if (!mounted) return;
@@ -89,6 +94,27 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       return;
     }
 
+    // Cari objek AgendaItem berdasarkan idAgenda dari detail
+    AgendaItem? initialSelectedAgenda;
+    if (detail.idAgenda.isNotEmpty) {
+      try {
+        initialSelectedAgenda = agendaProvider.items.firstWhere(
+          (item) => item.idAgenda == detail.idAgenda,
+          // Jika tidak ditemukan di daftar master, buat objek sementara
+          orElse: () => AgendaItem(
+            idAgenda: detail.idAgenda,
+            namaAgenda: detail.agenda?.namaAgenda ?? 'Agenda Tersimpan',
+          ),
+        );
+      } catch (_) {
+        initialSelectedAgenda = AgendaItem(
+          idAgenda: detail.idAgenda,
+          namaAgenda: detail.agenda?.namaAgenda ?? 'Agenda Tersimpan',
+        );
+      }
+    }
+
+    // Parsing dan set state lainnya tetap sama
     final normalizedStatus = _normalizeStatus(detail.status);
     final normalizedUrgensi = _normalizeUrgensi(detail.kebutuhanAgenda);
     final selectedDate = detail.startDate ?? detail.endDate;
@@ -107,8 +133,9 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
 
     setState(() {
       deskripsiController.text = detail.deskripsiKerja;
-      _selectedAgendaId = detail.idAgenda.isNotEmpty ? detail.idAgenda : null;
-      _detailAgendaName = detail.agenda?.namaAgenda;
+      _selectedAgenda = initialSelectedAgenda; // <-- Set objek AgendaItem
+      // _selectedAgendaId = detail.idAgenda.isNotEmpty ? detail.idAgenda : null; // Tidak perlu lagi
+      // _detailAgendaName = detail.agenda?.namaAgenda; // Tidak perlu lagi
       _selectedStatus = normalizedStatus;
       _selectedDate = normalizedDate;
       _startTime = startTime;
@@ -120,8 +147,20 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
 
   Future<void> _submit() async {
     final formState = formKey.currentState;
-    if (formState == null || !formState.validate()) return;
+    if (formState == null) return; // Tambah cek null
 
+    // Set autoValidate sebelum validasi
+    setState(() => _autoValidate = true);
+
+    if (!formState.validate()) return;
+
+    // Validasi lain tetap sama
+    if (_selectedAgenda == null) {
+      // <-- Cek objek
+      _showSnackBar('Agenda wajib dipilih.', true);
+      return;
+    }
+    // ... (validasi tanggal, jam, urgensi tetap sama) ...
     if (_selectedDate == null || _startTime == null || _endTime == null) {
       _showSnackBar('Tanggal dan jam wajib diisi.', true);
       return;
@@ -141,7 +180,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
     final provider = context.read<AgendaKerjaProvider>();
     final updated = await provider.update(
       widget.agendaKerjaId,
-      idAgenda: _selectedAgendaId,
+      idAgenda: _selectedAgenda!.idAgenda, // <-- Ambil ID dari objek
       deskripsiKerja: deskripsiController.text,
       status: _selectedStatus,
       startDate: startDateTime,
@@ -179,7 +218,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
 
   @override
   Widget build(BuildContext context) {
-    final agendaProvider = context.watch<AgendaProvider>();
+    context.watch<AgendaProvider>();
     final agendaKerjaProvider = context.watch<AgendaKerjaProvider>();
 
     if (_initializing) {
@@ -206,25 +245,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       );
     }
 
-    final dropdownItems = agendaProvider.items
-        .map(
-          (agenda) => DropdownMenuItem<String>(
-            value: agenda.idAgenda,
-            child: Text(agenda.namaAgenda ?? 'Agenda tanpa nama'),
-          ),
-        )
-        .toList();
-
-    if (_selectedAgendaId != null &&
-        dropdownItems.every((item) => item.value != _selectedAgendaId)) {
-      dropdownItems.insert(
-        0,
-        DropdownMenuItem<String>(
-          value: _selectedAgendaId!,
-          child: Text(_detailAgendaName ?? 'Agenda saat ini'),
-        ),
-      );
-    }
+    // Dropdown items untuk Urgensi (tetap sama)
     final urgensiOptions = List<String>.from(_urgensiItems);
     if (_selectedUrgensi != null &&
         _selectedUrgensi!.isNotEmpty &&
@@ -237,46 +258,50 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
         : AutovalidateMode.disabled;
     return Form(
       key: formKey,
+      autovalidateMode: autovalidateMode, // Set di Form
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
-            DropdownFieldWidget<String>(
+            // --- GANTI DROPDOWN DENGAN FIELD BARU ---
+            AgendaSelectionField(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Agenda',
-              value: _selectedAgendaId,
-              hintText: 'Pilih agenda...',
+              selectedAgenda: _selectedAgenda, // Kirim objek AgendaItem
               isRequired: true,
-              items: dropdownItems,
-              onChanged: agendaProvider.loading
-                  ? null
-                  : (val) => setState(() => _selectedAgendaId = val),
+              onAgendaSelected: (selected) {
+                setState(() => _selectedAgenda = selected);
+                // Trigger validasi ulang
+                if (_autoValidate) {
+                  formKey.currentState?.validate();
+                }
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'Agenda wajib dipilih';
+                }
+                return null;
+              },
+              // autovalidateMode: autovalidateMode, // Dihapus dari sini
             ),
+            // --- AKHIR PERGANTIAN ---
             const SizedBox(height: 20),
             TextFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Deskripsi Pekerjaan',
               controller: deskripsiController,
               hintText: 'Tulis deskripsi...',
               isRequired: true,
               prefixIcon: Icons.description_outlined,
               keyboardType: TextInputType.multiline,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return null;
-                }
-                final words = value
-                    .trim()
-                    .split(RegExp(r'\s+'))
-                    .where((s) => s.isNotEmpty)
-                    .toList();
-                if (words.length < 15) {
-                  return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
-                }
-                return null;
-              },
-              autovalidateMode: autovalidateMode,
+              maxLines: 3, // Perbolehkan multiline
             ),
             const SizedBox(height: 20),
             DatePickerFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Tanggal Agenda',
               controller: calendarController,
               initialDate: _selectedDate,
@@ -289,27 +314,53 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
               children: [
                 Expanded(
                   child: TimePickerFieldWidget(
+                    backgroundColor: AppColors.textColor,
+                    borderColor: AppColors.textDefaultColor,
                     label: "Jam Mulai",
                     controller: startTimeController,
                     initialTime: _startTime,
                     onChanged: (time) => setState(() => _startTime = time),
                     isRequired: true,
+                    validator: (value) {
+                      // Tambah validator
+                      if (_startTime == null) return 'Wajib diisi';
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: TimePickerFieldWidget(
+                    backgroundColor: AppColors.textColor,
+                    borderColor: AppColors.textDefaultColor,
                     label: "Jam Selesai",
                     controller: endTimeController,
                     initialTime: _endTime,
                     onChanged: (time) => setState(() => _endTime = time),
                     isRequired: true,
+                    validator: (value) {
+                      // Tambah validator
+                      if (_endTime == null) return 'Wajib diisi';
+                      // Validasi tambahan
+                      if (_startTime != null && _endTime != null) {
+                        final startMinutes =
+                            _startTime!.hour * 60 + _startTime!.minute;
+                        final endMinutes =
+                            _endTime!.hour * 60 + _endTime!.minute;
+                        if (endMinutes <= startMinutes) {
+                          return 'Jam selesai harus setelah jam mulai';
+                        }
+                      }
+                      return null;
+                    },
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
             DropdownFieldWidget<String>(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: "Urgensi",
               hintText: "Pilih tingkat urgensi",
               value: _selectedUrgensi,
@@ -325,9 +376,12 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
                   _selectedUrgensi = newValue;
                 });
               },
+              // Validator sudah otomatis
             ),
             const SizedBox(height: 20),
             DropdownFieldWidget<String>(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Status',
               value: _selectedStatus,
               isRequired: true,
@@ -410,6 +464,7 @@ class _StatusOption {
 }
 
 const List<_StatusOption> _statusOptions = <_StatusOption>[
+  _StatusOption(value: 'teragenda', label: 'Teragenda'),
   _StatusOption(value: 'diproses', label: 'Diproses'),
   _StatusOption(value: 'selesai', label: 'Selesai'),
   _StatusOption(value: 'ditunda', label: 'Ditunda'),

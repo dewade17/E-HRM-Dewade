@@ -101,7 +101,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           child: Column(
             children: const [
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                 child: HeaderHome(),
               ),
               InformationHome(),
@@ -119,9 +119,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   ),
                 ),
               ),
-              SizedBox(height: 15),
+              SizedBox(height: 10),
               HomeContent(),
-              SizedBox(height: 20),
+              SizedBox(height: 10),
               AbsensiButton(),
             ],
           ),

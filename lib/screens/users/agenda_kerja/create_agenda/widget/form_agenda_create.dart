@@ -1,9 +1,11 @@
 // lib/screens/users/agenda_kerja/create_agenda/widget/form_agenda_create.dart
 // ignore_for_file: deprecated_member_use
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/agenda/agenda.dart'; // <-- Import DTO Agenda
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
+import 'package:e_hrm/shared_widget/agenda_selection_field.dart'; // <-- Import Field Baru
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
@@ -27,7 +29,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   final TextEditingController startTimeController = TextEditingController();
   final TextEditingController endTimeController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  final bool _autoValidate = false;
+  bool _autoValidate = false; // Ubah ke false
   final List<String> _urgensiItems = [
     'PENTING MENDESAK',
     'TIDAK PENTING TAPI MENDESAK',
@@ -35,7 +37,8 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     'TIDAK PENTING TIDAK MENDESAK',
   ];
   String _selectedStatus = _statusOptions.first.value;
-  String? _selectedAgendaId;
+  // String? _selectedAgendaId; // <-- Ganti ini
+  AgendaItem? _selectedAgenda; // <-- Dengan ini (simpan objek AgendaItem)
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -117,11 +120,20 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
 
   Future<void> _submit() async {
     final formState = formKey.currentState;
-    if (formState == null || !formState.validate()) return;
-    if (_selectedAgendaId == null || _selectedAgendaId!.isEmpty) {
+    if (formState == null) return; // Tambah pengecekan null
+
+    // Set autoValidate sebelum validasi
+    setState(() => _autoValidate = true);
+
+    if (!formState.validate()) return;
+
+    // Validasi lain tetap sama
+    if (_selectedAgenda == null) {
+      // <-- Cek objek AgendaItem
       _showSnackBar('Agenda wajib dipilih.', true);
       return;
     }
+    // ... (validasi tanggal, jam, urgensi tetap sama) ...
     if (_selectedDate == null) {
       _showSnackBar('Tanggal agenda wajib diisi.', true);
       return;
@@ -142,6 +154,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       return;
     }
 
+    // ... (ensureUserId tetap sama) ...
     final auth = context.read<AuthProvider>();
     final userId = await _ensureUserId(auth);
     if (!mounted) return;
@@ -154,7 +167,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     final provider = context.read<AgendaKerjaProvider>();
     final created = await provider.create(
       idUser: userId,
-      idAgenda: _selectedAgendaId!,
+      idAgenda: _selectedAgenda!.idAgenda, // <-- Ambil ID dari objek
       deskripsiKerja: deskripsiController.text,
       status: _selectedStatus,
       startDate: startDateTime,
@@ -210,65 +223,72 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
 
   @override
   Widget build(BuildContext context) {
-    final agendaProvider = context.watch<AgendaProvider>();
+    // final agendaProvider = context.watch<AgendaProvider>(); // Tidak perlu watch lagi di sini
 
     final autovalidateMode = _autoValidate
         ? AutovalidateMode.always
         : AutovalidateMode.disabled;
     return Form(
       key: formKey,
+      // Autovalidate di form agar semua field terpengaruh
+      autovalidateMode: autovalidateMode,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
-            DropdownFieldWidget<String>(
+            // --- GANTI DROPDOWN DENGAN FIELD BARU ---
+            AgendaSelectionField(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Agenda',
-              value: _selectedAgendaId,
-              hintText: 'Pilih agenda...',
+              selectedAgenda: _selectedAgenda,
               isRequired: true,
-              items: agendaProvider.items
-                  .map(
-                    (agenda) => DropdownMenuItem<String>(
-                      value: agenda.idAgenda,
-                      child: Text(agenda.namaAgenda ?? 'Agenda tanpa nama'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: agendaProvider.loading
-                  ? null
-                  : (val) => setState(() => _selectedAgendaId = val),
+              onAgendaSelected: (selected) {
+                setState(() => _selectedAgenda = selected);
+                // Trigger validasi ulang jika form sudah pernah divalidasi
+                if (_autoValidate) {
+                  formKey.currentState?.validate();
+                }
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'Agenda wajib dipilih';
+                }
+                return null;
+              },
+              // autovalidateMode: autovalidateMode, // Dihapus dari sini
             ),
-            if (agendaProvider.loading && agendaProvider.items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
+            // --- AKHIR PERGANTIAN ---
+
+            // Loading indicator untuk AgendaProvider bisa ditaruh di sini jika perlu
+            Consumer<AgendaProvider>(
+              builder: (context, agendaProv, _) {
+                if (agendaProv.loading && agendaProv.items.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: LinearProgressIndicator(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+
             const SizedBox(height: 20),
             TextFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Deskripsi Pekerjaan',
               controller: deskripsiController,
               hintText: 'Tulis deskripsi...',
               isRequired: true,
               prefixIcon: Icons.description_outlined,
               keyboardType: TextInputType.multiline,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return null;
-                }
-                final words = value
-                    .trim()
-                    .split(RegExp(r'\s+'))
-                    .where((s) => s.isNotEmpty)
-                    .toList();
-                if (words.length < 15) {
-                  return 'Keterangan harus terdiri dari minimal 15 kata. (${words.length}/15)';
-                }
-                return null;
-              },
-              autovalidateMode: autovalidateMode,
+              maxLines: 3, // Perbolehkan multiline
             ),
             const SizedBox(height: 20),
             DatePickerFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Tanggal Agenda',
               controller: calendarController,
               initialDate: _selectedDate,
@@ -281,25 +301,51 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               children: [
                 Expanded(
                   child: TimePickerFieldWidget(
+                    backgroundColor: AppColors.textColor,
+                    borderColor: AppColors.textDefaultColor,
                     label: "Jam Mulai",
                     controller: startTimeController,
                     onChanged: (time) => setState(() => _startTime = time),
                     isRequired: true,
+                    // Tambahkan validator untuk time picker jika perlu
+                    validator: (value) {
+                      if (_startTime == null) return 'Wajib diisi';
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: TimePickerFieldWidget(
+                    backgroundColor: AppColors.textColor,
+                    borderColor: AppColors.textDefaultColor,
                     label: "Jam Selesai",
                     controller: endTimeController,
                     onChanged: (time) => setState(() => _endTime = time),
                     isRequired: true,
+                    // Tambahkan validator untuk time picker jika perlu
+                    validator: (value) {
+                      if (_endTime == null) return 'Wajib diisi';
+                      // Validasi tambahan: jam selesai > jam mulai
+                      if (_startTime != null && _endTime != null) {
+                        final startMinutes =
+                            _startTime!.hour * 60 + _startTime!.minute;
+                        final endMinutes =
+                            _endTime!.hour * 60 + _endTime!.minute;
+                        if (endMinutes <= startMinutes) {
+                          return 'Jam selesai harus setelah jam mulai';
+                        }
+                      }
+                      return null;
+                    },
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
             DropdownFieldWidget<String>(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: "Urgensi",
               hintText: "Pilih tingkat urgensi",
               value: _selectedUrgensi,
@@ -315,9 +361,13 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
                   _selectedUrgensi = newValue;
                 });
               },
+              // Validator sudah otomatis ditangani oleh DropdownFieldWidget
+              // validator: (value) => ...
             ),
             const SizedBox(height: 20),
             DropdownFieldWidget<String>(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
               label: 'Status',
               value: _selectedStatus,
               isRequired: true,
@@ -388,6 +438,7 @@ class _StatusOption {
 }
 
 const List<_StatusOption> _statusOptions = <_StatusOption>[
+  _StatusOption(value: 'teragenda', label: 'Teragenda'),
   _StatusOption(value: 'diproses', label: 'Diproses'),
   _StatusOption(value: 'selesai', label: 'Selesai'),
   _StatusOption(value: 'ditunda', label: 'Ditunda'),

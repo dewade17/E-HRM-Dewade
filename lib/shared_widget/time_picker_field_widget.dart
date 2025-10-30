@@ -18,6 +18,11 @@ class TimePickerFieldWidget extends StatefulWidget {
     this.isRequired = false,
     this.elevation = 3,
     this.borderRadius = 12,
+    this.enabled = true,
+    // Ditambahkan: Properti baru
+    this.backgroundColor,
+    this.borderColor,
+    this.borderWidth = 1.0,
   });
 
   /// Teks label di atas field.
@@ -51,6 +56,19 @@ class TimePickerFieldWidget extends StatefulWidget {
   final double elevation;
   final double borderRadius;
 
+  /// Menentukan apakah field bisa diedit/dipilih.
+  final bool enabled;
+
+  // Ditambahkan: Properti kustom untuk background dan border
+  /// Warna background untuk Card (opsional).
+  final Color? backgroundColor;
+
+  /// Warna border luar field (opsional).
+  final Color? borderColor;
+
+  /// Ketebalan border (default 1.0).
+  final double borderWidth;
+
   @override
   State<TimePickerFieldWidget> createState() => _TimePickerFieldWidgetState();
 }
@@ -67,7 +85,15 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
   @override
   void didUpdateWidget(covariant TimePickerFieldWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialTime != oldWidget.initialTime) {
+    // Jika initialTime berubah ATAU status enabled berubah dari true ke false
+    if (widget.initialTime != oldWidget.initialTime ||
+        (oldWidget.enabled && !widget.enabled)) {
+      _setInitialValue(widget.initialTime);
+    }
+    // Jika status enabled berubah dari false ke true dan controller kosong, coba set lagi
+    else if (!oldWidget.enabled &&
+        widget.enabled &&
+        widget.controller.text.isEmpty) {
       _setInitialValue(widget.initialTime);
     }
   }
@@ -83,7 +109,11 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
     });
   }
 
-  Future<void> _pickTime() async {
+  // Diubah: Menerima FormFieldState untuk memvalidasi perubahan
+  Future<void> _pickTime(FormFieldState<String> state) async {
+    // <-- Cek flag enabled di sini
+    if (!widget.enabled) return;
+
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
@@ -94,13 +124,13 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
             // Mengatur skema warna utama
             colorScheme: Theme.of(ctx).colorScheme.copyWith(
               // Warna untuk tombol "OK" dan header
-              primary: AppColors.primaryColor,
+              primary: AppColors.secondaryColor,
             ),
             // Mengatur warna tombol "OK" dan "BATAL" (keduanya TextButton)
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor:
-                    AppColors.primaryColor, // Warna teks untuk "OK" dan "BATAL"
+                foregroundColor: AppColors
+                    .secondaryColor, // Warna teks untuk "OK" dan "BATAL"
               ),
             ),
           ),
@@ -113,10 +143,13 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
     );
 
     if (picked != null) {
+      final String newTimeText = _manualFmt(picked);
       setState(() {
         _selectedTime = picked;
-        widget.controller.text = _manualFmt(picked);
+        widget.controller.text = newTimeText;
       });
+      // Diubah: Beri tahu FormField tentang nilai baru
+      state.didChange(newTimeText);
       widget.onChanged?.call(picked);
     }
   }
@@ -130,13 +163,17 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
 
   Widget _buildPrefixWithDivider(IconData? icon) {
     if (icon == null) return const SizedBox.shrink();
+    // <-- Warna ikon jadi abu-abu jika disabled
+    final iconColor = widget.enabled
+        ? AppColors.secondTextColor
+        : Colors.grey.shade400;
 
     return SizedBox(
       width: 60,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: AppColors.primaryColor),
+          Icon(icon, color: iconColor), // <-- Gunakan warna dinamis
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
             width: 1,
@@ -151,11 +188,24 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
   @override
   Widget build(BuildContext context) {
     final baseLabelStyle = GoogleFonts.poppins(
-      textStyle: const TextStyle(
+      textStyle: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
-        color: AppColors.textDefaultColor,
+        // <-- Warna label jadi abu-abu jika disabled
+        color: widget.enabled
+            ? AppColors.textDefaultColor
+            : Colors.grey.shade500,
       ),
+    );
+
+    // <-- Warna teks field jadi abu-abu jika disabled
+    final fieldTextStyle = TextStyle(
+      color: widget.enabled ? AppColors.textDefaultColor : Colors.grey.shade600,
+    );
+    // <-- Warna hint jadi lebih terang jika disabled
+    final hintStyle = TextStyle(
+      color: widget.enabled ? Colors.grey.shade400 : Colors.grey.shade300,
+      fontStyle: FontStyle.italic,
     );
 
     return SizedBox(
@@ -176,31 +226,66 @@ class _TimePickerFieldWidgetState extends State<TimePickerFieldWidget> {
             ),
           ),
           const SizedBox(height: 8),
-          Card(
-            elevation: widget.elevation,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: TextFormField(
-                controller: widget.controller,
-                readOnly: true,
-                onTap: _pickTime,
-                validator: widget.validator,
-                decoration: InputDecoration(
-                  hintText: widget.hintText ?? '--:--',
-                  hintStyle: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                  prefixIcon: _buildPrefixWithDivider(widget.prefixIcon),
+
+          // Diubah: Dibungkus dengan FormField untuk mengontrol border Card
+          FormField<String>(
+            validator: widget.validator,
+            initialValue: widget.controller.text,
+            builder: (FormFieldState<String> state) {
+              // Sinkronkan state jika controller berubah (misal oleh _setInitialValue)
+              if (widget.controller.text != state.value) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  state.didChange(widget.controller.text);
+                });
+              }
+
+              // Tentukan border
+              final BorderSide errorBorder = const BorderSide(
+                color: AppColors.errorColor,
+                width: 1.0,
+              );
+              final BorderSide defaultBorder = widget.borderColor != null
+                  ? BorderSide(
+                      color: widget.borderColor!,
+                      width: widget.borderWidth,
+                    )
+                  : BorderSide.none;
+
+              // Tentukan background color
+              final Color bgColor = widget.enabled
+                  ? (widget.backgroundColor ?? Colors.white)
+                  : Colors.grey.shade100;
+
+              return Card(
+                elevation: widget.elevation,
+                margin: EdgeInsets.zero,
+                // Diubah: Terapkan background color dinamis
+                color: bgColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  // Diubah: Terapkan border dinamis
+                  side: state.hasError ? errorBorder : defaultBorder,
                 ),
-              ),
-            ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TextFormField(
+                    controller: widget.controller,
+                    readOnly: true,
+                    // Diubah: Kirim state ke _pickTime
+                    onTap: () => _pickTime(state),
+                    validator: null, // Validator dipindahkan ke FormField
+                    style: fieldTextStyle, // <-- Gunakan style dinamis
+                    decoration: InputDecoration(
+                      hintText: widget.hintText ?? '--:--',
+                      hintStyle: hintStyle, // <-- Gunakan hint style dinamis
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      prefixIcon: _buildPrefixWithDivider(widget.prefixIcon),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

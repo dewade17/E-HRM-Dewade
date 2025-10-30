@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
@@ -60,7 +62,7 @@ class _ButtonGetTokenState extends State<ButtonGetToken> {
       height: 40,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryColor,
+          backgroundColor: AppColors.secondaryColor.withOpacity(0.8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

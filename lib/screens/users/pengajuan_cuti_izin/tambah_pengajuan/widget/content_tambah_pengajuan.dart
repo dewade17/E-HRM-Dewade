@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/tambah_pengajuan/pengajuan_cuti/pengajuan_cuti_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/pengajuan_cuti_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

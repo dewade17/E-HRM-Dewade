@@ -15,6 +15,9 @@ class Endpoints {
   //location
   static const String location = "$baseURL/admin/location";
 
+  //pengajuan cuti
+  static const String kategoriCuti = "$baseURL/admin/kategori-cuti";
+
   //departements
   static const String departements = "$baseURL/mobile/departements";
 

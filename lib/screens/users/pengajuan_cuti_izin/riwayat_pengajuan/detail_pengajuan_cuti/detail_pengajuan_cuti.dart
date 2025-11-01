@@ -1,19 +1,20 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:math' as math;
 
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/tambah_pengajuan/pengajuan_cuti/widget/form_pengajuan_cuti.dart';
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/tambah_pengajuan/pengajuan_cuti/widget/half_oval_pengajuan_cuti.dart';
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/tambah_pengajuan/pengajuan_cuti/widget/header_pengajuan_cuti.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/widget/content_detail_cuti.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/widget/header_detail_cuti.dart';
 import 'package:flutter/material.dart';
 
-class PengajuanCutiScreen extends StatefulWidget {
-  const PengajuanCutiScreen({super.key});
+class DetailPengajuanCuti extends StatefulWidget {
+  const DetailPengajuanCuti({super.key});
 
   @override
-  State<PengajuanCutiScreen> createState() => _PengajuanCutiScreenState();
+  State<DetailPengajuanCuti> createState() => _DetailPengajuanCutiState();
 }
 
-class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
+class _DetailPengajuanCutiState extends State<DetailPengajuanCuti> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -51,14 +52,6 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: double.infinity,
-              height: 300,
-              child: const HalfOvalPengajuanCuti(height: 40, sigma: 0),
-            ),
-          ),
 
           Positioned.fill(
             child: SafeArea(
@@ -80,7 +73,7 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: FormPengajuanCuti(),
+                          child: ContentDetailCuti(),
                         ),
                       ],
                     ),
@@ -89,7 +82,7 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
               ),
             ),
           ),
-          Positioned(top: 40, left: 10, child: HeaderPengajuanCuti()),
+          Positioned(top: 40, left: 10, child: HeaderDetailCuti()),
         ],
       ),
     );

@@ -34,14 +34,39 @@ class AbsensiStatus {
             .toList() ??
         const <String>[];
 
+    final jamMasuk = jamMasukRaw is String && jamMasukRaw.isNotEmpty
+        ? DateTime.tryParse(jamMasukRaw)
+        : null;
+    final jamPulang = jamPulangRaw is String && jamPulangRaw.isNotEmpty
+        ? DateTime.tryParse(jamPulangRaw)
+        : null;
+
+    final rawMode = json["mode"];
+    final normalizedMode = rawMode == null
+        ? ''
+        : rawMode.toString().trim().toLowerCase();
+    final normalizedKey = normalizedMode.replaceAll(RegExp(r"[\s_\-]"), '');
+    const normalizedModeMap = <String, String>{
+      'checkin': 'checkin',
+      'checkout': 'checkout',
+      'done': 'done',
+    };
+    final mappedMode = normalizedModeMap[normalizedKey] ?? '';
+    String resolvedMode;
+    if (mappedMode.isNotEmpty) {
+      resolvedMode = mappedMode;
+    } else if (jamMasuk != null && jamPulang == null) {
+      resolvedMode = 'checkout';
+    } else if (jamMasuk != null && jamPulang != null) {
+      resolvedMode = 'done';
+    } else {
+      resolvedMode = 'checkin';
+    }
+
     return AbsensiStatus(
-      jamMasuk: jamMasukRaw is String && jamMasukRaw.isNotEmpty
-          ? DateTime.tryParse(jamMasukRaw)
-          : null,
-      jamPulang: jamPulangRaw is String && jamPulangRaw.isNotEmpty
-          ? DateTime.tryParse(jamPulangRaw)
-          : null,
-      mode: json["mode"] ?? 'checkin',
+      jamMasuk: jamMasuk,
+      jamPulang: jamPulang,
+      mode: resolvedMode,
       ok: json["ok"] ?? false,
       today: DateTime.parse(json["today"]),
       linkedAgendaIds: agendaIds, // <-- SET NILAINYA

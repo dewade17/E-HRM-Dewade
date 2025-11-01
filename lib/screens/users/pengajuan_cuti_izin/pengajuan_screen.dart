@@ -1,5 +1,5 @@
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/riwayat_pengajuan/riwayat_pengajuan_screen.dart';
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/tambah_pengajuan/tambah_pengajuan_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/riwayat_pengajuan_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/tambah_pengajuan_screen.dart';
 import 'package:flutter/material.dart';
 
 class PengajuanScreen extends StatefulWidget {

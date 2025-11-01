@@ -1,16 +1,15 @@
 import 'dart:math' as math;
-
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/riwayat_pengajuan/widget/content_riwayat_pengajuan.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/content_tambah_pengajuan.dart';
 import 'package:flutter/material.dart';
 
-class RiwayatPengajuanScreen extends StatefulWidget {
-  const RiwayatPengajuanScreen({super.key});
+class TambahPengajuanScreen extends StatefulWidget {
+  const TambahPengajuanScreen({super.key});
 
   @override
-  State<RiwayatPengajuanScreen> createState() => _RiwayatPengajuanScreenState();
+  State<TambahPengajuanScreen> createState() => _TambahPengajuanScreenState();
 }
 
-class _RiwayatPengajuanScreenState extends State<RiwayatPengajuanScreen> {
+class _TambahPengajuanScreenState extends State<TambahPengajuanScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -59,13 +58,13 @@ class _RiwayatPengajuanScreenState extends State<RiwayatPengajuanScreen> {
                   parent: BouncingScrollPhysics(),
                 ),
                 // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(15, 20, 15, 24),
+                padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
                 child: Stack(
                   //saya ingin
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [ContentRiwayatPengajuan()],
+                      children: [ContentTambahPengajuan()],
                     ),
                   ],
                 ),

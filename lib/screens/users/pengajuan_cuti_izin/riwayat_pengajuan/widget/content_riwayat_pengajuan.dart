@@ -1,7 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/riwayat_pengajuan/widget/calendar_riwayat_pengajuan.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/detail_pengajuan_cuti.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/widget/calendar_riwayat_pengajuan.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -108,7 +109,12 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
           borderColor: AppColors.primaryColor, // Warna border "Menunggu"
           onEditPressed: () {},
           onDeletePressed: () {},
-          onDetailPressed: () {},
+          onDetailPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => DetailPengajuanCuti()),
+            );
+          },
         ),
         SizedBox(height: 12),
         RiwayatItemCard(
@@ -280,7 +286,7 @@ class RiwayatItemCard extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.all(10),
                   child: Text(
-                    statusText, // <-- Menggunakan parameter
+                    statusText,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,

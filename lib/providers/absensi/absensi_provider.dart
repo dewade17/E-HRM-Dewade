@@ -1,6 +1,7 @@
 // lib/providers/absensi/absensi_provider.dart
 
 import 'dart:io';
+
 import 'dart:convert';
 import 'package:e_hrm/dto/absensi/absensi_checkout.dart';
 import 'package:e_hrm/dto/absensi/absensi_status.dart';
@@ -43,6 +44,10 @@ class AbsensiProvider extends ChangeNotifier {
     error = null;
     checkinResult = null;
     checkoutResult = null;
+    // --- TAMBAHAN OPSIONAL ---
+    // Sebaiknya reset todayStatus juga saat logout
+    todayStatus = null;
+    // --- END TAMBAHAN ---
     notifyListeners();
   }
 
@@ -70,7 +75,14 @@ class AbsensiProvider extends ChangeNotifier {
     );
     if (value != null) {
       checkinResult = value;
-      notifyListeners();
+      // notifyListeners(); // Tidak perlu, fetchTodayStatus sudah memanggilnya
+
+      // ==========================================================
+      // --- PERBAIKAN BUG ---
+      // Panggil fetchTodayStatus untuk sinkronisasi state 'todayStatus'
+      // setelah check-in berhasil.
+      // ==========================================================
+      await fetchTodayStatus(userId);
     }
     return value;
   }
@@ -99,7 +111,14 @@ class AbsensiProvider extends ChangeNotifier {
     );
     if (value != null) {
       checkoutResult = value;
-      notifyListeners();
+      // notifyListeners(); // Tidak perlu, fetchTodayStatus sudah memanggilnya
+
+      // ==========================================================
+      // --- PERBAIKAN BUG ---
+      // Panggil fetchTodayStatus untuk sinkronisasi state 'todayStatus'
+      // setelah check-out berhasil.
+      // ==========================================================
+      await fetchTodayStatus(userId);
     }
     return value;
   }
@@ -190,7 +209,7 @@ class AbsensiProvider extends ChangeNotifier {
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
 
-      // --- PERBAIKAN UTAMA DI SINI ---
+      // --- PERBAIKAN UTAMA DI SINI --- (Komentar ini sudah ada sebelumnya)
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final Map<String, dynamic> jsonMap =
             jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
@@ -249,6 +268,9 @@ class AbsensiProvider extends ChangeNotifier {
       return dto;
     } catch (e) {
       error = e.toString();
+      todayStatus = null; // --- PERBAIKAN BUG KECIL ---
+      // Jika fetch gagal, pastikan status di-reset ke null
+      // agar tidak menampilkan data basi dari hari sebelumnya.
       return null;
     } finally {
       loadingStatus = false;

@@ -122,7 +122,17 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               SizedBox(height: 10),
               HomeContent(),
               SizedBox(height: 10),
-              AbsensiButton(),
+
+              // --- PERUBAHAN DI SINI ---
+              // Tombol absensi dibungkus Padding agar memiliki jarak
+              // konsisten dari tepi layar.
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
+                child: AbsensiButton(),
+              ),
+              // Tambah jarak di bagian bawah
+              SizedBox(height: 20),
+              // --- AKHIR PERUBAHAN ---
             ],
           ),
         ),

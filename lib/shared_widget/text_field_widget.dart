@@ -1,3 +1,5 @@
+// lib/shared_widget/text_field_widget.dart
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,10 +29,9 @@ class TextFieldWidget extends StatefulWidget {
     this.borderRadius = 12,
     this.autovalidateMode,
     this.maxLines = 1,
-    // Ditambahkan: Properti untuk menentukan tipe validasi default
     this.validationType = ValidationType.none,
-    // Ditambahkan: Properti untuk background color
     this.backgroundColor,
+    this.enabled = true, // <-- BARU: Tambahkan properti enabled
   });
 
   /// Teks label di atas field (contoh: "Email", "Password")
@@ -91,9 +92,11 @@ class TextFieldWidget extends StatefulWidget {
   /// Ditambahkan: Tipe validasi default yang akan digunakan jika validator custom null.
   final ValidationType validationType;
 
-  // Ditambahkan: Warna background
   /// Warna background untuk Card (opsional)
   final Color? backgroundColor;
+
+  /// BARU: Properti untuk mengaktifkan/menonaktifkan field
+  final bool enabled;
 
   @override
   State<TextFieldWidget> createState() => _TextFieldWidgetState();
@@ -112,18 +115,20 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
   Widget build(BuildContext context) {
     final bool isPwd = widget.isPassword;
 
-    // Logika keyboard type tidak berubah, ini bagus untuk kenyamanan
     final TextInputType kb =
         widget.keyboardType ??
         (widget.validationType == ValidationType.email
             ? TextInputType.emailAddress
             : TextInputType.text);
 
+    // DIUBAH: Warna label kini bergantung pada status 'enabled'
     final TextStyle baseLabelStyle = GoogleFonts.poppins(
-      textStyle: const TextStyle(
+      textStyle: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
-        color: AppColors.textDefaultColor,
+        color: widget.enabled
+            ? AppColors.textDefaultColor
+            : Colors.grey.shade500,
       ),
     );
 
@@ -133,6 +138,15 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
     final BorderSide cardBorder = widget.borderColor != null
         ? BorderSide(color: widget.borderColor!, width: widget.borderWidth)
         : BorderSide.none;
+
+    // DIUBAH: Style teks field bergantung pada status 'enabled'
+    final fieldTextStyle = TextStyle(
+      color: widget.enabled ? AppColors.textDefaultColor : Colors.grey.shade600,
+    );
+    final hintStyle = TextStyle(
+      color: widget.enabled ? Colors.grey.shade400 : Colors.grey.shade300,
+      fontStyle: FontStyle.italic,
+    );
 
     return SizedBox(
       width: widget.width,
@@ -155,8 +169,10 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
           SizedBox(
             height: widget.height,
             child: Card(
-              // Ditambahkan: Menggunakan properti backgroundColor
-              color: widget.backgroundColor,
+              // DIUBAH: Warna background bergantung pada status 'enabled'
+              color: widget.enabled
+                  ? widget.backgroundColor
+                  : Colors.grey.shade100,
               elevation: widget.elevation,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(widget.borderRadius),
@@ -170,12 +186,12 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
                   obscureText: isPwd ? _obscure : false,
                   autovalidateMode: widget.autovalidateMode,
                   maxLines: isPwd ? 1 : widget.maxLines,
+                  enabled: widget.enabled, // <-- BARU
+                  readOnly: !widget.enabled, // <-- BARU
+                  style: fieldTextStyle, // <-- BARU
                   decoration: InputDecoration(
                     hintText: widget.hintText,
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    hintStyle: hintStyle, // <-- DIUBAH
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 16),
                     prefixIcon: widget.prefixIcon != null
@@ -195,7 +211,6 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
                           )
                         : null,
                   ),
-                  // Diubah: Memanggil _defaultValidator tanpa argumen
                   validator: widget.validator ?? _defaultValidator(),
                   onChanged: widget.onChanged,
                 ),
@@ -207,15 +222,21 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
     );
   }
 
+  // DIUBAH: Helper prefix icon kini bergantung pada status 'enabled'
   Widget _buildPrefixWithDivider(IconData? icon) {
     if (icon == null) return const SizedBox.shrink();
+
+    // DIUBAH: Warna ikon meredup jika disabled
+    final iconColor = widget.enabled
+        ? AppColors.secondTextColor
+        : Colors.grey.shade400;
 
     return SizedBox(
       width: 60,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon),
+          Icon(icon, color: iconColor), // <-- DIUBAH
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
             width: 1,
@@ -227,22 +248,18 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
     );
   }
 
-  // Diubah: Fungsi validator menjadi lebih cerdas berdasarkan `validationType`
   String? Function(String?) _defaultValidator() {
     return (value) {
       final String v = value?.trim() ?? '';
 
-      // Pengecekan wajib isi berlaku untuk semua tipe
       if (widget.isRequired && v.isEmpty) {
         return '${widget.label} tidak boleh kosong';
       }
 
-      // Jika tidak wajib dan kosong, tidak perlu validasi lebih lanjut
       if (v.isEmpty) {
         return null;
       }
 
-      // Gunakan switch untuk validasi spesifik
       switch (widget.validationType) {
         case ValidationType.email:
           final RegExp emailPattern = RegExp(
@@ -258,7 +275,6 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
           }
           break;
         case ValidationType.none:
-          // Tidak ada validasi tambahan
           break;
       }
 

@@ -32,7 +32,7 @@ class HeaderPengajuanCuti extends StatelessWidget {
               ),
             ),
             Text(
-              "Silahkan mengisi form pengajuan cuti kamu",
+              "Silahkan mengisi form pengajuan kamu",
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,

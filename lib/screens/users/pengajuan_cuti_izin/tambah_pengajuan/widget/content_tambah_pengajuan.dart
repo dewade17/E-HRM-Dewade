@@ -2,6 +2,9 @@
 
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/pengajuan_cuti_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/pengajuan_izin_jam_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/pengajuan_izin_sakit_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -110,7 +113,7 @@ class _ContentTambahPengajuanState extends State<ContentTambahPengajuan> {
           title: "Pengajuan Cuti",
           subtitle: "Silahkan ajukan cutimu disini!",
           buttonText: "Ajukan",
-          backgroundColor: AppColors.primaryColor,
+          backgroundColor: AppColors.textColor,
           onPressed: () {
             // Menggunakan Navigator untuk pindah ke halaman baru
             Navigator.push(
@@ -124,24 +127,44 @@ class _ContentTambahPengajuanState extends State<ContentTambahPengajuan> {
           title: "Pengajuan Izin Sakit",
           subtitle: "Silahkan ajukan cutimu disini!",
           buttonText: "Ajukan",
-          backgroundColor: AppColors.primaryColor,
-          onPressed: () {},
+          backgroundColor: AppColors.textColor,
+          onPressed: () {
+            // Menggunakan Navigator untuk pindah ke halaman baru
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PengajuanIzinSakitScreen(),
+              ),
+            );
+          },
         ),
         SizedBox(height: 10),
         PengajuanCard(
           title: "Pengajuan Izin Tukar Hari",
           subtitle: "Silahkan ajukan cutimu disini!",
           buttonText: "Ajukan",
-          backgroundColor: AppColors.primaryColor,
-          onPressed: () {},
+          backgroundColor: AppColors.textColor,
+          onPressed: () {
+            // Menggunakan Navigator untuk pindah ke halaman baru
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PengajuanIzinTukarHari()),
+            );
+          },
         ),
         SizedBox(height: 10),
         PengajuanCard(
           title: "Pengajuan Izin Jam",
           subtitle: "Silahkan ajukan cutimu disini!",
           buttonText: "Ajukan",
-          backgroundColor: AppColors.primaryColor,
-          onPressed: () {},
+          backgroundColor: AppColors.textColor,
+          onPressed: () {
+            // Menggunakan Navigator untuk pindah ke halaman baru
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PengajuanIzinJamScreen()),
+            );
+          },
         ),
       ],
     );
@@ -174,6 +197,7 @@ class PengajuanCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor, // <- Menggunakan parameter
         borderRadius: BorderRadius.all(Radius.circular(10)),
+        border: Border.all(color: AppColors.primaryColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

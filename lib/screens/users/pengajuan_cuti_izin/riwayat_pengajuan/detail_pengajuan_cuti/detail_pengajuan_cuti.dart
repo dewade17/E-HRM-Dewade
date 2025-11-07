@@ -60,7 +60,7 @@ class _DetailPengajuanCutiState extends State<DetailPengajuanCuti> {
               right: false,
               child: SingleChildScrollView(
                 // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(10, 120, 10, 24),
+                padding: const EdgeInsets.fromLTRB(10, 80, 10, 24),
                 child: Stack(
                   children: [
                     Column(

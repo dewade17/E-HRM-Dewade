@@ -1,9 +1,16 @@
+// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/widget/form_pengajuan_cuti.dart
+
+import 'dart:io'; // <-- Impor 'dart:io'
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
+import 'package:e_hrm/shared_widget/file_picker_field_widget.dart'; // <-- Widget baru kita
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+// Hapus: import 'package:file_picker/file_picker.dart';
 
 class FormPengajuanCuti extends StatefulWidget {
   const FormPengajuanCuti({super.key});
@@ -14,25 +21,134 @@ class FormPengajuanCuti extends StatefulWidget {
 
 class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+  final TextEditingController jenisCutiController = TextEditingController();
   final TextEditingController keperluanController = TextEditingController();
+  final TextEditingController handoverController = TextEditingController();
   final TextEditingController tanggalMulaiController = TextEditingController();
   final TextEditingController tanggalMasukController = TextEditingController();
 
-  // FIX: Deklarasi variabel status untuk tanggal cuti
   DateTime? _tanggalMulai;
   DateTime? _tanggalMasuk;
+  // DIUBAH: Gunakan File? dari dart:io
+  File? _buktiFile;
+
+  bool _autoValidate = false;
+
+  @override
+  void initState() {
+    super.initState();
+    jenisCutiController.text = "Pengajuan Cuti";
+  }
+
+  @override
+  void dispose() {
+    jenisCutiController.dispose();
+    keperluanController.dispose();
+    handoverController.dispose();
+    tanggalMulaiController.dispose();
+    tanggalMasukController.dispose();
+    super.dispose();
+  }
+
+  void _submitForm() {
+    setState(() {
+      _autoValidate = true;
+    });
+
+    if (formKey.currentState?.validate() ?? false) {
+      // TODO: Logika submit data pengajuan cuti
+      print("Form valid. Mengirim data...");
+      // Kirim _buktiFile (File) ke API Anda
+      print("File yang diunggah: ${_buktiFile?.path ?? 'Tidak ada'}");
+      print(
+        "Ukuran file: ${_buktiFile != null ? _buktiFile!.lengthSync() : 0} bytes",
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Form Valid. Logika submit belum diimplementasikan.'),
+          backgroundColor: AppColors.succesColor,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Harap periksa kembali semua isian form.'),
+          backgroundColor: AppColors.errorColor,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final autovalidateMode = _autoValidate
+        ? AutovalidateMode.onUserInteraction
+        : AutovalidateMode.disabled;
+
     return Form(
       key: formKey,
+      autovalidateMode: autovalidateMode,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
+            TextFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Jenis Cuti',
+              controller: jenisCutiController,
+              hintText: '',
+              isRequired: true,
+              prefixIcon: Icons.description_outlined,
+              keyboardType: TextInputType.text,
+              maxLines: 1,
+              enabled: false,
+              autovalidateMode: autovalidateMode,
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-              child: const RecipientCuti(),
+              child: FormField<Set<String>>(
+                autovalidateMode: autovalidateMode,
+                initialValue: context
+                    .watch<ApproversProvider>()
+                    .selectedRecipientIds,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Penerima laporan (Supervisi) wajib dipilih.';
+                  }
+                  return null;
+                },
+                builder: (FormFieldState<Set<String>> state) {
+                  final provider = context.watch<ApproversProvider>();
+                  final currentValue = provider.selectedRecipientIds;
+                  if (state.value != currentValue) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        state.didChange(currentValue);
+                      }
+                    });
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const RecipientCuti(),
+                      if (state.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12, top: 8),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 20),
             TextFieldWidget(
@@ -44,7 +160,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               isRequired: true,
               prefixIcon: Icons.description_outlined,
               keyboardType: TextInputType.multiline,
-              maxLines: 3, // Perbolehkan multiline
+              maxLines: 3,
+              autovalidateMode: autovalidateMode,
             ),
             SizedBox(height: 20),
             DatePickerFieldWidget(
@@ -70,19 +187,66 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
             TextFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
-              label: 'Keperluan',
-              controller: keperluanController,
+              label: 'Handover Pekerjaan',
+              controller: handoverController,
               hintText: 'Handover Pekerjaan (min. 50 kata)',
               isRequired: true,
               prefixIcon: Icons.description_outlined,
               keyboardType: TextInputType.multiline,
-              maxLines: 5, // Perbolehkan multiline
+              maxLines: 5,
+              autovalidateMode: autovalidateMode,
+              validator: (value) {
+                final v = value?.trim() ?? '';
+                if (v.isEmpty) {
+                  return 'Handover Pekerjaan tidak boleh kosong';
+                }
+                final wordCount = v
+                    .split(RegExp(r'\s+'))
+                    .where((s) => s.isNotEmpty)
+                    .length;
+                if (wordCount < 50) {
+                  return 'Minimal 50 kata. (Sekarang: $wordCount kata)';
+                }
+                return null;
+              },
             ),
+            SizedBox(height: 20),
+
+            // <-- DIUBAH: Menggunakan widget baru -->
+            FilePickerFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Unggah Bukti',
+              buttonText: 'Unggah Bukti', // Sesuai desain
+              prefixIcon: Icons.camera_alt_outlined,
+              file: _buktiFile, // Kirim file dari state
+              onFileChanged: (newFile) {
+                // Terima file dan update state
+                setState(() {
+                  _buktiFile = newFile;
+                });
+                // Validasi ulang jika form sudah divalidasi
+                if (_autoValidate) {
+                  formKey.currentState?.validate();
+                }
+              },
+              isRequired: false, // Set ke true jika bukti wajib
+              autovalidateMode: autovalidateMode,
+              validator: (file) {
+                // (Contoh jika diwajibkan)
+                // if (file == null && false /* ganti ini dgn true jika wajib */) {
+                //   return 'Bukti wajib diunggah';
+                // }
+                return null;
+              },
+            ),
+
+            // <-- AKHIR PERUBAHAN -->
             SizedBox(height: 20),
             SizedBox(
               width: 150,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondaryColor,
                   shape: RoundedRectangleBorder(

@@ -2,11 +2,13 @@ import 'package:e_hrm/providers/absensi/absensi_provider.dart';
 import 'package:e_hrm/providers/agenda/agenda_provider.dart';
 import 'package:e_hrm/providers/agenda_kerja/agenda_kerja_provider.dart';
 import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
-import 'package:e_hrm/providers/istirahat/istirahat_provider.dart';
-import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/auth/reset_password_provider.dart';
 import 'package:e_hrm/providers/departements/departements_provider.dart';
+import 'package:e_hrm/providers/face/face_enroll/face_enroll_provider.dart';
+import 'package:e_hrm/providers/istirahat/istirahat_provider.dart';
+import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart';
+import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/providers/location/location_provider.dart';
 import 'package:e_hrm/providers/notifications/notifications_provider.dart';
@@ -24,7 +26,6 @@ import 'package:e_hrm/screens/users/jam_isitirahat/jam_istirahat_screen.dart';
 import 'package:e_hrm/services/auth_wrapper.dart';
 import 'package:e_hrm/services/notification_handlers.dart';
 import 'package:e_hrm/utils/app_theme.dart';
-import 'package:e_hrm/providers/face/face_enroll/face_enroll_provider.dart';
 import 'package:e_hrm/screens/face/face_enroll_screen/face_enroll_screen.dart';
 import 'package:e_hrm/services/api_services.dart';
 import 'package:flutter/material.dart';
@@ -64,6 +65,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(create: (_) => DepartementProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => KonfigurasiCutiProvider()),
         ChangeNotifierProvider(create: (_) => AgendaKerjaProvider()),
         ChangeNotifierProvider(create: (_) => FaceEnrollProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => AbsensiProvider()),

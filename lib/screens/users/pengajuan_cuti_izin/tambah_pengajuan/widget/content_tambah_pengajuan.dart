@@ -1,12 +1,14 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/pengajuan_cuti_screen.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/pengajuan_izin_jam_screen.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/pengajuan_izin_sakit_screen.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class ContentTambahPengajuan extends StatefulWidget {
   const ContentTambahPengajuan({super.key});
@@ -16,76 +18,118 @@ class ContentTambahPengajuan extends StatefulWidget {
 }
 
 class _ContentTambahPengajuanState extends State<ContentTambahPengajuan> {
+  bool _konfigurasiRequested = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_konfigurasiRequested) return;
+    _konfigurasiRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<KonfigurasiCutiProvider>().fetch();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final konfigurasi = context.watch<KonfigurasiCutiProvider>();
+    final latestData = konfigurasi.items.isNotEmpty
+        ? konfigurasi.items.last
+        : null;
+    final bool hasData = latestData != null;
+    final String sisaCutiText = hasData
+        ? _formatValue(latestData!.koutaCuti)
+        : (konfigurasi.loading ? '...' : '--');
+    final String cutiTabungText = hasData
+        ? _formatValue(latestData!.cutiTabung)
+        : (konfigurasi.loading ? '...' : '--');
+    final String rawStatus = konfigurasi.statusCuti?.trim() ?? '';
+    final bool statusActive =
+        rawStatus.isNotEmpty && rawStatus.toLowerCase() == 'aktif';
+    final Color cutiTabungBackground = statusActive
+        ? AppColors.primaryColor.withOpacity(0.6)
+        : AppColors.hintColor.withOpacity(0.45);
+
+    final cardChildren = <Widget>[
+      Container(
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        width: 160,
+        height: 90,
+        decoration: BoxDecoration(
+          color: AppColors.errorColor.withOpacity(0.6),
+          borderRadius: BorderRadius.all(Radius.circular(10)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Sisa Cuti Bulan",
+              style: GoogleFonts.poppins(
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textDefaultColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+
+            Text(
+              sisaCutiText,
+              style: GoogleFonts.poppins(
+                fontSize: 25,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textDefaultColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    if (statusActive) {
+      cardChildren.add(
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          width: 160,
+          height: 90,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            color: cutiTabungBackground,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Cuti Tabung",
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textDefaultColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              Text(
+                cutiTabungText,
+                style: GoogleFonts.poppins(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textDefaultColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              width: 160,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.errorColor.withOpacity(0.6),
-                borderRadius: BorderRadius.all(Radius.circular(10)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Sisa Cuti Bulan",
-                    style: GoogleFonts.poppins(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-
-                  Text(
-                    "02",
-                    style: GoogleFonts.poppins(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              width: 160,
-              height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(10)),
-                color: AppColors.primaryColor.withOpacity(0.6),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Cuti Tabung",
-                    style: GoogleFonts.poppins(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-
-                  Text(
-                    "02",
-                    style: GoogleFonts.poppins(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDefaultColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          children: cardChildren,
         ),
         SizedBox(height: 20),
         Row(
@@ -169,6 +213,8 @@ class _ContentTambahPengajuanState extends State<ContentTambahPengajuan> {
       ],
     );
   }
+
+  String _formatValue(int value) => value.toString().padLeft(2, '0');
 }
 
 class PengajuanCard extends StatelessWidget {

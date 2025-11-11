@@ -14,20 +14,28 @@ String konfigurasiCutiToJson(KonfigurasiCuti data) =>
 class KonfigurasiCuti {
   bool ok;
   List<Data> data;
+  String statusCuti;
   Meta meta;
 
-  KonfigurasiCuti({required this.ok, required this.data, required this.meta});
+  KonfigurasiCuti({
+    required this.ok,
+    required this.data,
+    required this.statusCuti,
+    required this.meta,
+  });
 
   factory KonfigurasiCuti.fromJson(Map<String, dynamic> json) =>
       KonfigurasiCuti(
         ok: json["ok"],
         data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
+        statusCuti: json["status_cuti"],
         meta: Meta.fromJson(json["meta"]),
       );
 
   Map<String, dynamic> toJson() => {
     "ok": ok,
     "data": List<dynamic>.from(data.map((x) => x.toJson())),
+    "status_cuti": statusCuti,
     "meta": meta.toJson(),
   };
 }

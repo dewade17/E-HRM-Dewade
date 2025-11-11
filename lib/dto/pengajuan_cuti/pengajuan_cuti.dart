@@ -1,28 +1,40 @@
+// To parse this JSON data, do
+//
+//     final pengajuanCuti = pengajuanCutiFromJson(jsonString);
+
 import 'package:meta/meta.dart';
 import 'dart:convert';
 
-Kategoricuti kategoricutiFromJson(String str) =>
-    Kategoricuti.fromJson(json.decode(str));
+PengajuanCuti pengajuanCutiFromJson(String str) =>
+    PengajuanCuti.fromJson(json.decode(str));
 
-String kategoricutiToJson(Kategoricuti data) => json.encode(data.toJson());
+String pengajuanCutiToJson(PengajuanCuti data) => json.encode(data.toJson());
 
-class Kategoricuti {
+class PengajuanCuti {
   bool ok;
+  String message;
   List<Data> data;
-  Meta meta;
+  Upload upload;
 
-  Kategoricuti({required this.ok, required this.data, required this.meta});
+  PengajuanCuti({
+    required this.ok,
+    required this.message,
+    required this.data,
+    required this.upload,
+  });
 
-  factory Kategoricuti.fromJson(Map<String, dynamic> json) => Kategoricuti(
+  factory PengajuanCuti.fromJson(Map<String, dynamic> json) => PengajuanCuti(
     ok: json["ok"],
+    message: json["message"],
     data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
-    meta: Meta.fromJson(json["meta"]),
+    upload: Upload.fromJson(json["upload"]),
   );
 
   Map<String, dynamic> toJson() => {
     "ok": ok,
+    "message": message,
     "data": List<dynamic>.from(data.map((x) => x.toJson())),
-    "meta": meta.toJson(),
+    "upload": upload.toJson(),
   };
 }
 
@@ -31,7 +43,6 @@ class Data {
   String idUser;
   String idKategoriCuti;
   String keperluan;
-  DateTime tanggalMulai;
   DateTime tanggalMasukKerja;
   String handover;
   String status;
@@ -44,14 +55,14 @@ class Data {
   User user;
   KategoriCuti kategoriCuti;
   List<HandoverUser> handoverUsers;
-  List<dynamic> approvals;
+  List<Approval> approvals;
+  List<TanggalList> tanggalList;
 
   Data({
     required this.idPengajuanCuti,
     required this.idUser,
     required this.idKategoriCuti,
     required this.keperluan,
-    required this.tanggalMulai,
     required this.tanggalMasukKerja,
     required this.handover,
     required this.status,
@@ -65,6 +76,7 @@ class Data {
     required this.kategoriCuti,
     required this.handoverUsers,
     required this.approvals,
+    required this.tanggalList,
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
@@ -72,7 +84,6 @@ class Data {
     idUser: json["id_user"],
     idKategoriCuti: json["id_kategori_cuti"],
     keperluan: json["keperluan"],
-    tanggalMulai: DateTime.parse(json["tanggal_mulai"]),
     tanggalMasukKerja: DateTime.parse(json["tanggal_masuk_kerja"]),
     handover: json["handover"],
     status: json["status"],
@@ -87,7 +98,12 @@ class Data {
     handoverUsers: List<HandoverUser>.from(
       json["handover_users"].map((x) => HandoverUser.fromJson(x)),
     ),
-    approvals: List<dynamic>.from(json["approvals"].map((x) => x)),
+    approvals: List<Approval>.from(
+      json["approvals"].map((x) => Approval.fromJson(x)),
+    ),
+    tanggalList: List<TanggalList>.from(
+      json["tanggal_list"].map((x) => TanggalList.fromJson(x)),
+    ),
   );
 
   Map<String, dynamic> toJson() => {
@@ -95,7 +111,6 @@ class Data {
     "id_user": idUser,
     "id_kategori_cuti": idKategoriCuti,
     "keperluan": keperluan,
-    "tanggal_mulai": tanggalMulai.toIso8601String(),
     "tanggal_masuk_kerja": tanggalMasukKerja.toIso8601String(),
     "handover": handover,
     "status": status,
@@ -108,7 +123,48 @@ class Data {
     "user": user.toJson(),
     "kategori_cuti": kategoriCuti.toJson(),
     "handover_users": List<dynamic>.from(handoverUsers.map((x) => x.toJson())),
-    "approvals": List<dynamic>.from(approvals.map((x) => x)),
+    "approvals": List<dynamic>.from(approvals.map((x) => x.toJson())),
+    "tanggal_list": List<dynamic>.from(tanggalList.map((x) => x.toJson())),
+  };
+}
+
+class Approval {
+  String idApprovalPengajuanCuti;
+  int level;
+  dynamic approverUserId;
+  String approverRole;
+  String decision;
+  dynamic decidedAt;
+  dynamic note;
+
+  Approval({
+    required this.idApprovalPengajuanCuti,
+    required this.level,
+    required this.approverUserId,
+    required this.approverRole,
+    required this.decision,
+    required this.decidedAt,
+    required this.note,
+  });
+
+  factory Approval.fromJson(Map<String, dynamic> json) => Approval(
+    idApprovalPengajuanCuti: json["id_approval_pengajuan_cuti"],
+    level: json["level"],
+    approverUserId: json["approver_user_id"],
+    approverRole: json["approver_role"],
+    decision: json["decision"],
+    decidedAt: json["decided_at"],
+    note: json["note"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id_approval_pengajuan_cuti": idApprovalPengajuanCuti,
+    "level": level,
+    "approver_user_id": approverUserId,
+    "approver_role": approverRole,
+    "decision": decision,
+    "decided_at": decidedAt,
+    "note": note,
   };
 }
 
@@ -149,7 +205,7 @@ class User {
   String namaPengguna;
   String email;
   String role;
-  String fotoProfilUser;
+  dynamic fotoProfilUser;
 
   User({
     required this.idUser,
@@ -193,30 +249,43 @@ class KategoriCuti {
   };
 }
 
-class Meta {
-  int page;
-  int perPage;
-  int total;
-  int totalPages;
+class TanggalList {
+  DateTime tanggalCuti;
 
-  Meta({
-    required this.page,
-    required this.perPage,
-    required this.total,
-    required this.totalPages,
+  TanggalList({required this.tanggalCuti});
+
+  factory TanggalList.fromJson(Map<String, dynamic> json) =>
+      TanggalList(tanggalCuti: DateTime.parse(json["tanggal_cuti"]));
+
+  Map<String, dynamic> toJson() => {
+    "tanggal_cuti": tanggalCuti.toIso8601String(),
+  };
+}
+
+class Upload {
+  String key;
+  String publicUrl;
+  String etag;
+  int size;
+
+  Upload({
+    required this.key,
+    required this.publicUrl,
+    required this.etag,
+    required this.size,
   });
 
-  factory Meta.fromJson(Map<String, dynamic> json) => Meta(
-    page: json["page"],
-    perPage: json["perPage"],
-    total: json["total"],
-    totalPages: json["totalPages"],
+  factory Upload.fromJson(Map<String, dynamic> json) => Upload(
+    key: json["key"],
+    publicUrl: json["publicUrl"],
+    etag: json["etag"],
+    size: json["size"],
   );
 
   Map<String, dynamic> toJson() => {
-    "page": page,
-    "perPage": perPage,
-    "total": total,
-    "totalPages": totalPages,
+    "key": key,
+    "publicUrl": publicUrl,
+    "etag": etag,
+    "size": size,
   };
 }

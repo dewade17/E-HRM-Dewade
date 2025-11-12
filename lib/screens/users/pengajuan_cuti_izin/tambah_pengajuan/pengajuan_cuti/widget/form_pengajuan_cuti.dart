@@ -5,8 +5,9 @@ import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
     as kategori_dto;
 import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as pengajuan_dto;
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
+import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
@@ -14,6 +15,7 @@ import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -41,11 +43,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   DateTime? _tanggalMasuk;
   File? _buktiFile;
 
-  // TAMBAHKAN STATE UNTUK KATEGORI TERPILIH
   kategori_dto.Data? _selectedKategoriCuti;
 
   bool _autoValidate = false;
   final DateFormat _dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
+
+  bool get _isEditing => widget.initialData != null;
 
   @override
   void initState() {
@@ -62,15 +65,16 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   void didUpdateWidget(covariant FormPengajuanCuti oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialData != oldWidget.initialData) {
-      _applyInitialData(widget.initialData);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _applyInitialData(widget.initialData);
+        }
+      });
     }
   }
 
   @override
   void dispose() {
-    // Hapus controller 'jenisCutiController'
-    // jenisCutiController.dispose();
-
     keperluanController.dispose();
     handoverController.dispose();
     tanggalMulaiController.dispose();
@@ -78,54 +82,182 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     setState(() {
       _autoValidate = true;
     });
 
-    if (formKey.currentState?.validate() ?? false) {
-      // Validasi tambahan (meskipun validator field sudah menangani ini)
-      if (_selectedKategoriCuti == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+    final formState = formKey.currentState;
+    if (formState == null || !formState.validate()) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
           SnackBar(
-            content: Text('Harap pilih jenis cuti terlebih dahulu.'),
+            content: const Text('Harap periksa kembali semua isian form.'),
             backgroundColor: AppColors.errorColor,
           ),
         );
+      return;
+    }
+
+    if (_selectedKategoriCuti == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Harap pilih jenis cuti terlebih dahulu.'),
+            backgroundColor: AppColors.errorColor,
+          ),
+        );
+      return;
+    }
+
+    if (_tanggalMulai == null || _tanggalMasuk == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Tanggal cuti dan tanggal masuk kerja wajib diisi.',
+            ),
+            backgroundColor: AppColors.errorColor,
+          ),
+        );
+      return;
+    }
+
+    if (_tanggalMasuk!.isBefore(_tanggalMulai!)) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Tanggal masuk kerja tidak boleh sebelum tanggal cuti.',
+            ),
+            backgroundColor: AppColors.errorColor,
+          ),
+        );
+      return;
+    }
+
+    final approvers = context.read<ApproversPengajuanProvider>();
+    if (approvers.selectedRecipientIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Pilih minimal satu penerima laporan (supervisi).',
+            ),
+            backgroundColor: AppColors.errorColor,
+          ),
+        );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    http.MultipartFile? lampiran;
+    if (_buktiFile != null) {
+      try {
+        lampiran = await http.MultipartFile.fromPath(
+          'lampiran_cuti',
+          _buktiFile!.path,
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Gagal membaca lampiran: $e'),
+              backgroundColor: AppColors.errorColor,
+            ),
+          );
         return;
       }
+    }
 
-      // TODO: Logika submit data pengajuan cuti
-      print("Form valid. Mengirim data...");
-      print("Kategori Cuti ID: ${_selectedKategoriCuti!.idKategoriCuti}");
-      print("Nama Kategori: ${_selectedKategoriCuti!.namaKategori}");
-      print("File yang diunggah: ${_buktiFile?.path ?? 'Tidak ada'}");
-      print(
-        "Ukuran file: ${_buktiFile != null ? _buktiFile!.lengthSync() : 0} bytes",
-      );
+    final pengajuanProvider = context.read<PengajuanCutiProvider>();
+    final idKategori = _selectedKategoriCuti!.idKategoriCuti;
+    final keperluan = keperluanController.text.trim();
+    final handover = handoverController.text.trim();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Form Valid. Logika submit belum diimplementasikan.'),
-          backgroundColor: AppColors.succesColor,
-        ),
+    pengajuan_dto.Data? result;
+    if (_isEditing) {
+      final id = widget.initialData!.idPengajuanCuti;
+      result = await pengajuanProvider.updatePengajuan(
+        id,
+        idKategoriCuti: idKategori,
+        keperluan: keperluan,
+        tanggalCuti: _tanggalMulai!,
+        tanggalMasukKerja: _tanggalMasuk!,
+        handover: handover,
+        approversProvider: approvers,
+        lampiran: lampiran,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Harap periksa kembali semua isian form.'),
-          backgroundColor: AppColors.errorColor,
-        ),
+      result = await pengajuanProvider.createPengajuan(
+        idKategoriCuti: idKategori,
+        keperluan: keperluan,
+        tanggalCuti: _tanggalMulai!,
+        tanggalMasukKerja: _tanggalMasuk!,
+        handover: handover,
+        approversProvider: approvers,
+        lampiran: lampiran,
       );
+    }
+
+    if (!mounted) return;
+
+    final errorMessage = pengajuanProvider.saveError;
+    final successMessage = pengajuanProvider.saveMessage;
+
+    if (errorMessage != null && errorMessage.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: AppColors.errorColor,
+          ),
+        );
+      return;
+    }
+
+    if (successMessage != null && successMessage.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: AppColors.succesColor,
+          ),
+        );
+    }
+
+    if (result != null) {
+      if (_isEditing) {
+        Navigator.of(context).pop(result);
+      } else {
+        formState.reset();
+        _applyInitialData(null, notify: false);
+        setState(() {
+          _buktiFile = null;
+          _autoValidate = false;
+        });
+      }
     }
   }
 
   void _applyInitialData(pengajuan_dto.Data? data, {bool notify = true}) {
+    final approversProvider = context.read<ApproversPengajuanProvider>();
+
     if (data == null) {
       keperluanController.clear();
       handoverController.clear();
       tanggalMulaiController.clear();
       tanggalMasukController.clear();
+      approversProvider.clearSelection();
       if (notify) {
         setState(() {
           _selectedKategoriCuti = null;
@@ -146,6 +278,19 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     tanggalMasukController.text = _dateFormatter.format(data.tanggalMasukKerja);
 
     final kategori_dto.Data? kategoriData = _resolveInitialKategori(data);
+
+    final supervisorIds = data.approvals
+        .map((approval) => approval.approverUserId)
+        .whereType<String>()
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    if (supervisorIds.isNotEmpty) {
+      approversProvider.replaceSelection(supervisorIds);
+    } else {
+      approversProvider.clearSelection();
+    }
 
     if (notify) {
       setState(() {
@@ -239,7 +384,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               child: FormField<Set<String>>(
                 autovalidateMode: autovalidateMode,
                 initialValue: context
-                    .watch<ApproversProvider>()
+                    .watch<ApproversPengajuanProvider>()
                     .selectedRecipientIds,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -248,7 +393,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                   return null;
                 },
                 builder: (FormFieldState<Set<String>> state) {
-                  final provider = context.watch<ApproversProvider>();
+                  final provider = context.watch<ApproversPengajuanProvider>();
                   final currentValue = provider.selectedRecipientIds;
                   if (state.value != currentValue) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -360,25 +505,42 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               },
             ),
             SizedBox(height: 20),
-            SizedBox(
-              width: 150,
-              child: ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+            Consumer<PengajuanCutiProvider>(
+              builder: (context, provider, _) {
+                final saving = provider.saving;
+                return SizedBox(
+                  width: 180,
+                  child: ElevatedButton(
+                    onPressed: saving ? null : _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
+                    child: saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.textColor,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            _isEditing ? 'Simpan Perubahan' : 'Kirim Pengajuan',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textColor,
+                            ),
+                          ),
                   ),
-                ),
-                child: Text(
-                  "Kirim",
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textColor,
-                  ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

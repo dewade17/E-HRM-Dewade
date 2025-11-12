@@ -1,6 +1,6 @@
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
-import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/approver_kunjungan_selection.dart';
+import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/approver_cuti_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +17,7 @@ class _RecipientCutiState extends State<RecipientCuti> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ApproversProvider>();
+      final provider = context.read<ApproversPengajuanProvider>();
       if (!provider.isLoading && provider.users.isEmpty) {
         provider.refresh();
       }
@@ -28,13 +28,13 @@ class _RecipientCutiState extends State<RecipientCuti> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const ApproverKunjunganSelection(),
+      builder: (_) => const ApproverCutiSelection(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ApproversProvider>(
+    return Consumer<ApproversPengajuanProvider>(
       builder: (context, provider, _) {
         final selected = provider.selectedUsers;
 

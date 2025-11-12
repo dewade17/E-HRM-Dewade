@@ -1,7 +1,6 @@
 import 'dart:io';
-
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
@@ -108,7 +107,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
               child: FormField<Set<String>>(
                 autovalidateMode: autovalidateMode,
                 initialValue: context
-                    .watch<ApproversProvider>()
+                    .watch<ApproversPengajuanProvider>()
                     .selectedRecipientIds,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -117,7 +116,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                   return null;
                 },
                 builder: (FormFieldState<Set<String>> state) {
-                  final provider = context.watch<ApproversProvider>();
+                  final provider = context.watch<ApproversPengajuanProvider>();
                   final currentValue = provider.selectedRecipientIds;
                   if (state.value != currentValue) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {

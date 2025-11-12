@@ -1,4 +1,4 @@
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -19,7 +19,7 @@ class _ApproverCutiSelectionState extends State<ApproverCutiSelection> {
     _searchController = TextEditingController();
     _searchController.addListener(_handleSearch);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ApproversProvider>();
+      final provider = context.read<ApproversPengajuanProvider>();
       if (!provider.isLoading && provider.users.isEmpty) {
         provider.refresh();
       }
@@ -27,7 +27,9 @@ class _ApproverCutiSelectionState extends State<ApproverCutiSelection> {
   }
 
   void _handleSearch() {
-    context.read<ApproversProvider>().setSearch(_searchController.text);
+    context.read<ApproversPengajuanProvider>().setSearch(
+      _searchController.text,
+    );
   }
 
   @override
@@ -77,7 +79,7 @@ class _ApproverCutiSelectionState extends State<ApproverCutiSelection> {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: Consumer<ApproversProvider>(
+                child: Consumer<ApproversPengajuanProvider>(
                   builder: (context, provider, _) {
                     final users = provider.users;
                     final loading = provider.isLoading;

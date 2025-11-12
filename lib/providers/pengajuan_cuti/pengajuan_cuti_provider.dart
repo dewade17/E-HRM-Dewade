@@ -1,4 +1,4 @@
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:e_hrm/contraints/endpoints.dart';
@@ -220,7 +220,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     String? handover,
     String? jenisPengajuan,
     List<String>? supervisorIds,
-    ApproversProvider? approversProvider,
+    ApproversPengajuanProvider? approversProvider,
     http.MultipartFile? lampiran,
     Map<String, dynamic>? additionalFields,
     String supervisorsFieldName = 'recipient',
@@ -292,7 +292,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     String? handover,
     String? jenisPengajuan,
     List<String>? supervisorIds,
-    ApproversProvider? approversProvider,
+    ApproversPengajuanProvider? approversProvider,
     http.MultipartFile? lampiran,
     Map<String, dynamic>? additionalFields,
     String supervisorsFieldName = 'recipient',
@@ -448,7 +448,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
   Iterable<String> _resolveSupervisorIds({
     List<String>? supervisorIds,
-    ApproversProvider? approversProvider,
+    ApproversPengajuanProvider? approversProvider,
   }) {
     final Set<String> unique = <String>{};
 

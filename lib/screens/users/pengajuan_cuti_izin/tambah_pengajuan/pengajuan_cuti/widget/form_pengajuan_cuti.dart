@@ -4,7 +4,6 @@ import 'dart:io'; // <-- Impor 'dart:io'
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
-import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
@@ -12,12 +11,9 @@ import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart'; // <-- 
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
     as dto; // <-- IMPORT DTO
-
-final DateFormat _historyDateFormatter = DateFormat('dd MMM yyyy', 'id');
 
 class FormPengajuanCuti extends StatefulWidget {
   const FormPengajuanCuti({super.key});
@@ -307,156 +303,9 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Riwayat Pengajuan Cuti',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDefaultColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildHistorySection(),
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildHistorySection() {
-    return Consumer<PengajuanCutiProvider>(
-      builder: (context, provider, _) {
-        final entries = provider.items;
-        if (provider.loading && entries.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (entries.isEmpty) {
-          final message = provider.error != null
-              ? 'Gagal memuat riwayat: ${provider.error}'
-              : 'Belum ada pengajuan cuti.';
-          return Text(
-            message,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-            ),
-          );
-        }
-        final displayList = entries.take(3).toList();
-        final List<Widget> children = [];
-        for (final entry in displayList) {
-          children.add(_buildHistoryCard(entry));
-          children.add(const SizedBox(height: 8));
-        }
-        if (children.isNotEmpty) {
-          children.removeLast();
-        }
-        if (provider.hasMore) {
-          children.add(const SizedBox(height: 8));
-          children.add(
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => provider.loadMore(),
-                child: const Text('Lihat lebih banyak'),
-              ),
-            ),
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: children,
-        );
-      },
-    );
-  }
-
-  Widget _buildHistoryCard(dto.Data entry) {
-    final statusKey = entry.status.toLowerCase();
-    final statusLabel = _statusLabel(statusKey);
-    final statusColor = _statusColor(statusKey);
-    return Card(
-      elevation: 1,
-      color: AppColors.textColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: statusColor.withOpacity(0.3), width: 1),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.15),
-          child: Icon(Icons.calendar_month, color: statusColor, size: 20),
-        ),
-        title: Text(
-          entry.kategoriCuti.namaKategori,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textDefaultColor,
-          ),
-        ),
-        subtitle: Text(
-          '${_formatDateRange(entry)} • ${entry.keperluan}',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            statusLabel,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: statusColor,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _formatDateRange(dto.Data entry) {
-    final start = _formatDate(entry.tanggalCuti);
-    final end = _formatDate(entry.tanggalSelesai);
-    if (start == end) {
-      return 'Tanggal $start';
-    }
-    return 'Periode $start - $end';
-  }
-
-  String _formatDate(DateTime value) => _historyDateFormatter.format(value);
-
-  String _statusLabel(String rawStatus) {
-    switch (rawStatus) {
-      case 'disetujui':
-        return 'Disetujui';
-      case 'ditolak':
-        return 'Ditolak';
-      case 'pending':
-        return 'Menunggu';
-      default:
-        return rawStatus.toUpperCase();
-    }
-  }
-
-  Color _statusColor(String rawStatus) {
-    switch (rawStatus) {
-      case 'disetujui':
-        return AppColors.succesColor;
-      case 'ditolak':
-        return AppColors.errorColor;
-      default:
-        return AppColors.primaryColor;
-    }
   }
 }

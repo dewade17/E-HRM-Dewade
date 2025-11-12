@@ -1,8 +1,10 @@
+import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:e_hrm/contraints/endpoints.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as dto;
 import 'package:e_hrm/services/api_services.dart';
+import 'package:http/http.dart' as http;
 
 class PengajuanCutiProvider extends ChangeNotifier {
   PengajuanCutiProvider();
@@ -11,6 +13,10 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
   bool loading = false;
   String? error;
+
+  bool _saving = false;
+  String? _saveError;
+  String? _saveMessage;
 
   List<dto.Data> items = <dto.Data>[];
   dto.Meta? meta;
@@ -38,17 +44,17 @@ class PengajuanCutiProvider extends ChangeNotifier {
     'menunggu': 'pending',
   };
 
+  bool get saving => _saving;
+  String? get saveError => _saveError;
+  String? get saveMessage => _saveMessage;
+
   bool get hasMore {
     final currentMeta = meta;
     if (currentMeta == null) return false;
     return currentMeta.page < currentMeta.totalPages;
   }
 
-  Future<bool> fetch({
-    int? page,
-    int? perPage,
-    bool append = false,
-  }) async {
+  Future<bool> fetch({int? page, int? perPage, bool append = false}) async {
     var requestedPage = page ?? this.page;
     if (requestedPage < 1) {
       requestedPage = 1;
@@ -67,18 +73,16 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
     try {
       final uri = Uri.parse(Endpoints.pengajuanCuti).replace(
-        queryParameters: _buildQueryParameters(
-          requestedPage,
-          requestedPerPage,
-        ),
+        queryParameters: _buildQueryParameters(requestedPage, requestedPerPage),
       );
 
       final Map<String, dynamic> response = await _api.fetchDataPrivate(
         uri.toString(),
       );
 
-      final List<dto.Data> parsedItems =
-          _parseItems(response['data'] as dynamic);
+      final List<dto.Data> parsedItems = _parseItems(
+        response['data'] as dynamic,
+      );
 
       final dto.Meta? parsedMeta = _parseMeta(response['meta']);
 
@@ -169,7 +173,163 @@ class PengajuanCutiProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Map<String, String> _buildQueryParameters(int requestedPage, int requestedPerPage) {
+  void clearSaveState() {
+    final shouldNotify = _saving || _saveError != null || _saveMessage != null;
+    _saving = false;
+    _saveError = null;
+    _saveMessage = null;
+    if (shouldNotify) {
+      notifyListeners();
+    }
+  }
+
+  Future<dto.Data?> createPengajuan({
+    required String idKategoriCuti,
+    required String keperluan,
+    required DateTime tanggalCuti,
+    required DateTime tanggalMasukKerja,
+    String? handover,
+    String? jenisPengajuan,
+    List<String>? supervisorIds,
+    ApproversProvider? approversProvider,
+    http.MultipartFile? lampiran,
+    Map<String, dynamic>? additionalFields,
+    String supervisorsFieldName = 'recipient',
+  }) async {
+    final payload = <String, dynamic>{
+      'id_kategori_cuti': idKategoriCuti,
+      'keperluan': keperluan,
+      'tanggal_cuti': _formatDate(tanggalCuti),
+      'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
+      if (handover != null) 'handover': handover,
+      if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
+    };
+
+    if (additionalFields != null) {
+      payload.addAll(additionalFields);
+    }
+
+    final supervisorList = _resolveSupervisorIds(
+      supervisorIds: supervisorIds,
+      approversProvider: approversProvider,
+    );
+
+    final files = <http.MultipartFile>[
+      if (lampiran != null) lampiran,
+      ..._createMultipartStrings(supervisorsFieldName, supervisorList),
+    ];
+
+    _startSaving();
+
+    try {
+      final response = await _api.postFormDataPrivate(
+        Endpoints.pengajuanCuti,
+        payload,
+        files: files.isEmpty ? null : files,
+      );
+
+      final dto.Data? created = _parseSingleData(response['data']);
+      final dto.Meta? parsedMeta = _parseMeta(
+        response['meta'] ??
+            (response['data'] is Map<String, dynamic>
+                ? (response['data'] as Map<String, dynamic>)['meta']
+                : null),
+      );
+
+      if (parsedMeta != null) {
+        meta = parsedMeta;
+      }
+
+      if (created != null) {
+        _upsertItem(created);
+      }
+
+      final message =
+          _extractMessage(response) ?? 'Pengajuan cuti berhasil dibuat.';
+      _finishSaving(message: message);
+      return created;
+    } catch (e) {
+      _finishSaving(error: e.toString());
+      return null;
+    }
+  }
+
+  Future<dto.Data?> updatePengajuan(
+    String id, {
+    required String idKategoriCuti,
+    required String keperluan,
+    required DateTime tanggalCuti,
+    required DateTime tanggalMasukKerja,
+    String? handover,
+    String? jenisPengajuan,
+    List<String>? supervisorIds,
+    ApproversProvider? approversProvider,
+    http.MultipartFile? lampiran,
+    Map<String, dynamic>? additionalFields,
+    String supervisorsFieldName = 'recipient',
+  }) async {
+    final payload = <String, dynamic>{
+      'id_kategori_cuti': idKategoriCuti,
+      'keperluan': keperluan,
+      'tanggal_cuti': _formatDate(tanggalCuti),
+      'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
+      if (handover != null) 'handover': handover,
+      if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
+    };
+
+    if (additionalFields != null) {
+      payload.addAll(additionalFields);
+    }
+
+    final supervisorList = _resolveSupervisorIds(
+      supervisorIds: supervisorIds,
+      approversProvider: approversProvider,
+    );
+
+    final files = <http.MultipartFile>[
+      if (lampiran != null) lampiran,
+      ..._createMultipartStrings(supervisorsFieldName, supervisorList),
+    ];
+
+    _startSaving();
+
+    try {
+      final response = await _api.putFormDataPrivate(
+        '${Endpoints.pengajuanCuti}/$id',
+        payload,
+        files: files.isEmpty ? null : files,
+      );
+
+      final dto.Data? updated = _parseSingleData(response['data']);
+      final dto.Meta? parsedMeta = _parseMeta(
+        response['meta'] ??
+            (response['data'] is Map<String, dynamic>
+                ? (response['data'] as Map<String, dynamic>)['meta']
+                : null),
+      );
+
+      if (parsedMeta != null) {
+        meta = parsedMeta;
+      }
+
+      if (updated != null) {
+        _upsertItem(updated);
+      }
+
+      final message =
+          _extractMessage(response) ?? 'Pengajuan cuti berhasil diperbarui.';
+      _finishSaving(message: message);
+      return updated;
+    } catch (e) {
+      _finishSaving(error: e.toString());
+      return null;
+    }
+  }
+
+  Map<String, String> _buildQueryParameters(
+    int requestedPage,
+    int requestedPerPage,
+  ) {
     final Map<String, String> params = <String, String>{
       'page': requestedPage.toString(),
       'perPage': requestedPerPage.toString(),
@@ -182,8 +342,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
       if (tanggalCuti != null) 'tanggal_cuti': _formatDate(tanggalCuti!),
       if (tanggalCutiFrom != null)
         'tanggal_cuti_from': _formatDate(tanggalCutiFrom!),
-      if (tanggalCutiTo != null)
-        'tanggal_cuti_to': _formatDate(tanggalCutiTo!),
+      if (tanggalCutiTo != null) 'tanggal_cuti_to': _formatDate(tanggalCutiTo!),
       if (tanggalMasukKerja != null)
         'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja!),
       if (tanggalMasukKerjaFrom != null)
@@ -210,9 +369,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
         }
 
         if (entry is Map) {
-          parsed.add(dto.Data.fromJson(
-            Map<String, dynamic>.from(entry),
-          ));
+          parsed.add(dto.Data.fromJson(Map<String, dynamic>.from(entry)));
         }
       }
       return parsed;
@@ -224,9 +381,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     if (raw is dto.Meta) return raw;
     if (raw is Map<String, dynamic>) return dto.Meta.fromJson(raw);
     if (raw is Map) {
-      return dto.Meta.fromJson(
-        Map<String, dynamic>.from(raw),
-      );
+      return dto.Meta.fromJson(Map<String, dynamic>.from(raw));
     }
     return null;
   }
@@ -247,4 +402,94 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
   String _formatDate(DateTime value) =>
       value.toIso8601String().split('T').first;
+
+  void _startSaving() {
+    _saving = true;
+    _saveError = null;
+    _saveMessage = null;
+    notifyListeners();
+  }
+
+  void _finishSaving({String? message, String? error}) {
+    _saving = false;
+    _saveMessage = message;
+    _saveError = error;
+    notifyListeners();
+  }
+
+  Iterable<String> _resolveSupervisorIds({
+    List<String>? supervisorIds,
+    ApproversProvider? approversProvider,
+  }) {
+    final Set<String> unique = <String>{};
+
+    void addAll(Iterable<String> values) {
+      for (final value in values) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty) continue;
+        unique.add(trimmed);
+      }
+    }
+
+    if (supervisorIds != null) {
+      addAll(supervisorIds);
+    }
+
+    if (approversProvider != null) {
+      addAll(approversProvider.selectedRecipientIds);
+    }
+
+    return unique;
+  }
+
+  List<http.MultipartFile> _createMultipartStrings(
+    String fieldName,
+    Iterable<String> values,
+  ) {
+    final files = <http.MultipartFile>[];
+    for (final value in values) {
+      files.add(http.MultipartFile.fromString(fieldName, value));
+    }
+    return files;
+  }
+
+  dto.Data? _parseSingleData(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is dto.Data) return raw;
+    if (raw is Map<String, dynamic>) {
+      if (raw.containsKey('id_pengajuan_cuti')) {
+        return dto.Data.fromJson(raw);
+      }
+      for (final entry in raw.values) {
+        final parsed = _parseSingleData(entry);
+        if (parsed != null) return parsed;
+      }
+    }
+    if (raw is Map) {
+      return _parseSingleData(Map<String, dynamic>.from(raw));
+    }
+    if (raw is List) {
+      for (final entry in raw) {
+        final parsed = _parseSingleData(entry);
+        if (parsed != null) return parsed;
+      }
+    }
+    return null;
+  }
+
+  void _upsertItem(dto.Data item) {
+    final index = items.indexWhere(
+      (existing) => existing.idPengajuanCuti == item.idPengajuanCuti,
+    );
+    if (index >= 0) {
+      items[index] = item;
+    } else {
+      items.insert(0, item);
+    }
+  }
+
+  String? _extractMessage(Map<String, dynamic> response) {
+    final dynamic message = response['message'] ?? response['msg'];
+    return message is String ? message : null;
+  }
 }

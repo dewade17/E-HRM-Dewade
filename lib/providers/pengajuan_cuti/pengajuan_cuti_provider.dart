@@ -112,6 +112,35 @@ class PengajuanCutiProvider extends ChangeNotifier {
     }
   }
 
+  Future<dto.Data?> fetchDetail(String id, {bool useCache = true}) async {
+    final trimmedId = id.trim();
+    if (trimmedId.isEmpty) return null;
+
+    if (useCache) {
+      try {
+        final dto.Data cached = items.firstWhere(
+          (item) => item.idPengajuanCuti == trimmedId,
+        );
+        return cached;
+      } catch (_) {
+        // continue to fetch from API
+      }
+    }
+
+    final uri = Uri.parse('${Endpoints.pengajuanCuti}/$trimmedId');
+
+    final Map<String, dynamic> response = await _api.fetchDataPrivate(
+      uri.toString(),
+    );
+
+    final dto.Data? parsed = _parseSingleData(response['data']);
+    if (parsed != null) {
+      _upsertItem(parsed);
+      notifyListeners();
+    }
+    return parsed;
+  }
+
   Future<bool> loadMore() {
     if (loading) return Future<bool>.value(false);
     final currentMeta = meta;

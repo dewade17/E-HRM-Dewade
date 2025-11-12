@@ -2,21 +2,25 @@
 
 import 'dart:io'; // <-- Impor 'dart:io'
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
+    as kategori_dto;
+import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as pengajuan_dto;
 import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
-import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart'; // <-- IMPORT BARU
+import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
-    as dto; // <-- IMPORT DTO
 
 class FormPengajuanCuti extends StatefulWidget {
-  const FormPengajuanCuti({super.key});
+  const FormPengajuanCuti({super.key, this.initialData});
+
+  final pengajuan_dto.Data? initialData;
 
   @override
   State<FormPengajuanCuti> createState() => _FormPengajuanCutiState();
@@ -38,22 +42,28 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   File? _buktiFile;
 
   // TAMBAHKAN STATE UNTUK KATEGORI TERPILIH
-  dto.Data? _selectedKategoriCuti;
+  kategori_dto.Data? _selectedKategoriCuti;
 
   bool _autoValidate = false;
+  final DateFormat _dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
 
   @override
   void initState() {
     super.initState();
-    // Hapus baris ini:
-    // jenisCutiController.text = "Pengajuan Cuti";
+    _applyInitialData(widget.initialData, notify: false);
 
-    // TAMBAHKAN INI:
-    // Muat data Kategori Cuti saat form pertama kali dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<KategoriCutiProvider>().fetch(append: false);
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant FormPengajuanCuti oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialData != oldWidget.initialData) {
+      _applyInitialData(widget.initialData);
+    }
   }
 
   @override
@@ -108,6 +118,73 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         ),
       );
     }
+  }
+
+  void _applyInitialData(pengajuan_dto.Data? data, {bool notify = true}) {
+    if (data == null) {
+      keperluanController.clear();
+      handoverController.clear();
+      tanggalMulaiController.clear();
+      tanggalMasukController.clear();
+      if (notify) {
+        setState(() {
+          _selectedKategoriCuti = null;
+          _tanggalMulai = null;
+          _tanggalMasuk = null;
+        });
+      } else {
+        _selectedKategoriCuti = null;
+        _tanggalMulai = null;
+        _tanggalMasuk = null;
+      }
+      return;
+    }
+
+    keperluanController.text = data.keperluan;
+    handoverController.text = data.handover;
+    tanggalMulaiController.text = _dateFormatter.format(data.tanggalCuti);
+    tanggalMasukController.text = _dateFormatter.format(data.tanggalMasukKerja);
+
+    final kategori_dto.Data? kategoriData = _resolveInitialKategori(data);
+
+    if (notify) {
+      setState(() {
+        _selectedKategoriCuti = kategoriData;
+        _tanggalMulai = data.tanggalCuti;
+        _tanggalMasuk = data.tanggalMasukKerja;
+      });
+    } else {
+      _selectedKategoriCuti = kategoriData;
+      _tanggalMulai = data.tanggalCuti;
+      _tanggalMasuk = data.tanggalMasukKerja;
+    }
+  }
+
+  kategori_dto.Data? _resolveInitialKategori(pengajuan_dto.Data data) {
+    final kategori = data.kategoriCuti;
+
+    try {
+      final provider = context.read<KategoriCutiProvider>();
+      return provider.items.firstWhere(
+        (item) => item.idKategoriCuti == kategori.idKategoriCuti,
+        orElse: () => _createFallbackKategori(kategori),
+      );
+    } catch (_) {
+      return _createFallbackKategori(kategori);
+    }
+  }
+
+  kategori_dto.Data _createFallbackKategori(
+    pengajuan_dto.KategoriCuti kategori,
+  ) {
+    return kategori_dto.Data(
+      idKategoriCuti: kategori.idKategoriCuti,
+      namaKategori: kategori.namaKategori,
+      penguranganKouta: false,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+      deletedAt: null,
+    );
   }
 
   @override

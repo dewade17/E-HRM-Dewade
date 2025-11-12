@@ -31,6 +31,7 @@ class _KategoriCutiSelectionSheetState
   late final TextEditingController _searchController;
   dto.Data? _currentlySelected;
   Timer? _debounce;
+  VoidCallback? _providerListener;
 
   @override
   void initState() {
@@ -38,22 +39,53 @@ class _KategoriCutiSelectionSheetState
     _searchController = TextEditingController();
     _searchController.addListener(_onSearchChanged);
 
-    final provider = context.read<KategoriCutiProvider>();
-    // Pastikan data dimuat jika kosong
-    if (provider.items.isEmpty && !provider.loading) {
-      provider.fetch(append: false);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
 
-    // Set item terpilih awal jika ada
-    if (widget.initialSelectedId != null && provider.items.isNotEmpty) {
-      try {
-        _currentlySelected = provider.items.firstWhere(
-          (item) => item.idKategoriCuti == widget.initialSelectedId,
-        );
-      } catch (_) {
-        _currentlySelected = null;
+      final provider = context.read<KategoriCutiProvider>();
+
+      if (provider.items.isEmpty && !provider.loading) {
+        provider.fetch(append: false);
       }
-    }
+
+      if (widget.initialSelectedId == null) {
+        return;
+      }
+
+      void updateSelection() {
+        if (!mounted) return;
+
+        dto.Data? selected;
+        try {
+          selected = provider.items.firstWhere(
+            (item) => item.idKategoriCuti == widget.initialSelectedId,
+          );
+        } catch (_) {
+          selected = null;
+        }
+
+        if (_currentlySelected?.idKategoriCuti != selected?.idKategoriCuti) {
+          setState(() {
+            _currentlySelected = selected;
+          });
+        }
+      }
+
+      if (provider.items.isNotEmpty) {
+        updateSelection();
+      } else {
+        _providerListener = () {
+          if (!mounted) return;
+          if (provider.items.isEmpty) return;
+          if (_providerListener != null) {
+            provider.removeListener(_providerListener!);
+            _providerListener = null;
+          }
+          updateSelection();
+        };
+        provider.addListener(_providerListener!);
+      }
+    });
   }
 
   void _onSearchChanged() {
@@ -73,6 +105,10 @@ class _KategoriCutiSelectionSheetState
     _debounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    if (_providerListener != null) {
+      context.read<KategoriCutiProvider>().removeListener(_providerListener!);
+      _providerListener = null;
+    }
     super.dispose();
   }
 
@@ -301,16 +337,7 @@ class _KategoriCutiSelectionSheetState
                                           ),
                                         ),
                                       ),
-                                      // Subtitle bisa ditambahkan jika DTO punya field lain
-                                      subtitle: Text(
-                                        'Mengurangi Kouta: ${kategori.penguranganKouta ? "Ya" : "Tidak"}',
-                                        style: GoogleFonts.poppins(
-                                          textStyle: TextStyle(
-                                            fontSize: 12,
-                                            color: titleColor.withOpacity(0.7),
-                                          ),
-                                        ),
-                                      ),
+
                                       trailing: Radio<String>(
                                         value: kategori.idKategoriCuti,
                                         groupValue:

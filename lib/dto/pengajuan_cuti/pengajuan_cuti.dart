@@ -2,6 +2,7 @@
 //
 //     final pengajuanCuti = pengajuanCutiFromJson(jsonString);
 
+import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart';
 import 'package:meta/meta.dart';
 import 'dart:convert';
 
@@ -12,14 +13,14 @@ String pengajuanCutiToJson(PengajuanCuti data) => json.encode(data.toJson());
 
 class PengajuanCuti {
   bool ok;
-  List<Datum> data;
+  List<Data> data;
   Meta meta;
 
   PengajuanCuti({required this.ok, required this.data, required this.meta});
 
   factory PengajuanCuti.fromJson(Map<String, dynamic> json) => PengajuanCuti(
     ok: json["ok"],
-    data: List<Datum>.from(json["data"].map((x) => Datum.fromJson(x))),
+    data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
     meta: Meta.fromJson(json["meta"]),
   );
 
@@ -30,7 +31,7 @@ class PengajuanCuti {
   };
 }
 
-class Datum {
+class Data {
   String idPengajuanCuti;
   String idUser;
   String idKategoriCuti;
@@ -52,7 +53,7 @@ class Datum {
   DateTime tanggalSelesai;
   List<DateTime> tanggalList;
 
-  Datum({
+  Data({
     required this.idPengajuanCuti,
     required this.idUser,
     required this.idKategoriCuti,
@@ -75,7 +76,7 @@ class Datum {
     required this.tanggalList,
   });
 
-  factory Datum.fromJson(Map<String, dynamic> json) => Datum(
+  factory Data.fromJson(Map<String, dynamic> json) => Data(
     idPengajuanCuti: json["id_pengajuan_cuti"],
     idUser: json["id_user"],
     idKategoriCuti: json["id_kategori_cuti"],

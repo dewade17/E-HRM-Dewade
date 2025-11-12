@@ -12,33 +12,25 @@ String pengajuanCutiToJson(PengajuanCuti data) => json.encode(data.toJson());
 
 class PengajuanCuti {
   bool ok;
-  String message;
-  List<Data> data;
-  Upload upload;
+  List<Datum> data;
+  Meta meta;
 
-  PengajuanCuti({
-    required this.ok,
-    required this.message,
-    required this.data,
-    required this.upload,
-  });
+  PengajuanCuti({required this.ok, required this.data, required this.meta});
 
   factory PengajuanCuti.fromJson(Map<String, dynamic> json) => PengajuanCuti(
     ok: json["ok"],
-    message: json["message"],
-    data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
-    upload: Upload.fromJson(json["upload"]),
+    data: List<Datum>.from(json["data"].map((x) => Datum.fromJson(x))),
+    meta: Meta.fromJson(json["meta"]),
   );
 
   Map<String, dynamic> toJson() => {
     "ok": ok,
-    "message": message,
     "data": List<dynamic>.from(data.map((x) => x.toJson())),
-    "upload": upload.toJson(),
+    "meta": meta.toJson(),
   };
 }
 
-class Data {
+class Datum {
   String idPengajuanCuti;
   String idUser;
   String idKategoriCuti;
@@ -46,7 +38,7 @@ class Data {
   DateTime tanggalMasukKerja;
   String handover;
   String status;
-  dynamic currentLevel;
+  int currentLevel;
   String jenisPengajuan;
   String lampiranCutiUrl;
   DateTime createdAt;
@@ -56,9 +48,11 @@ class Data {
   KategoriCuti kategoriCuti;
   List<HandoverUser> handoverUsers;
   List<Approval> approvals;
-  List<TanggalList> tanggalList;
+  DateTime tanggalCuti;
+  DateTime tanggalSelesai;
+  List<DateTime> tanggalList;
 
-  Data({
+  Datum({
     required this.idPengajuanCuti,
     required this.idUser,
     required this.idKategoriCuti,
@@ -76,10 +70,12 @@ class Data {
     required this.kategoriCuti,
     required this.handoverUsers,
     required this.approvals,
+    required this.tanggalCuti,
+    required this.tanggalSelesai,
     required this.tanggalList,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) => Data(
+  factory Datum.fromJson(Map<String, dynamic> json) => Datum(
     idPengajuanCuti: json["id_pengajuan_cuti"],
     idUser: json["id_user"],
     idKategoriCuti: json["id_kategori_cuti"],
@@ -101,8 +97,10 @@ class Data {
     approvals: List<Approval>.from(
       json["approvals"].map((x) => Approval.fromJson(x)),
     ),
-    tanggalList: List<TanggalList>.from(
-      json["tanggal_list"].map((x) => TanggalList.fromJson(x)),
+    tanggalCuti: DateTime.parse(json["tanggal_cuti"]),
+    tanggalSelesai: DateTime.parse(json["tanggal_selesai"]),
+    tanggalList: List<DateTime>.from(
+      json["tanggal_list"].map((x) => DateTime.parse(x)),
     ),
   );
 
@@ -124,7 +122,11 @@ class Data {
     "kategori_cuti": kategoriCuti.toJson(),
     "handover_users": List<dynamic>.from(handoverUsers.map((x) => x.toJson())),
     "approvals": List<dynamic>.from(approvals.map((x) => x.toJson())),
-    "tanggal_list": List<dynamic>.from(tanggalList.map((x) => x.toJson())),
+    "tanggal_cuti": tanggalCuti.toIso8601String(),
+    "tanggal_selesai": tanggalSelesai.toIso8601String(),
+    "tanggal_list": List<dynamic>.from(
+      tanggalList.map((x) => x.toIso8601String()),
+    ),
   };
 }
 
@@ -132,10 +134,10 @@ class Approval {
   String idApprovalPengajuanCuti;
   int level;
   dynamic approverUserId;
-  String approverRole;
+  Role approverRole;
   String decision;
-  dynamic decidedAt;
-  dynamic note;
+  DateTime decidedAt;
+  String note;
 
   Approval({
     required this.idApprovalPengajuanCuti,
@@ -151,9 +153,9 @@ class Approval {
     idApprovalPengajuanCuti: json["id_approval_pengajuan_cuti"],
     level: json["level"],
     approverUserId: json["approver_user_id"],
-    approverRole: json["approver_role"],
+    approverRole: roleValues.map[json["approver_role"]]!,
     decision: json["decision"],
-    decidedAt: json["decided_at"],
+    decidedAt: DateTime.parse(json["decided_at"]),
     note: json["note"],
   );
 
@@ -161,12 +163,19 @@ class Approval {
     "id_approval_pengajuan_cuti": idApprovalPengajuanCuti,
     "level": level,
     "approver_user_id": approverUserId,
-    "approver_role": approverRole,
+    "approver_role": roleValues.reverse[approverRole],
     "decision": decision,
-    "decided_at": decidedAt,
+    "decided_at": decidedAt.toIso8601String(),
     "note": note,
   };
 }
+
+enum Role { KARYAWAN, SUPERADMIN }
+
+final roleValues = EnumValues({
+  "KARYAWAN": Role.KARYAWAN,
+  "SUPERADMIN": Role.SUPERADMIN,
+});
 
 class HandoverUser {
   String idHandoverCuti;
@@ -202,9 +211,9 @@ class HandoverUser {
 
 class User {
   String idUser;
-  String namaPengguna;
-  String email;
-  String role;
+  NamaPengguna namaPengguna;
+  Email email;
+  Role role;
   dynamic fotoProfilUser;
 
   User({
@@ -217,20 +226,34 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) => User(
     idUser: json["id_user"],
-    namaPengguna: json["nama_pengguna"],
-    email: json["email"],
-    role: json["role"],
+    namaPengguna: namaPenggunaValues.map[json["nama_pengguna"]]!,
+    email: emailValues.map[json["email"]]!,
+    role: roleValues.map[json["role"]]!,
     fotoProfilUser: json["foto_profil_user"],
   );
 
   Map<String, dynamic> toJson() => {
     "id_user": idUser,
-    "nama_pengguna": namaPengguna,
-    "email": email,
-    "role": role,
+    "nama_pengguna": namaPenggunaValues.reverse[namaPengguna],
+    "email": emailValues.reverse[email],
+    "role": roleValues.reverse[role],
     "foto_profil_user": fotoProfilUser,
   };
 }
+
+enum Email { ADITYA_YOGANTARAZ_GMAIL_COM, ODE_GMAIL_COM }
+
+final emailValues = EnumValues({
+  "aditya.yogantaraz@gmail.com": Email.ADITYA_YOGANTARAZ_GMAIL_COM,
+  "ode@gmail.com": Email.ODE_GMAIL_COM,
+});
+
+enum NamaPengguna { ADITYA, ODE }
+
+final namaPenggunaValues = EnumValues({
+  "aditya": NamaPengguna.ADITYA,
+  "ode": NamaPengguna.ODE,
+});
 
 class KategoriCuti {
   String idKategoriCuti;
@@ -249,43 +272,42 @@ class KategoriCuti {
   };
 }
 
-class TanggalList {
-  DateTime tanggalCuti;
+class Meta {
+  int page;
+  int perPage;
+  int total;
+  int totalPages;
 
-  TanggalList({required this.tanggalCuti});
-
-  factory TanggalList.fromJson(Map<String, dynamic> json) =>
-      TanggalList(tanggalCuti: DateTime.parse(json["tanggal_cuti"]));
-
-  Map<String, dynamic> toJson() => {
-    "tanggal_cuti": tanggalCuti.toIso8601String(),
-  };
-}
-
-class Upload {
-  String key;
-  String publicUrl;
-  String etag;
-  int size;
-
-  Upload({
-    required this.key,
-    required this.publicUrl,
-    required this.etag,
-    required this.size,
+  Meta({
+    required this.page,
+    required this.perPage,
+    required this.total,
+    required this.totalPages,
   });
 
-  factory Upload.fromJson(Map<String, dynamic> json) => Upload(
-    key: json["key"],
-    publicUrl: json["publicUrl"],
-    etag: json["etag"],
-    size: json["size"],
+  factory Meta.fromJson(Map<String, dynamic> json) => Meta(
+    page: json["page"],
+    perPage: json["perPage"],
+    total: json["total"],
+    totalPages: json["totalPages"],
   );
 
   Map<String, dynamic> toJson() => {
-    "key": key,
-    "publicUrl": publicUrl,
-    "etag": etag,
-    "size": size,
+    "page": page,
+    "perPage": perPage,
+    "total": total,
+    "totalPages": totalPages,
   };
+}
+
+class EnumValues<T> {
+  Map<String, T> map;
+  late Map<T, String> reverseMap;
+
+  EnumValues(this.map);
+
+  Map<T, String> get reverse {
+    reverseMap = map.map((k, v) => MapEntry(v, k));
+    return reverseMap;
+  }
 }

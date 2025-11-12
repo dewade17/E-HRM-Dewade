@@ -31,22 +31,22 @@ class Data {
   String idUser;
   String namaPengguna;
   String email;
-  String kontak;
-  String fotoProfilUser;
-  dynamic divisi;
-  String idDepartement;
-  Departement departement;
+  String? kontak;
+  String? fotoProfilUser;
+  String? divisi;
+  String? idDepartement;
+  Departement? departement;
   String role;
 
   Data({
     required this.idUser,
     required this.namaPengguna,
     required this.email,
-    required this.kontak,
-    required this.fotoProfilUser,
-    required this.divisi,
-    required this.idDepartement,
-    required this.departement,
+    this.kontak,
+    this.fotoProfilUser,
+    this.divisi,
+    this.idDepartement,
+    this.departement,
     required this.role,
   });
 
@@ -54,25 +54,51 @@ class Data {
     idUser: json["id_user"],
     namaPengguna: json["nama_pengguna"],
     email: json["email"],
-    kontak: json["kontak"],
-    fotoProfilUser: json["foto_profil_user"],
-    divisi: json["divisi"],
-    idDepartement: json["id_departement"],
-    departement: Departement.fromJson(json["departement"]),
+    kontak: _nullableString(json["kontak"]),
+    fotoProfilUser: _nullableString(json["foto_profil_user"]),
+    divisi: _nullableString(json["divisi"]),
+    idDepartement: _nullableString(json["id_departement"]),
+    departement: json["departement"] == null
+        ? null
+        : Departement.fromJson(json["departement"]),
     role: json["role"],
   );
 
-  Map<String, dynamic> toJson() => {
-    "id_user": idUser,
-    "nama_pengguna": namaPengguna,
-    "email": email,
-    "kontak": kontak,
-    "foto_profil_user": fotoProfilUser,
-    "divisi": divisi,
-    "id_departement": idDepartement,
-    "departement": departement.toJson(),
-    "role": role,
-  };
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      "id_user": idUser,
+      "nama_pengguna": namaPengguna,
+      "email": email,
+      "role": role,
+    };
+
+    if (kontak != null) {
+      map["kontak"] = kontak;
+    }
+    if (fotoProfilUser != null) {
+      map["foto_profil_user"] = fotoProfilUser;
+    }
+    if (divisi != null) {
+      map["divisi"] = divisi;
+    }
+    if (idDepartement != null) {
+      map["id_departement"] = idDepartement;
+    }
+    if (departement != null) {
+      map["departement"] = departement!.toJson();
+    }
+
+    return map;
+  }
+}
+
+String? _nullableString(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+
+  final stringValue = value.toString().trim();
+  return stringValue.isEmpty ? null : stringValue;
 }
 
 class Departement {

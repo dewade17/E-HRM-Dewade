@@ -17,6 +17,7 @@ class Endpoints {
 
   //pengajuan cuti
   static const String kategoriCuti = "$baseURL/admin/kategori-cuti";
+  static const String pengajuanCuti = "$baseURL/mobile/pengajuan-cuti";
   static String konfigurasiCuti(String userId) =>
       "$baseURL/mobile/konfigurasi-cuti/$userId";
 

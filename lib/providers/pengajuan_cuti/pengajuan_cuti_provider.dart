@@ -122,9 +122,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
           (item) => item.idPengajuanCuti == trimmedId,
         );
         return cached;
-      } catch (_) {
-        // continue to fetch from API
-      }
+      } catch (_) {}
     }
 
     final uri = Uri.parse('${Endpoints.pengajuanCuti}/$trimmedId');
@@ -215,8 +213,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
   Future<dto.Data?> createPengajuan({
     required String idKategoriCuti,
     required String keperluan,
-    required DateTime tanggalCuti,
-    required DateTime tanggalMasukKerja,
+    required List<DateTime> tanggalList,
     String? handover,
     String? jenisPengajuan,
     List<String>? supervisorIds,
@@ -228,8 +225,6 @@ class PengajuanCutiProvider extends ChangeNotifier {
     final payload = <String, dynamic>{
       'id_kategori_cuti': idKategoriCuti,
       'keperluan': keperluan,
-      'tanggal_cuti': _formatDate(tanggalCuti),
-      'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
       if (handover != null) 'handover': handover,
       if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
     };
@@ -246,6 +241,10 @@ class PengajuanCutiProvider extends ChangeNotifier {
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
       ..._createMultipartStrings(supervisorsFieldName, supervisorList),
+      ..._createMultipartStrings(
+        'tanggal_list',
+        tanggalList.map((t) => _formatDate(t)).toList(),
+      ),
     ];
 
     _startSaving();
@@ -287,8 +286,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     String id, {
     required String idKategoriCuti,
     required String keperluan,
-    required DateTime tanggalCuti,
-    required DateTime tanggalMasukKerja,
+    required List<DateTime> tanggalList,
     String? handover,
     String? jenisPengajuan,
     List<String>? supervisorIds,
@@ -300,8 +298,6 @@ class PengajuanCutiProvider extends ChangeNotifier {
     final payload = <String, dynamic>{
       'id_kategori_cuti': idKategoriCuti,
       'keperluan': keperluan,
-      'tanggal_cuti': _formatDate(tanggalCuti),
-      'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
       if (handover != null) 'handover': handover,
       if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
     };
@@ -318,6 +314,10 @@ class PengajuanCutiProvider extends ChangeNotifier {
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
       ..._createMultipartStrings(supervisorsFieldName, supervisorList),
+      ..._createMultipartStrings(
+        'tanggal_list',
+        tanggalList.map((t) => _formatDate(t)).toList(),
+      ),
     ];
 
     _startSaving();

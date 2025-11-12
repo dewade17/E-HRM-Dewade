@@ -1,6 +1,4 @@
-// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/widget/form_pengajuan_cuti.dart
-
-import 'dart:io'; // <-- Impor 'dart:io'
+import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
     as kategori_dto;
@@ -9,11 +7,11 @@ import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
-import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -31,20 +29,13 @@ class FormPengajuanCuti extends StatefulWidget {
 class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  // Hapus controller 'jenisCutiController'
-  // final TextEditingController jenisCutiController = TextEditingController();
-
   final TextEditingController keperluanController = TextEditingController();
   final TextEditingController handoverController = TextEditingController();
-  final TextEditingController tanggalMulaiController = TextEditingController();
-  final TextEditingController tanggalMasukController = TextEditingController();
 
-  DateTime? _tanggalMulai;
-  DateTime? _tanggalMasuk;
+  List<DateTime> _selectedDates = [];
+
   File? _buktiFile;
-
   kategori_dto.Data? _selectedKategoriCuti;
-
   bool _autoValidate = false;
   final DateFormat _dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
 
@@ -53,12 +44,21 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   @override
   void initState() {
     super.initState();
-    _applyInitialData(widget.initialData, notify: false);
+    if (widget.initialData != null) {
+      _applyInitialData(widget.initialData, notify: false);
+    }
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<KategoriCutiProvider>().fetch(append: false);
-    });
+  void _scheduleApproverUpdate(VoidCallback action) {
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.idle) {
+      action();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          action();
+        }
+      });
+    }
   }
 
   @override
@@ -77,8 +77,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   void dispose() {
     keperluanController.dispose();
     handoverController.dispose();
-    tanggalMulaiController.dispose();
-    tanggalMasukController.dispose();
     super.dispose();
   }
 
@@ -89,69 +87,26 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
     final formState = formKey.currentState;
     if (formState == null || !formState.validate()) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('Harap periksa kembali semua isian form.'),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
+      _showSnackBar('Harap periksa kembali semua isian form.', isError: true);
       return;
     }
 
     if (_selectedKategoriCuti == null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('Harap pilih jenis cuti terlebih dahulu.'),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
+      _showSnackBar('Harap pilih jenis cuti terlebih dahulu.', isError: true);
       return;
     }
 
-    if (_tanggalMulai == null || _tanggalMasuk == null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Tanggal cuti dan tanggal masuk kerja wajib diisi.',
-            ),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
-      return;
-    }
-
-    if (_tanggalMasuk!.isBefore(_tanggalMulai!)) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Tanggal masuk kerja tidak boleh sebelum tanggal cuti.',
-            ),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
+    if (_selectedDates.isEmpty) {
+      _showSnackBar('Tanggal cuti wajib diisi.', isError: true);
       return;
     }
 
     final approvers = context.read<ApproversPengajuanProvider>();
     if (approvers.selectedRecipientIds.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Pilih minimal satu penerima laporan (supervisi).',
-            ),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
+      _showSnackBar(
+        'Pilih minimal satu penerima laporan (supervisi).',
+        isError: true,
+      );
       return;
     }
 
@@ -165,14 +120,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
           _buktiFile!.path,
         );
       } catch (e) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text('Gagal membaca lampiran: $e'),
-              backgroundColor: AppColors.errorColor,
-            ),
-          );
+        _showSnackBar('Gagal membaca lampiran: $e', isError: true);
         return;
       }
     }
@@ -182,6 +130,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final keperluan = keperluanController.text.trim();
     final handover = handoverController.text.trim();
 
+    _selectedDates.sort();
+
     pengajuan_dto.Data? result;
     if (_isEditing) {
       final id = widget.initialData!.idPengajuanCuti;
@@ -189,8 +139,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         id,
         idKategoriCuti: idKategori,
         keperluan: keperluan,
-        tanggalCuti: _tanggalMulai!,
-        tanggalMasukKerja: _tanggalMasuk!,
+        tanggalList: _selectedDates,
         handover: handover,
         approversProvider: approvers,
         lampiran: lampiran,
@@ -199,8 +148,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       result = await pengajuanProvider.createPengajuan(
         idKategoriCuti: idKategori,
         keperluan: keperluan,
-        tanggalCuti: _tanggalMulai!,
-        tanggalMasukKerja: _tanggalMasuk!,
+        tanggalList: _selectedDates,
         handover: handover,
         approversProvider: approvers,
         lampiran: lampiran,
@@ -213,26 +161,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final successMessage = pengajuanProvider.saveMessage;
 
     if (errorMessage != null && errorMessage.isNotEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
+      _showSnackBar(errorMessage, isError: true);
       return;
     }
 
     if (successMessage != null && successMessage.isNotEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(successMessage),
-            backgroundColor: AppColors.succesColor,
-          ),
-        );
+      _showSnackBar(successMessage, isError: false);
     }
 
     if (result != null) {
@@ -249,33 +183,79 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     }
   }
 
+  Future<void> _pickDate(FormFieldState<List<DateTime>> state) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDates.lastOrNull ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+      locale: const Locale('id', 'ID'),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (!_selectedDates.contains(picked)) {
+          _selectedDates.add(picked);
+          _selectedDates.sort();
+          state.didChange(_selectedDates);
+        } else {
+          _showSnackBar('Tanggal sudah dipilih.', isError: true);
+        }
+      });
+    }
+  }
+
+  void _removeDate(DateTime date, FormFieldState<List<DateTime>> state) {
+    setState(() {
+      _selectedDates.remove(date);
+      state.didChange(_selectedDates);
+    });
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError
+              ? AppColors.errorColor
+              : AppColors.succesColor,
+        ),
+      );
+  }
+
   void _applyInitialData(pengajuan_dto.Data? data, {bool notify = true}) {
     final approversProvider = context.read<ApproversPengajuanProvider>();
 
     if (data == null) {
       keperluanController.clear();
       handoverController.clear();
-      tanggalMulaiController.clear();
-      tanggalMasukController.clear();
       approversProvider.clearSelection();
+      _scheduleApproverUpdate(() => approversProvider.clearSelection());
+
+      final newSelectedDates = <DateTime>[];
+
       if (notify) {
         setState(() {
           _selectedKategoriCuti = null;
-          _tanggalMulai = null;
-          _tanggalMasuk = null;
+          _selectedDates = newSelectedDates;
         });
       } else {
         _selectedKategoriCuti = null;
-        _tanggalMulai = null;
-        _tanggalMasuk = null;
+        _selectedDates = newSelectedDates;
       }
       return;
     }
 
     keperluanController.text = data.keperluan;
     handoverController.text = data.handover;
-    tanggalMulaiController.text = _dateFormatter.format(data.tanggalCuti);
-    tanggalMasukController.text = _dateFormatter.format(data.tanggalMasukKerja);
+
+    final newSelectedDates = data.tanggalList
+        .map((dt) => dt.toLocal())
+        .toList();
+    newSelectedDates.sort();
 
     final kategori_dto.Data? kategoriData = _resolveInitialKategori(data);
 
@@ -286,22 +266,22 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         .where((id) => id.isNotEmpty)
         .toSet();
 
-    if (supervisorIds.isNotEmpty) {
-      approversProvider.replaceSelection(supervisorIds);
-    } else {
-      approversProvider.clearSelection();
-    }
+    _scheduleApproverUpdate(() {
+      if (supervisorIds.isNotEmpty) {
+        approversProvider.replaceSelection(supervisorIds);
+      } else {
+        approversProvider.clearSelection();
+      }
+    });
 
     if (notify) {
       setState(() {
         _selectedKategoriCuti = kategoriData;
-        _tanggalMulai = data.tanggalCuti;
-        _tanggalMasuk = data.tanggalMasukKerja;
+        _selectedDates = newSelectedDates;
       });
     } else {
       _selectedKategoriCuti = kategoriData;
-      _tanggalMulai = data.tanggalCuti;
-      _tanggalMasuk = data.tanggalMasukKerja;
+      _selectedDates = newSelectedDates;
     }
   }
 
@@ -338,7 +318,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         ? AutovalidateMode.onUserInteraction
         : AutovalidateMode.disabled;
 
-    // Perlu watch provider KategoriCuti untuk status loading (jika ingin)
     final kategoriCutiProvider = context.watch<KategoriCutiProvider>();
 
     return Form(
@@ -348,7 +327,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
-            // --- GANTI TextFieldWidget DENGAN KategoriCutiSelectionField ---
             KategoriCutiSelectionField(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -356,7 +334,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               selectedKategori: _selectedKategoriCuti,
               onKategoriSelected: (selected) {
                 setState(() => _selectedKategoriCuti = selected);
-                // Trigger re-validation jika form was already submitted
                 if (_autoValidate) {
                   formKey.currentState?.validate();
                 }
@@ -370,7 +347,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 return null;
               },
             ),
-            // Tampilkan loading indicator jika provider sedang memuat
             if (kategoriCutiProvider.loading &&
                 kategoriCutiProvider.items.isEmpty)
               const Padding(
@@ -378,7 +354,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 child: LinearProgressIndicator(),
               ),
 
-            // --- AKHIR PERGANTIAN ---
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: FormField<Set<String>>(
@@ -436,26 +411,140 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               autovalidateMode: autovalidateMode,
             ),
             SizedBox(height: 20),
-            DatePickerFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Tanggal Mulai Cuti',
-              controller: tanggalMulaiController,
-              initialDate: _tanggalMulai,
-              onDateChanged: (date) => setState(() => _tanggalMulai = date),
-              isRequired: true,
+
+            FormField<List<DateTime>>(
+              key: ValueKey(_selectedDates.length),
+              autovalidateMode: autovalidateMode,
+              initialValue: _selectedDates,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Tanggal cuti wajib diisi.';
+                }
+                return null;
+              },
+              builder: (FormFieldState<List<DateTime>> state) {
+                final bool hasError = state.hasError;
+                final Color borderColor = hasError
+                    ? AppColors.errorColor
+                    : AppColors.textDefaultColor;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '* ',
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.errorColor,
+                              ),
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'Tanggal Cuti',
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textDefaultColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(minHeight: 50),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.textColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 3,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _selectedDates.isEmpty
+                                ? Text(
+                                    'Pilih tanggal...',
+                                    style: GoogleFonts.poppins(
+                                      textStyle: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  )
+                                : Wrap(
+                                    spacing: 6.0,
+                                    runSpacing: 6.0,
+                                    children: _selectedDates.map((date) {
+                                      return Chip(
+                                        label: Text(
+                                          _dateFormatter.format(date),
+                                          style: GoogleFonts.poppins(
+                                            textStyle: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        onDeleted: () =>
+                                            _removeDate(date, state),
+                                        deleteIconColor: Colors.red.shade700,
+                                        backgroundColor: AppColors.accentColor,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 2,
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.add_circle_outline,
+                              color: AppColors.secondaryColor,
+                            ),
+                            onPressed: () => _pickDate(state),
+                            tooltip: 'Tambah Tanggal Cuti',
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12, top: 8),
+                        child: Text(
+                          state.errorText!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
+
             SizedBox(height: 20),
-            DatePickerFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Tanggal Masuk Cuti',
-              controller: tanggalMasukController,
-              initialDate: _tanggalMasuk,
-              onDateChanged: (date) => setState(() => _tanggalMasuk = date),
-              isRequired: true,
-            ),
-            SizedBox(height: 20),
+
             TextFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,

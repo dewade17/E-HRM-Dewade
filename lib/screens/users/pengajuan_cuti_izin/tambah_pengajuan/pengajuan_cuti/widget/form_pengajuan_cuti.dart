@@ -256,14 +256,14 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       _scheduleApproverUpdate(() => approversProvider.clearSelection());
 
       final newSelectedDates = <DateTime>[];
-      final apply = () {
+      apply() {
         updateState(
           kategori: null,
           dates: newSelectedDates,
           handoverPlain: '',
           handoverMarkup: '',
         );
-      };
+      }
 
       if (notify) {
         setState(apply);
@@ -297,14 +297,14 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     });
 
     final plainHandover = _convertMarkupToDisplay(data.handover);
-    final apply = () {
+    apply() {
       updateState(
         kategori: kategoriData,
         dates: newSelectedDates,
         handoverPlain: plainHandover,
         handoverMarkup: data.handover,
       );
-    };
+    }
 
     if (notify) {
       setState(apply);
@@ -694,6 +694,9 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                           onMarkupChanged: (value) {
                             _handoverMarkupText = value;
                           },
+                          onSearchChanged: (trigger, query) {
+                            context.read<TagHandOverProvider>().search(query);
+                          },
                           decoration: InputDecoration(
                             fillColor: AppColors.textColor,
                             filled: true,
@@ -728,12 +731,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                                   'email': user.email,
                                 };
                               }).toList(),
-
-                              onSearchChange: (trigger, query) {
-                                context.read<TagHandOverProvider>().search(
-                                  query,
-                                );
-                              },
                               suggestionBuilder: (data) {
                                 return Container(
                                   padding: const EdgeInsets.all(10.0),

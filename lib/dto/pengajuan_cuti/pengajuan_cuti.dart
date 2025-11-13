@@ -49,8 +49,8 @@ class Data {
   KategoriCuti kategoriCuti;
   List<HandoverUser> handoverUsers;
   List<Approval> approvals;
-  DateTime tanggalCuti;
-  DateTime tanggalSelesai;
+  DateTime? tanggalCuti;
+  DateTime? tanggalSelesai;
   List<DateTime> tanggalList;
 
   Data({
@@ -71,8 +71,8 @@ class Data {
     required this.kategoriCuti,
     required this.handoverUsers,
     required this.approvals,
-    required this.tanggalCuti,
-    required this.tanggalSelesai,
+    this.tanggalCuti,
+    this.tanggalSelesai,
     required this.tanggalList,
   });
 
@@ -84,7 +84,13 @@ class Data {
     tanggalMasukKerja: DateTime.parse(json["tanggal_masuk_kerja"]),
     handover: json["handover"],
     status: json["status"],
-    currentLevel: json["current_level"],
+    currentLevel: json["current_level"] is int
+        ? json["current_level"]
+        : json["current_level"] is num
+        ? (json["current_level"] as num).toInt()
+        : json["current_level"] is String
+        ? int.tryParse(json["current_level"] as String) ?? 0
+        : 0,
     jenisPengajuan: json["jenis_pengajuan"],
     lampiranCutiUrl: json["lampiran_cuti_url"],
     createdAt: DateTime.parse(json["created_at"]),
@@ -92,17 +98,15 @@ class Data {
     deletedAt: json["deleted_at"],
     user: User.fromJson(json["user"]),
     kategoriCuti: KategoriCuti.fromJson(json["kategori_cuti"]),
-    handoverUsers: List<HandoverUser>.from(
-      json["handover_users"].map((x) => HandoverUser.fromJson(x)),
-    ),
-    approvals: List<Approval>.from(
-      json["approvals"].map((x) => Approval.fromJson(x)),
-    ),
-    tanggalCuti: DateTime.parse(json["tanggal_cuti"]),
-    tanggalSelesai: DateTime.parse(json["tanggal_selesai"]),
-    tanggalList: List<DateTime>.from(
-      json["tanggal_list"].map((x) => DateTime.parse(x)),
-    ),
+    handoverUsers: _parseHandoverUsers(json["handover_users"]),
+    approvals: _parseApprovals(json["approvals"]),
+    tanggalCuti: json["tanggal_cuti"] != null
+        ? DateTime.parse(json["tanggal_cuti"])
+        : null,
+    tanggalSelesai: json["tanggal_selesai"] != null
+        ? DateTime.parse(json["tanggal_selesai"])
+        : null,
+    tanggalList: _parseDateList(json["tanggal_list"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -123,12 +127,75 @@ class Data {
     "kategori_cuti": kategoriCuti.toJson(),
     "handover_users": List<dynamic>.from(handoverUsers.map((x) => x.toJson())),
     "approvals": List<dynamic>.from(approvals.map((x) => x.toJson())),
-    "tanggal_cuti": tanggalCuti.toIso8601String(),
-    "tanggal_selesai": tanggalSelesai.toIso8601String(),
+    if (tanggalCuti != null) "tanggal_cuti": tanggalCuti!.toIso8601String(),
+    if (tanggalSelesai != null)
+      "tanggal_selesai": tanggalSelesai!.toIso8601String(),
     "tanggal_list": List<dynamic>.from(
       tanggalList.map((x) => x.toIso8601String()),
     ),
   };
+}
+
+List<HandoverUser> _parseHandoverUsers(dynamic raw) {
+  if (raw is List) {
+    return raw
+        .map<HandoverUser?>((entry) {
+          if (entry is HandoverUser) return entry;
+          if (entry is Map<String, dynamic>) {
+            return HandoverUser.fromJson(entry);
+          }
+          if (entry is Map) {
+            return HandoverUser.fromJson(
+              Map<String, dynamic>.from(entry as Map),
+            );
+          }
+          return null;
+        })
+        .whereType<HandoverUser>()
+        .toList(growable: false);
+  }
+  return <HandoverUser>[];
+}
+
+List<Approval> _parseApprovals(dynamic raw) {
+  if (raw is List) {
+    return raw
+        .map<Approval?>((entry) {
+          if (entry is Approval) return entry;
+          if (entry is Map<String, dynamic>) {
+            return Approval.fromJson(entry);
+          }
+          if (entry is Map) {
+            return Approval.fromJson(Map<String, dynamic>.from(entry as Map));
+          }
+          return null;
+        })
+        .whereType<Approval>()
+        .toList(growable: false);
+  }
+  return <Approval>[];
+}
+
+List<DateTime> _parseDateList(dynamic raw) {
+  if (raw is List) {
+    return raw
+        .where((entry) => entry != null)
+        .map<DateTime?>((entry) {
+          if (entry is DateTime) return entry;
+          final value = entry.toString();
+          if (value.isEmpty) return null;
+          return DateTime.tryParse(value);
+        })
+        .whereType<DateTime>()
+        .toList(growable: false);
+  }
+  if (raw is String && raw.isNotEmpty) {
+    final parsed = DateTime.tryParse(raw);
+    if (parsed != null) {
+      return <DateTime>[parsed];
+    }
+  }
+  return <DateTime>[];
 }
 
 class Approval {

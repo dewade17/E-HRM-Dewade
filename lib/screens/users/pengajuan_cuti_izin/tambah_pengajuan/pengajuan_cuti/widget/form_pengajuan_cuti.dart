@@ -241,10 +241,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   }
 
   Future<void> _handlePickDate(
-    FormFieldState<List<DateTime>> state,
+    FormFieldState<List<DateTime>> state, {
     int? remainingQuota,
-  ) async {
-    if (remainingQuota != null && remainingQuota <= 0) {
+    required bool reducesQuota,
+  }) async {
+    if (reducesQuota && remainingQuota != null && remainingQuota <= 0) {
       _showSnackBar('Kuota cuti Anda sudah habis.', isError: true);
       return;
     }
@@ -267,8 +268,13 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     return available;
   }
 
-  int? _calculateRemainingQuota(int? availableQuota) {
+  int? _calculateRemainingQuota(
+    int? availableQuota, {
+    required bool reducesQuota,
+  }) {
     if (availableQuota == null) return null;
+    if (!reducesQuota) return availableQuota;
+
     final int remaining = availableQuota - _selectedDates.length;
     return remaining > 0 ? remaining : 0;
   }
@@ -510,8 +516,13 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final kategoriCutiProvider = context.watch<KategoriCutiProvider>();
     final konfigurasiProvider = context.watch<KonfigurasiCutiProvider>();
     final int? availableQuota = _calculateAvailableQuota(konfigurasiProvider);
-    final int? remainingQuota = _calculateRemainingQuota(availableQuota);
-    final bool canSelectMore = remainingQuota == null || remainingQuota > 0;
+    final bool reducesQuota = _selectedKategoriCuti?.penguranganKouta ?? true;
+    final int? remainingQuota = _calculateRemainingQuota(
+      availableQuota,
+      reducesQuota: reducesQuota,
+    );
+    final bool canSelectMore =
+        !reducesQuota || remainingQuota == null || remainingQuota > 0;
     final tagProvider = context.watch<TagHandOverProvider>();
 
     return Form(
@@ -847,7 +858,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                                   : Colors.grey,
                             ),
                             onPressed: canSelectMore
-                                ? () => _handlePickDate(state, remainingQuota)
+                                ? () => _handlePickDate(
+                                    state,
+                                    remainingQuota: remainingQuota,
+                                    reducesQuota: reducesQuota,
+                                  )
                                 : null,
                             tooltip: 'Tambah Tanggal Cuti',
                           ),
@@ -859,13 +874,18 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          remainingQuota == null
+                          !reducesQuota
+                              ? 'Tidak mengurangi kuota'
+                              : remainingQuota == null
                               ? 'Sisa kuota cuti: --'
                               : 'Sisa kuota cuti: $remainingQuota hari',
                           style: GoogleFonts.poppins(
                             textStyle: TextStyle(
                               fontSize: 12,
-                              color: remainingQuota == null || canSelectMore
+                              color:
+                                  !reducesQuota ||
+                                      remainingQuota == null ||
+                                      canSelectMore
                                   ? AppColors.textDefaultColor
                                   : AppColors.errorColor,
                             ),

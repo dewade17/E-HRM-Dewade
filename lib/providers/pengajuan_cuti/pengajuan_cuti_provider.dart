@@ -286,7 +286,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
       ..._createMultipartStrings('recipient_ids', approverIds),
       ..._createMultipartStrings('recipient_ids[]', approverIds),
       ..._createMultipartStrings(
-        'tanggal_list',
+        'tanggal_list[]',
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
       ..._createMultipartStrings('handover_tag_user_ids', handoverIds),
@@ -402,7 +402,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
       ..._createMultipartStrings('recipient_ids', approverIds),
       ..._createMultipartStrings('recipient_ids[]', approverIds),
       ..._createMultipartStrings(
-        'tanggal_list',
+        'tanggal_list[]',
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
       ..._createMultipartStrings('handover_tag_user_ids', handoverIds),

@@ -16,6 +16,7 @@ import 'package:e_hrm/providers/notifications/notifications_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
+import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/screens/auth/login/login_screen.dart';
 import 'package:e_hrm/screens/auth/reset_password/reset_password_screen.dart';
 import 'package:e_hrm/screens/opening/opening_screen.dart';
@@ -80,6 +81,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => IstirahatProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => KategoriCutiProvider()),
+        ChangeNotifierProvider(create: (_) => TagHandOverProvider()),
       ],
       child: MaterialApp(
         title: 'E-HRM',

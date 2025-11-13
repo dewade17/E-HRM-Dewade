@@ -17,6 +17,11 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+// Impor untuk mentions
+import 'package:flutter_mentions/flutter_mentions.dart';
+import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
+import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto;
+
 class FormPengajuanCuti extends StatefulWidget {
   const FormPengajuanCuti({super.key, this.initialData});
 
@@ -30,7 +35,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final TextEditingController keperluanController = TextEditingController();
-  final TextEditingController handoverController = TextEditingController();
+  final GlobalKey<FlutterMentionsState> _mentionsKey =
+      GlobalKey<FlutterMentionsState>();
+  String _handoverPlainText = '';
+  String _handoverMarkupText = '';
+  int _handoverFieldVersion = 0;
 
   List<DateTime> _selectedDates = [];
 
@@ -76,7 +85,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   @override
   void dispose() {
     keperluanController.dispose();
-    handoverController.dispose();
     super.dispose();
   }
 
@@ -128,7 +136,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final pengajuanProvider = context.read<PengajuanCutiProvider>();
     final idKategori = _selectedKategoriCuti!.idKategoriCuti;
     final keperluan = keperluanController.text.trim();
-    final handover = handoverController.text.trim();
+    final handover = _getCurrentHandoverMarkup().trim();
 
     _selectedDates.sort();
 
@@ -229,33 +237,47 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   void _applyInitialData(pengajuan_dto.Data? data, {bool notify = true}) {
     final approversProvider = context.read<ApproversPengajuanProvider>();
 
+    void updateState({
+      required kategori_dto.Data? kategori,
+      required List<DateTime> dates,
+      required String handoverPlain,
+      required String handoverMarkup,
+    }) {
+      _selectedKategoriCuti = kategori;
+      _selectedDates = dates;
+      _handoverPlainText = handoverPlain;
+      _handoverMarkupText = handoverMarkup;
+      _handoverFieldVersion++;
+    }
+
     if (data == null) {
       keperluanController.clear();
-      handoverController.clear();
       approversProvider.clearSelection();
       _scheduleApproverUpdate(() => approversProvider.clearSelection());
 
       final newSelectedDates = <DateTime>[];
+      final apply = () {
+        updateState(
+          kategori: null,
+          dates: newSelectedDates,
+          handoverPlain: '',
+          handoverMarkup: '',
+        );
+      };
 
       if (notify) {
-        setState(() {
-          _selectedKategoriCuti = null;
-          _selectedDates = newSelectedDates;
-        });
+        setState(apply);
       } else {
-        _selectedKategoriCuti = null;
-        _selectedDates = newSelectedDates;
+        apply();
       }
+      _scheduleHandoverControllerSync('');
       return;
     }
 
     keperluanController.text = data.keperluan;
-    handoverController.text = data.handover;
 
-    final newSelectedDates = data.tanggalList
-        .map((dt) => dt.toLocal())
-        .toList();
-    newSelectedDates.sort();
+    final newSelectedDates = data.tanggalList.map((dt) => dt.toLocal()).toList()
+      ..sort();
 
     final kategori_dto.Data? kategoriData = _resolveInitialKategori(data);
 
@@ -274,15 +296,22 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       }
     });
 
+    final plainHandover = _convertMarkupToDisplay(data.handover);
+    final apply = () {
+      updateState(
+        kategori: kategoriData,
+        dates: newSelectedDates,
+        handoverPlain: plainHandover,
+        handoverMarkup: data.handover,
+      );
+    };
+
     if (notify) {
-      setState(() {
-        _selectedKategoriCuti = kategoriData;
-        _selectedDates = newSelectedDates;
-      });
+      setState(apply);
     } else {
-      _selectedKategoriCuti = kategoriData;
-      _selectedDates = newSelectedDates;
+      apply();
     }
+    _scheduleHandoverControllerSync(plainHandover);
   }
 
   kategori_dto.Data? _resolveInitialKategori(pengajuan_dto.Data data) {
@@ -312,6 +341,57 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     );
   }
 
+  // Helper validasi
+  int _getWordCount(String text) {
+    final v = text.trim();
+    if (v.isEmpty) return 0;
+    return v.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+  }
+
+  static final RegExp _mentionMarkupRegex = RegExp(
+    r'([@#])\[__(.*?)__\]\(__(.*?)__\)',
+  );
+
+  String _convertMarkupToDisplay(String markup) {
+    if (markup.isEmpty) return '';
+    return markup.replaceAllMapped(_mentionMarkupRegex, (match) {
+      final trigger = match.group(1) ?? '';
+      final display = match.group(3) ?? '';
+      return '$trigger$display';
+    });
+  }
+
+  void _scheduleHandoverControllerSync(String text) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = _mentionsKey.currentState?.controller;
+      if (controller == null || controller.text == text) {
+        return;
+      }
+      controller
+        ..text = text
+        ..selection = TextSelection.collapsed(offset: text.length);
+    });
+  }
+
+  String _getCurrentHandoverText() {
+    final controller = _mentionsKey.currentState?.controller;
+    if (controller != null) {
+      _handoverPlainText = controller.text;
+      return controller.text;
+    }
+    return _handoverPlainText;
+  }
+
+  String _getCurrentHandoverMarkup() {
+    final controller = _mentionsKey.currentState?.controller;
+    if (controller != null) {
+      _handoverPlainText = controller.text;
+      _handoverMarkupText = controller.markupText;
+      return controller.markupText;
+    }
+    return _handoverMarkupText;
+  }
+
   @override
   Widget build(BuildContext context) {
     final autovalidateMode = _autoValidate
@@ -319,6 +399,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         : AutovalidateMode.disabled;
 
     final kategoriCutiProvider = context.watch<KategoriCutiProvider>();
+    // Ambil provider tag
+    final tagProvider = context.watch<TagHandOverProvider>();
 
     return Form(
       key: formKey,
@@ -353,7 +435,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 padding: EdgeInsets.only(top: 8.0),
                 child: LinearProgressIndicator(),
               ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: FormField<Set<String>>(
@@ -410,8 +491,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               maxLines: 3,
               autovalidateMode: autovalidateMode,
             ),
-            SizedBox(height: 20),
-
+            const SizedBox(height: 20),
             FormField<List<DateTime>>(
               key: ValueKey(_selectedDates.length),
               autovalidateMode: autovalidateMode,
@@ -460,7 +540,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                     const SizedBox(height: 8),
                     Container(
                       width: double.infinity,
-                      constraints: BoxConstraints(minHeight: 50),
+                      constraints: const BoxConstraints(minHeight: 50),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 10,
@@ -542,36 +622,173 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 );
               },
             ),
+            const SizedBox(height: 20),
 
-            SizedBox(height: 20),
+            // --- GANTI WIDGET INI ---
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Handover Pekerjaan',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textDefaultColor,
+                        ),
+                      ),
+                      children: [
+                        TextSpan(
+                          text: ' *',
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.errorColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                FormField<String>(
+                  key: ValueKey(_handoverFieldVersion),
+                  initialValue: _handoverPlainText,
+                  autovalidateMode: autovalidateMode,
+                  validator: (value) {
+                    final text = (value ?? _getCurrentHandoverText()).trim();
+                    if (text.isEmpty) {
+                      return 'Handover Pekerjaan tidak boleh kosong';
+                    }
+                    final wordCount = _getWordCount(text);
+                    if (wordCount < 50) {
+                      return 'Minimal 50 kata. (Sekarang: $wordCount kata)';
+                    }
+                    return null;
+                  },
+                  builder: (state) {
+                    final hasError = state.hasError;
+                    final borderColor = hasError
+                        ? AppColors.errorColor
+                        : AppColors.textDefaultColor;
+                    final focusedBorderColor = hasError
+                        ? AppColors.errorColor
+                        : AppColors.primaryColor;
 
-            TextFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Handover Pekerjaan',
-              controller: handoverController,
-              hintText: 'Handover Pekerjaan (min. 50 kata)',
-              isRequired: true,
-              prefixIcon: Icons.description_outlined,
-              keyboardType: TextInputType.multiline,
-              maxLines: 5,
-              autovalidateMode: autovalidateMode,
-              validator: (value) {
-                final v = value?.trim() ?? '';
-                if (v.isEmpty) {
-                  return 'Handover Pekerjaan tidak boleh kosong';
-                }
-                final wordCount = v
-                    .split(RegExp(r'\s+'))
-                    .where((s) => s.isNotEmpty)
-                    .length;
-                if (wordCount < 50) {
-                  return 'Minimal 50 kata. (Sekarang: $wordCount kata)';
-                }
-                return null;
-              },
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FlutterMentions(
+                          key: _mentionsKey,
+                          defaultText: _handoverPlainText,
+                          maxLines: 5,
+                          minLines: 3,
+                          onChanged: (value) {
+                            state.didChange(value);
+                            _handoverPlainText = value;
+                          },
+                          onMarkupChanged: (value) {
+                            _handoverMarkupText = value;
+                          },
+                          decoration: InputDecoration(
+                            fillColor: AppColors.textColor,
+                            filled: true,
+                            hintText:
+                                'Handover Pekerjaan (min. 50 kata). Ketik @ untuk mention...',
+                            prefixIcon: const Icon(Icons.description_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: focusedBorderColor),
+                            ),
+                          ),
+                          mentions: [
+                            Mention(
+                              trigger: '@',
+                              style: TextStyle(
+                                color: AppColors.primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              data: tagProvider.items.map((dto.Data user) {
+                                return {
+                                  'id': user.idUser,
+                                  'display': user.namaPengguna,
+                                  'photo': user.fotoProfilUser,
+                                  'email': user.email,
+                                };
+                              }).toList(),
+
+                              onSearchChange: (trigger, query) {
+                                context.read<TagHandOverProvider>().search(
+                                  query,
+                                );
+                              },
+                              suggestionBuilder: (data) {
+                                return Container(
+                                  padding: const EdgeInsets.all(10.0),
+                                  child: Row(
+                                    children: <Widget>[
+                                      CircleAvatar(
+                                        backgroundImage: data['photo'] != null
+                                            ? NetworkImage(data['photo']!)
+                                            : null,
+                                        child: data['photo'] == null
+                                            ? const Icon(Icons.person)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 10.0),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: <Widget>[
+                                          Text(data['display']!),
+                                          Text(
+                                            data['email']!,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        if (hasError && state.errorText != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 12, top: 8),
+                            child: Text(
+                              state.errorText!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-            SizedBox(height: 20),
+
+            // --- AKHIR PENGGANTIAN ---
+            const SizedBox(height: 20),
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -593,7 +810,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 return null;
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Consumer<PengajuanCutiProvider>(
               builder: (context, provider, _) {
                 final saving = provider.saving;

@@ -12,6 +12,9 @@ import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengaju
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+// Impor provider untuk tag
+import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
+
 class PengajuanCutiScreen extends StatefulWidget {
   const PengajuanCutiScreen({super.key, this.initialPengajuan});
 
@@ -183,6 +186,8 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
       providers: [
         ChangeNotifierProvider(create: (_) => KategoriCutiProvider()),
         ChangeNotifierProvider(create: (_) => PengajuanCutiProvider()),
+        // Tambahkan provider tag
+        ChangeNotifierProvider(create: (_) => TagHandOverProvider()),
       ],
       child: Builder(
         builder: (context) {
@@ -198,7 +203,6 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
             resizeToAvoidBottomInset: false,
             body: Stack(
               children: [
-                // BG ikon samar di tengah
                 Positioned.fill(
                   child: IgnorePointer(
                     ignoring: true,
@@ -231,14 +235,11 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
                     child: const HalfOvalPengajuanCuti(height: 40, sigma: 0),
                   ),
                 ),
-
                 Positioned.fill(
                   child: SafeArea(
-                    // top/bottom tetap aman, kiri/kanan edge-to-edge
                     left: false,
                     right: false,
                     child: SingleChildScrollView(
-                      // full width secara horizontal
                       padding: const EdgeInsets.fromLTRB(10, 120, 10, 24),
                       child: Stack(
                         children: [
@@ -246,7 +247,6 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Container(
-                                // height: 700,
                                 decoration: BoxDecoration(
                                   color: AppColors.textColor.withOpacity(0.7),
                                   borderRadius: BorderRadius.circular(10),
@@ -263,7 +263,11 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
                     ),
                   ),
                 ),
-                Positioned(top: 40, left: 10, child: HeaderPengajuanCuti()),
+                const Positioned(
+                  top: 40,
+                  left: 10,
+                  child: HeaderPengajuanCuti(),
+                ),
               ],
             ),
           );

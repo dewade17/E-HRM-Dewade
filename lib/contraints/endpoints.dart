@@ -44,6 +44,7 @@ class Endpoints {
 
   //getuser
   static const String users = "$baseURL/mobile/users";
+  static const String tagHandOverUsers = "$baseURL/mobile/tag-users";
 
   //get-approvers
   static const String getApprovers = "$baseURL/admin/approvers";

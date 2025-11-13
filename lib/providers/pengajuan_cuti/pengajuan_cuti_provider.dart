@@ -275,21 +275,21 @@ class PengajuanCutiProvider extends ChangeNotifier {
     ).toList(growable: false);
 
     if (handoverIds.isNotEmpty) {
-      payload['handover_user_ids'] = jsonEncode(handoverIds);
+      payload['handover_tag_user_ids'] = jsonEncode(handoverIds);
     }
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
       ..._createMultipartStrings(supervisorsFieldName, supervisorList),
-      ..._createMultipartStrings('${supervisorsFieldName}[]', supervisorList),
+      ..._createMultipartStrings('$supervisorsFieldName[]', supervisorList),
       ..._createMultipartStrings('recipient_ids', supervisorList),
       ..._createMultipartStrings('recipient_ids[]', supervisorList),
       ..._createMultipartStrings(
         'tanggal_list',
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
-      ..._createMultipartStrings('handover_user_ids', handoverIds),
-      ..._createMultipartStrings('handover_user_ids[]', handoverIds),
+      ..._createMultipartStrings('handover_tag_user_ids', handoverIds),
+      ..._createMultipartStrings('handover_tag_user_ids[]', handoverIds),
     ];
 
     try {
@@ -384,21 +384,21 @@ class PengajuanCutiProvider extends ChangeNotifier {
     ).toList(growable: false);
 
     if (handoverIds.isNotEmpty) {
-      payload['handover_user_ids'] = jsonEncode(handoverIds);
+      payload['handover_tag_user_ids'] = jsonEncode(handoverIds);
     }
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
       ..._createMultipartStrings(supervisorsFieldName, supervisorList),
-      ..._createMultipartStrings('${supervisorsFieldName}[]', supervisorList),
+      ..._createMultipartStrings('$supervisorsFieldName[]', supervisorList),
       ..._createMultipartStrings('recipient_ids', supervisorList),
       ..._createMultipartStrings('recipient_ids[]', supervisorList),
       ..._createMultipartStrings(
         'tanggal_list',
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
-      ..._createMultipartStrings('handover_user_ids', handoverIds),
-      ..._createMultipartStrings('handover_user_ids[]', handoverIds),
+      ..._createMultipartStrings('handover_tag_user_ids', handoverIds),
+      ..._createMultipartStrings('handover_tag_user_ids[]', handoverIds),
     ];
 
     try {

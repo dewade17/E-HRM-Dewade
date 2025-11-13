@@ -260,13 +260,14 @@ class PengajuanCutiProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final List<String> supervisorList = _resolveSupervisorIds(
+    final List<String> approverIds = _collectApproverIds(
       supervisorIds: supervisorIds,
       approversProvider: approversProvider,
-    ).toList(growable: false);
+    );
 
-    if (supervisorList.isNotEmpty) {
-      payload['recipient_ids'] = jsonEncode(supervisorList);
+    if (approverIds.isNotEmpty) {
+      payload['recipient_ids'] = jsonEncode(approverIds);
+      payload.addAll(_buildApprovalFormFields(approverIds));
     }
 
     final List<String> handoverIds = _resolveHandoverUserIds(
@@ -280,10 +281,10 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
-      ..._createMultipartStrings(supervisorsFieldName, supervisorList),
-      ..._createMultipartStrings('$supervisorsFieldName[]', supervisorList),
-      ..._createMultipartStrings('recipient_ids', supervisorList),
-      ..._createMultipartStrings('recipient_ids[]', supervisorList),
+      ..._createMultipartStrings(supervisorsFieldName, approverIds),
+      ..._createMultipartStrings('$supervisorsFieldName[]', approverIds),
+      ..._createMultipartStrings('recipient_ids', approverIds),
+      ..._createMultipartStrings('recipient_ids[]', approverIds),
       ..._createMultipartStrings(
         'tanggal_list',
         tanggalList.map((t) => _formatDate(t)).toList(),
@@ -313,6 +314,12 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
       if (created != null) {
         _upsertItem(created);
+        if (kDebugMode) {
+          debugPrint(
+            '[PengajuanCutiProvider] Approvals response (create): '
+            '${created.approvals.map((a) => {'id': a.approverUserId, 'level': a.level}).toList()}',
+          );
+        }
       }
 
       final message =
@@ -369,13 +376,14 @@ class PengajuanCutiProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final List<String> supervisorList = _resolveSupervisorIds(
+    final List<String> approverIds = _collectApproverIds(
       supervisorIds: supervisorIds,
       approversProvider: approversProvider,
-    ).toList(growable: false);
+    );
 
-    if (supervisorList.isNotEmpty) {
-      payload['recipient_ids'] = jsonEncode(supervisorList);
+    if (approverIds.isNotEmpty) {
+      payload['recipient_ids'] = jsonEncode(approverIds);
+      payload.addAll(_buildApprovalFormFields(approverIds));
     }
 
     final List<String> handoverIds = _resolveHandoverUserIds(
@@ -389,10 +397,10 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
-      ..._createMultipartStrings(supervisorsFieldName, supervisorList),
-      ..._createMultipartStrings('$supervisorsFieldName[]', supervisorList),
-      ..._createMultipartStrings('recipient_ids', supervisorList),
-      ..._createMultipartStrings('recipient_ids[]', supervisorList),
+      ..._createMultipartStrings(supervisorsFieldName, approverIds),
+      ..._createMultipartStrings('$supervisorsFieldName[]', approverIds),
+      ..._createMultipartStrings('recipient_ids', approverIds),
+      ..._createMultipartStrings('recipient_ids[]', approverIds),
       ..._createMultipartStrings(
         'tanggal_list',
         tanggalList.map((t) => _formatDate(t)).toList(),
@@ -422,6 +430,12 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
       if (updated != null) {
         _upsertItem(updated);
+        if (kDebugMode) {
+          debugPrint(
+            '[PengajuanCutiProvider] Approvals response (update): '
+            '${updated.approvals.map((a) => {'id': a.approverUserId, 'level': a.level}).toList()}',
+          );
+        }
       }
 
       final message =
@@ -525,29 +539,44 @@ class PengajuanCutiProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Iterable<String> _resolveSupervisorIds({
+  List<String> _collectApproverIds({
     List<String>? supervisorIds,
     ApproversPengajuanProvider? approversProvider,
   }) {
-    final Set<String> unique = <String>{};
+    final List<String> ordered = <String>[];
+    final Set<String> seen = <String>{};
 
-    void addAll(Iterable<String> values) {
-      for (final value in values) {
-        final trimmed = value.trim();
-        if (trimmed.isEmpty) continue;
-        unique.add(trimmed);
+    void add(String? value) {
+      final trimmed = value?.trim();
+      if (trimmed == null || trimmed.isEmpty) return;
+      if (seen.add(trimmed)) {
+        ordered.add(trimmed);
+      }
+    }
+
+    if (approversProvider != null) {
+      for (final id in approversProvider.selectedRecipientIds) {
+        add(id);
       }
     }
 
     if (supervisorIds != null) {
-      addAll(supervisorIds);
+      for (final id in supervisorIds) {
+        add(id);
+      }
     }
 
-    if (approversProvider != null) {
-      addAll(approversProvider.selectedRecipientIds);
-    }
+    return ordered;
+  }
 
-    return unique;
+  Map<String, String> _buildApprovalFormFields(List<String> approverIds) {
+    final Map<String, String> fields = <String, String>{};
+    for (var index = 0; index < approverIds.length; index++) {
+      final id = approverIds[index];
+      fields['approvals[$index][approver_user_id]'] = id;
+      fields['approvals[$index][level]'] = '${index + 1}';
+    }
+    return fields;
   }
 
   Iterable<String> _resolveHandoverUserIds({

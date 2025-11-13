@@ -357,12 +357,16 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final kategori_dto.Data? kategoriData = _resolveInitialKategori(data);
     final DateTime tanggalMasukKerja = data.tanggalMasukKerja.toLocal();
 
-    final Set<String> supervisorIds = data.approvals
+    final List<pengajuan_dto.Approval> sortedApprovals =
+        List<pengajuan_dto.Approval>.from(data.approvals)
+          ..sort((a, b) => a.level.compareTo(b.level));
+
+    final List<String> supervisorIds = sortedApprovals
         .map((approval) => approval.approverUserId)
         .whereType<String>()
         .map((id) => id.trim())
         .where((id) => id.isNotEmpty)
-        .toSet();
+        .toList();
 
     _scheduleApproverUpdate(() {
       if (supervisorIds.isNotEmpty) {

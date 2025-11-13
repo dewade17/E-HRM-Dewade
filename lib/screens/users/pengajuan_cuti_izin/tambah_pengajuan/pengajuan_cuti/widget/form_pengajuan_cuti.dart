@@ -8,6 +8,7 @@ import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
+import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
@@ -38,13 +39,15 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   final TextEditingController keperluanController = TextEditingController();
   final GlobalKey<FlutterMentionsState> _mentionsKey =
       GlobalKey<FlutterMentionsState>();
+  final TextEditingController tanggalMasukKerjaController =
+      TextEditingController();
 
   String _handoverPlainText = '';
   String _handoverMarkupText = '';
   int _handoverFieldVersion = 0;
 
   List<DateTime> _selectedDates = [];
-
+  DateTime? _tanggalMasukKerja;
   File? _buktiFile;
   kategori_dto.Data? _selectedKategoriCuti;
   bool _autoValidate = false;
@@ -81,6 +84,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   @override
   void dispose() {
     keperluanController.dispose();
+    tanggalMasukKerjaController.dispose();
     super.dispose();
   }
 
@@ -114,6 +118,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
     if (_selectedDates.isEmpty) {
       _showSnackBar('Tanggal cuti wajib diisi.', isError: true);
+      return;
+    }
+
+    if (_tanggalMasukKerja == null) {
+      _showSnackBar('Tanggal masuk kerja wajib diisi.', isError: true);
       return;
     }
 
@@ -156,6 +165,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         idKategoriCuti: idKategori,
         keperluan: keperluan,
         tanggalList: _selectedDates,
+        tanggalMasukKerja: _tanggalMasukKerja!,
         handover: handover,
         approversProvider: approvers,
         lampiran: lampiran,
@@ -165,12 +175,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         idKategoriCuti: idKategori,
         keperluan: keperluan,
         tanggalList: _selectedDates,
+        tanggalMasukKerja: _tanggalMasukKerja!,
         handover: handover,
         approversProvider: approvers,
         lampiran: lampiran,
       );
     }
-
     if (!mounted) return;
 
     final String? errorMessage = pengajuanProvider.saveError;
@@ -194,6 +204,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         setState(() {
           _buktiFile = null;
           _autoValidate = false;
+          _tanggalMasukKerja = null;
         });
       }
     }
@@ -250,16 +261,27 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       required List<DateTime> dates,
       required String handoverPlain,
       required String handoverMarkup,
+      required DateTime? tanggalMasukKerja,
     }) {
       _selectedKategoriCuti = kategori;
       _selectedDates = dates;
       _handoverPlainText = handoverPlain;
       _handoverMarkupText = handoverMarkup;
       _handoverFieldVersion++;
+      _tanggalMasukKerja = tanggalMasukKerja;
+
+      if (tanggalMasukKerja != null) {
+        tanggalMasukKerjaController.text = _dateFormatter.format(
+          tanggalMasukKerja,
+        );
+      } else {
+        tanggalMasukKerjaController.clear();
+      }
     }
 
     if (data == null) {
       keperluanController.clear();
+      tanggalMasukKerjaController.clear();
       approversProvider.clearSelection();
       _scheduleApproverUpdate(() => approversProvider.clearSelection());
 
@@ -271,6 +293,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
           dates: newSelectedDates,
           handoverPlain: '',
           handoverMarkup: '',
+          tanggalMasukKerja: null,
         );
       }
 
@@ -291,6 +314,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         data.tanggalList.map((dt) => dt.toLocal()).toList()..sort();
 
     final kategori_dto.Data? kategoriData = _resolveInitialKategori(data);
+    final DateTime tanggalMasukKerja = data.tanggalMasukKerja.toLocal();
 
     final Set<String> supervisorIds = data.approvals
         .map((approval) => approval.approverUserId)
@@ -315,6 +339,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         dates: newSelectedDates,
         handoverPlain: plainHandover,
         handoverMarkup: data.handover,
+        tanggalMasukKerja: tanggalMasukKerja,
       );
     }
 
@@ -759,6 +784,22 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                   ],
                 );
               },
+            ),
+
+            const SizedBox(height: 20),
+
+            DatePickerFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Tanggal Masuk Kerja',
+              controller: tanggalMasukKerjaController,
+              initialDate: _tanggalMasukKerja,
+              onDateChanged: (date) {
+                setState(() {
+                  _tanggalMasukKerja = date;
+                });
+              },
+              isRequired: true,
             ),
 
             const SizedBox(height: 20),

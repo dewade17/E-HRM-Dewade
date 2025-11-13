@@ -214,6 +214,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     required String idKategoriCuti,
     required String keperluan,
     required List<DateTime> tanggalList,
+    required DateTime tanggalMasukKerja,
     String? handover,
     String? jenisPengajuan,
     List<String>? supervisorIds,
@@ -225,6 +226,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     final payload = <String, dynamic>{
       'id_kategori_cuti': idKategoriCuti,
       'keperluan': keperluan,
+      'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
       if (handover != null) 'handover': handover,
       if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
     };
@@ -287,6 +289,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     required String idKategoriCuti,
     required String keperluan,
     required List<DateTime> tanggalList,
+    required DateTime tanggalMasukKerja,
     String? handover,
     String? jenisPengajuan,
     List<String>? supervisorIds,
@@ -298,6 +301,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     final payload = <String, dynamic>{
       'id_kategori_cuti': idKategoriCuti,
       'keperluan': keperluan,
+      'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
       if (handover != null) 'handover': handover,
       if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
     };

@@ -38,6 +38,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:flutter_portal/flutter_portal.dart';
 
 Future<void> main() async {
   // Pastikan binding Flutter siap
@@ -83,40 +84,42 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => KategoriCutiProvider()),
         ChangeNotifierProvider(create: (_) => TagHandOverProvider()),
       ],
-      child: MaterialApp(
-        title: 'E-HRM',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        locale: const Locale('id', 'ID'),
-        supportedLocales: const [Locale('id', 'ID'), Locale('en', 'US')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        home: const OpeningScreen(),
-        routes: {
-          '/login': (context) => const LoginScreen(),
-          '/reset-password': (context) => const ResetPasswordScreen(),
-          '/home-screen': (context) => AuthWrapper(child: const HomeScreen()),
-          '/profile-screen': (context) =>
-              AuthWrapper(child: const ProfileScreen()),
-          // Route for face enrollment. Pass the userId via RouteSettings arguments.
-          '/face-enroll': (context) {
-            final args = ModalRoute.of(context)?.settings.arguments;
-            // Expecting a String userId; if missing, fallback to empty string to avoid crash.
-            final userId = (args is String) ? args : '';
-            return AuthWrapper(child: FaceEnrollScreen(userId: userId));
+      child: Portal(
+        child: MaterialApp(
+          title: 'E-HRM',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          locale: const Locale('id', 'ID'),
+          supportedLocales: const [Locale('id', 'ID'), Locale('en', 'US')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const OpeningScreen(),
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            '/reset-password': (context) => const ResetPasswordScreen(),
+            '/home-screen': (context) => AuthWrapper(child: const HomeScreen()),
+            '/profile-screen': (context) =>
+                AuthWrapper(child: const ProfileScreen()),
+            // Route for face enrollment. Pass the userId via RouteSettings arguments.
+            '/face-enroll': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments;
+              // Expecting a String userId; if missing, fallback to empty string to avoid crash.
+              final userId = (args is String) ? args : '';
+              return AuthWrapper(child: FaceEnrollScreen(userId: userId));
+            },
+            '/agenda-kerja': (context) =>
+                AuthWrapper(child: const AgendaKerjaScreen()),
+            '/kunjungan-klien': (context) =>
+                AuthWrapper(child: const KunjunganKlienScreen()),
+            '/jam-istirahat': (context) =>
+                AuthWrapper(child: const JamIstirahatScreen()),
+            '/pengajuan-cuti': (context) =>
+                AuthWrapper(child: const PengajuanScreen()),
           },
-          '/agenda-kerja': (context) =>
-              AuthWrapper(child: const AgendaKerjaScreen()),
-          '/kunjungan-klien': (context) =>
-              AuthWrapper(child: const KunjunganKlienScreen()),
-          '/jam-istirahat': (context) =>
-              AuthWrapper(child: const JamIstirahatScreen()),
-          '/pengajuan-cuti': (context) =>
-              AuthWrapper(child: const PengajuanScreen()),
-        },
+        ),
       ),
     );
   }

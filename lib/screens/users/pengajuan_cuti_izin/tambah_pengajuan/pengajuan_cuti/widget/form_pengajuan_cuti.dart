@@ -435,49 +435,166 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 padding: EdgeInsets.only(top: 8.0),
                 child: LinearProgressIndicator(),
               ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-              child: FormField<Set<String>>(
-                autovalidateMode: autovalidateMode,
-                initialValue: context
-                    .watch<ApproversPengajuanProvider>()
-                    .selectedRecipientIds,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Penerima laporan (Supervisi) wajib dipilih.';
-                  }
-                  return null;
-                },
-                builder: (FormFieldState<Set<String>> state) {
-                  final provider = context.watch<ApproversPengajuanProvider>();
-                  final currentValue = provider.selectedRecipientIds;
-                  if (state.value != currentValue) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        state.didChange(currentValue);
-                      }
-                    });
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const RecipientCuti(),
-                      if (state.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12, top: 8),
-                          child: Text(
-                            state.errorText!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontSize: 12,
+            const SizedBox(height: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Handover Pekerjaan',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textDefaultColor,
+                        ),
+                      ),
+                      children: [
+                        TextSpan(
+                          text: ' *',
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.errorColor,
                             ),
                           ),
                         ),
-                    ],
-                  );
-                },
-              ),
+                      ],
+                    ),
+                  ),
+                ),
+                FormField<String>(
+                  key: ValueKey(_handoverFieldVersion),
+                  initialValue: _handoverPlainText,
+                  autovalidateMode: autovalidateMode,
+                  validator: (value) {
+                    final text = (value ?? _getCurrentHandoverText()).trim();
+                    if (text.isEmpty) {
+                      return 'Handover Pekerjaan tidak boleh kosong';
+                    }
+                    final wordCount = _getWordCount(text);
+                    if (wordCount < 15) {
+                      return 'Minimal 15 kata. (Sekarang: $wordCount kata)';
+                    }
+                    return null;
+                  },
+                  builder: (state) {
+                    final hasError = state.hasError;
+                    final borderColor = hasError
+                        ? AppColors.errorColor
+                        : AppColors.textDefaultColor;
+                    final focusedBorderColor = hasError
+                        ? AppColors.errorColor
+                        : AppColors.primaryColor;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FlutterMentions(
+                          key: _mentionsKey,
+                          defaultText: _handoverPlainText,
+                          maxLines: 5,
+                          minLines: 3,
+                          onChanged: (value) {
+                            state.didChange(value);
+                            _handoverPlainText = value;
+                          },
+                          onMarkupChanged: (value) {
+                            _handoverMarkupText = value;
+                          },
+                          onSearchChanged: (trigger, query) {
+                            context.read<TagHandOverProvider>().search(query);
+                          },
+                          decoration: InputDecoration(
+                            fillColor: AppColors.textColor,
+                            filled: true,
+                            hintText:
+                                'Handover Pekerjaan (min. 50 kata). Ketik @ untuk mention...',
+                            prefixIcon: const Icon(Icons.description_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: focusedBorderColor),
+                            ),
+                          ),
+                          mentions: [
+                            Mention(
+                              trigger: '@',
+                              style: TextStyle(
+                                color: AppColors.primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              data: tagProvider.items.map((dto.Data user) {
+                                return {
+                                  'id': user.idUser,
+                                  'display': user.namaPengguna,
+                                  'photo': user.fotoProfilUser,
+                                  'email': user.email,
+                                };
+                              }).toList(),
+                              suggestionBuilder: (data) {
+                                return Container(
+                                  padding: const EdgeInsets.all(10.0),
+                                  child: Row(
+                                    children: <Widget>[
+                                      CircleAvatar(
+                                        backgroundImage: data['photo'] != null
+                                            ? NetworkImage(data['photo']!)
+                                            : null,
+                                        child: data['photo'] == null
+                                            ? const Icon(Icons.person)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 10.0),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: <Widget>[
+                                          Text(data['display']!),
+                                          Text(
+                                            data['email']!,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        if (hasError && state.errorText != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 12, top: 8),
+                            child: Text(
+                              state.errorText!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
+
             const SizedBox(height: 20),
             TextFieldWidget(
               backgroundColor: AppColors.textColor,
@@ -624,166 +741,49 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
             ),
             const SizedBox(height: 20),
 
-            // --- GANTI WIDGET INI ---
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
-                  child: RichText(
-                    text: TextSpan(
-                      text: 'Handover Pekerjaan',
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textDefaultColor,
-                        ),
-                      ),
-                      children: [
-                        TextSpan(
-                          text: ' *',
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.errorColor,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+              child: FormField<Set<String>>(
+                autovalidateMode: autovalidateMode,
+                initialValue: context
+                    .watch<ApproversPengajuanProvider>()
+                    .selectedRecipientIds,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Penerima laporan (Supervisi) wajib dipilih.';
+                  }
+                  return null;
+                },
+                builder: (FormFieldState<Set<String>> state) {
+                  final provider = context.watch<ApproversPengajuanProvider>();
+                  final currentValue = provider.selectedRecipientIds;
+                  if (state.value != currentValue) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        state.didChange(currentValue);
+                      }
+                    });
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const RecipientCuti(),
+                      if (state.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12, top: 8),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                FormField<String>(
-                  key: ValueKey(_handoverFieldVersion),
-                  initialValue: _handoverPlainText,
-                  autovalidateMode: autovalidateMode,
-                  validator: (value) {
-                    final text = (value ?? _getCurrentHandoverText()).trim();
-                    if (text.isEmpty) {
-                      return 'Handover Pekerjaan tidak boleh kosong';
-                    }
-                    final wordCount = _getWordCount(text);
-                    if (wordCount < 50) {
-                      return 'Minimal 50 kata. (Sekarang: $wordCount kata)';
-                    }
-                    return null;
-                  },
-                  builder: (state) {
-                    final hasError = state.hasError;
-                    final borderColor = hasError
-                        ? AppColors.errorColor
-                        : AppColors.textDefaultColor;
-                    final focusedBorderColor = hasError
-                        ? AppColors.errorColor
-                        : AppColors.primaryColor;
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FlutterMentions(
-                          key: _mentionsKey,
-                          defaultText: _handoverPlainText,
-                          maxLines: 5,
-                          minLines: 3,
-                          onChanged: (value) {
-                            state.didChange(value);
-                            _handoverPlainText = value;
-                          },
-                          onMarkupChanged: (value) {
-                            _handoverMarkupText = value;
-                          },
-                          onSearchChanged: (trigger, query) {
-                            context.read<TagHandOverProvider>().search(query);
-                          },
-                          decoration: InputDecoration(
-                            fillColor: AppColors.textColor,
-                            filled: true,
-                            hintText:
-                                'Handover Pekerjaan (min. 50 kata). Ketik @ untuk mention...',
-                            prefixIcon: const Icon(Icons.description_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: borderColor),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: borderColor),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: focusedBorderColor),
-                            ),
-                          ),
-                          mentions: [
-                            Mention(
-                              trigger: '@',
-                              style: TextStyle(
-                                color: AppColors.primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              data: tagProvider.items.map((dto.Data user) {
-                                return {
-                                  'id': user.idUser,
-                                  'display': user.namaPengguna,
-                                  'photo': user.fotoProfilUser,
-                                  'email': user.email,
-                                };
-                              }).toList(),
-                              suggestionBuilder: (data) {
-                                return Container(
-                                  padding: const EdgeInsets.all(10.0),
-                                  child: Row(
-                                    children: <Widget>[
-                                      CircleAvatar(
-                                        backgroundImage: data['photo'] != null
-                                            ? NetworkImage(data['photo']!)
-                                            : null,
-                                        child: data['photo'] == null
-                                            ? const Icon(Icons.person)
-                                            : null,
-                                      ),
-                                      const SizedBox(width: 10.0),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: <Widget>[
-                                          Text(data['display']!),
-                                          Text(
-                                            data['email']!,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        if (hasError && state.errorText != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 12, top: 8),
-                            child: Text(
-                              state.errorText!,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ],
+                    ],
+                  );
+                },
+              ),
             ),
-
             // --- AKHIR PENGGANTIAN ---
             const SizedBox(height: 20),
             FilePickerFieldWidget(

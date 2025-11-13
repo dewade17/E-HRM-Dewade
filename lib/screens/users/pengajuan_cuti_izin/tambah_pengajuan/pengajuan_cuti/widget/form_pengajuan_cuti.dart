@@ -4,9 +4,13 @@ import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
     as kategori_dto;
 import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as pengajuan_dto;
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+// Impor provider Konfigurasi Cuti
+import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
+// Impor DatePickerFieldWidget
+import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
@@ -35,6 +39,10 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final TextEditingController keperluanController = TextEditingController();
+  // TAMBAHKAN: Controller untuk tanggal masuk kerja
+  final TextEditingController tanggalMasukKerjaController =
+      TextEditingController();
+
   final GlobalKey<FlutterMentionsState> _mentionsKey =
       GlobalKey<FlutterMentionsState>();
   String _handoverPlainText = '';
@@ -42,6 +50,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   int _handoverFieldVersion = 0;
 
   List<DateTime> _selectedDates = [];
+  // TAMBAHKAN: State untuk tanggal masuk kerja
+  DateTime? _selectedTanggalMasukKerja;
 
   File? _buktiFile;
   kategori_dto.Data? _selectedKategoriCuti;
@@ -85,6 +95,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   @override
   void dispose() {
     keperluanController.dispose();
+    // TAMBAHKAN: Dispose controller
+    tanggalMasukKerjaController.dispose();
     super.dispose();
   }
 
@@ -106,6 +118,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
     if (_selectedDates.isEmpty) {
       _showSnackBar('Tanggal cuti wajib diisi.', isError: true);
+      return;
+    }
+
+    // TAMBAHKAN: Validasi tanggal masuk kerja
+    if (_selectedTanggalMasukKerja == null) {
+      _showSnackBar('Tanggal masuk kerja wajib diisi.', isError: true);
       return;
     }
 
@@ -137,8 +155,15 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final idKategori = _selectedKategoriCuti!.idKategoriCuti;
     final keperluan = keperluanController.text.trim();
     final handover = _getCurrentHandoverMarkup().trim();
+    // TAMBAHKAN: Ambil nilai tanggal masuk kerja
+    final tanggalMasuk = _selectedTanggalMasukKerja!;
 
     _selectedDates.sort();
+
+    // TAMBAHKAN: Siapkan additionalFields
+    final additionalFields = {
+      'tanggal_masuk_kerja': tanggalMasuk.toIso8601String(),
+    };
 
     pengajuan_dto.Data? result;
     if (_isEditing) {
@@ -151,6 +176,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         handover: handover,
         approversProvider: approvers,
         lampiran: lampiran,
+        additionalFields: additionalFields, // <-- Kirim data tambahan
       );
     } else {
       result = await pengajuanProvider.createPengajuan(
@@ -160,6 +186,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         handover: handover,
         approversProvider: approvers,
         lampiran: lampiran,
+        additionalFields: additionalFields, // <-- Kirim data tambahan
       );
     }
 
@@ -191,22 +218,66 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     }
   }
 
+  // --- MODIFIKASI: _pickDate sekarang menggunakan KonfigurasiCutiProvider ---
   Future<void> _pickDate(FormFieldState<List<DateTime>> state) async {
+    // 1. Baca provider konfigurasi cuti
+    final konfigurasiCutiProvider = context.read<KonfigurasiCutiProvider>();
+    // 2. Dapatkan kuota (default 0 jika tidak ada data)
+    final int koutaCuti = konfigurasiCutiProvider.items.isNotEmpty
+        ? konfigurasiCutiProvider.items.last.koutaCuti
+        : 0;
+    // 3. Cek apakah kuota sudah habis
+    final bool isQuotaMet = _selectedDates.length >= koutaCuti;
+
+    // 4. Tampilkan peringatan jika kuota habis (seharusnya tombol sudah disable,
+    //    tapi ini sebagai pengaman ganda)
+    if (isQuotaMet) {
+      _showSnackBar(
+        'Anda sudah mencapai batas kuota cuti ($koutaCuti hari).',
+        isError: true,
+      );
+      return;
+    }
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDates.lastOrNull ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
       locale: const Locale('id', 'ID'),
+      // 5. Tambahkan predikat untuk menonaktifkan tanggal
+      selectableDayPredicate: (DateTime day) {
+        // Normalisasi HARI INI (tanpa jam)
+        final today = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+        );
+
+        // Alasan nonaktif (return false):
+        // 1. Kuota sudah habis
+        if (isQuotaMet) return false;
+        // 2. Tanggal sudah dipilih sebelumnya
+        if (_selectedDates.contains(day)) return false;
+        // 3. Tanggal adalah Sabtu (6) atau Minggu (7)
+        if (day.weekday == 6 || day.weekday == 7) return false;
+        // 4. Tanggal adalah hari sebelum hari ini
+        if (day.isBefore(today)) return false;
+
+        // Jika lolos semua, tanggal bisa dipilih
+        return true;
+      },
     );
 
     if (picked != null) {
+      // Logika ini tetap sama
       setState(() {
         if (!_selectedDates.contains(picked)) {
           _selectedDates.add(picked);
           _selectedDates.sort();
           state.didChange(_selectedDates);
         } else {
+          // Seharusnya tidak terjadi karena selectableDayPredicate
           _showSnackBar('Tanggal sudah dipilih.', isError: true);
         }
       });
@@ -242,16 +313,22 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       required List<DateTime> dates,
       required String handoverPlain,
       required String handoverMarkup,
+      // TAMBAHKAN: Tanggal Masuk Kerja
+      required DateTime? tanggalMasuk,
     }) {
       _selectedKategoriCuti = kategori;
       _selectedDates = dates;
       _handoverPlainText = handoverPlain;
       _handoverMarkupText = handoverMarkup;
       _handoverFieldVersion++;
+      // TAMBAHKAN: Set state tanggal masuk kerja
+      _selectedTanggalMasukKerja = tanggalMasuk;
     }
 
     if (data == null) {
       keperluanController.clear();
+      // TAMBAHKAN: Hapus controller tanggal masuk
+      tanggalMasukKerjaController.clear();
       approversProvider.clearSelection();
       _scheduleApproverUpdate(() => approversProvider.clearSelection());
 
@@ -262,6 +339,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
           dates: newSelectedDates,
           handoverPlain: '',
           handoverMarkup: '',
+          tanggalMasuk: null, // <-- Set null
         );
       }
 
@@ -278,6 +356,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
     final newSelectedDates = data.tanggalList.map((dt) => dt.toLocal()).toList()
       ..sort();
+
+    // TAMBAHKAN: Ambil tanggal masuk kerja
+    final DateTime? tanggalMasuk = data.tanggalMasukKerja.toLocal();
+    if (tanggalMasuk != null) {
+      tanggalMasukKerjaController.text = _dateFormatter.format(tanggalMasuk);
+    }
 
     final kategori_dto.Data? kategoriData = _resolveInitialKategori(data);
 
@@ -303,6 +387,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         dates: newSelectedDates,
         handoverPlain: plainHandover,
         handoverMarkup: data.handover,
+        tanggalMasuk: tanggalMasuk, // <-- Set data
       );
     }
 
@@ -402,6 +487,14 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     // Ambil provider tag
     final tagProvider = context.watch<TagHandOverProvider>();
 
+    // --- TAMBAHKAN: Ambil Konfigurasi Cuti Provider untuk cek kuota ---
+    final konfigurasiCutiProvider = context.watch<KonfigurasiCutiProvider>();
+    final int koutaCuti = konfigurasiCutiProvider.items.isNotEmpty
+        ? konfigurasiCutiProvider.items.last.koutaCuti
+        : 0;
+    final bool isQuotaMet = _selectedDates.length >= koutaCuti;
+    // --- AKHIR TAMBAHAN ---
+
     return Form(
       key: formKey,
       autovalidateMode: autovalidateMode,
@@ -435,6 +528,19 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 padding: EdgeInsets.only(top: 8.0),
                 child: LinearProgressIndicator(),
               ),
+            const SizedBox(height: 20),
+            TextFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Keperluan',
+              controller: keperluanController,
+              hintText: 'Tulis Keperluan Cuti...',
+              isRequired: true,
+              prefixIcon: Icons.description_outlined,
+              keyboardType: TextInputType.multiline,
+              maxLines: 3,
+              autovalidateMode: autovalidateMode,
+            ),
             const SizedBox(height: 20),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,7 +618,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                             fillColor: AppColors.textColor,
                             filled: true,
                             hintText:
-                                'Handover Pekerjaan (min. 50 kata). Ketik @ untuk mention...',
+                                'Handover Pekerjaan (min. 15 kata). Ketik @ untuk mention...',
                             prefixIcon: const Icon(Icons.description_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -596,19 +702,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
             ),
 
             const SizedBox(height: 20),
-            TextFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Keperluan',
-              controller: keperluanController,
-              hintText: 'Tulis Keperluan Cuti...',
-              isRequired: true,
-              prefixIcon: Icons.description_outlined,
-              keyboardType: TextInputType.multiline,
-              maxLines: 3,
-              autovalidateMode: autovalidateMode,
-            ),
-            const SizedBox(height: 20),
             FormField<List<DateTime>>(
               key: ValueKey(_selectedDates.length),
               autovalidateMode: autovalidateMode,
@@ -642,7 +735,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                             ),
                           ),
                           TextSpan(
-                            text: 'Tanggal Cuti',
+                            text:
+                                'Tanggal Cuti (Sisa: ${koutaCuti - _selectedDates.length})', // <-- Tampilkan sisa
                             style: GoogleFonts.poppins(
                               textStyle: const TextStyle(
                                 fontSize: 16,
@@ -714,12 +808,20 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                                   ),
                           ),
                           IconButton(
-                            icon: const Icon(
+                            // --- MODIFIKASI: Tombol nonaktif jika kuota habis ---
+                            icon: Icon(
                               Icons.add_circle_outline,
-                              color: AppColors.secondaryColor,
+                              color: isQuotaMet
+                                  ? Colors
+                                        .grey // <-- Warna nonaktif
+                                  : AppColors.secondaryColor,
                             ),
-                            onPressed: () => _pickDate(state),
-                            tooltip: 'Tambah Tanggal Cuti',
+                            onPressed: isQuotaMet
+                                ? null // <-- Nonaktifkan tombol
+                                : () => _pickDate(state),
+                            tooltip: isQuotaMet
+                                ? 'Kuota cuti sudah habis ($koutaCuti Hari)'
+                                : 'Tambah Tanggal Cuti',
                           ),
                         ],
                       ),
@@ -741,6 +843,37 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
             ),
             const SizedBox(height: 20),
 
+            // --- TAMBAHKAN: Field Tanggal Masuk Kerja ---
+            DatePickerFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Tanggal Masuk Kerja',
+              controller: tanggalMasukKerjaController,
+              initialDate: _selectedTanggalMasukKerja,
+              onDateChanged: (date) {
+                setState(() => _selectedTanggalMasukKerja = date);
+                if (_autoValidate) {
+                  formKey.currentState?.validate();
+                }
+              },
+              isRequired: true,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Tanggal masuk kerja wajib diisi';
+                }
+                if (_selectedTanggalMasukKerja != null &&
+                    _selectedDates.isNotEmpty) {
+                  final lastCutiDate = _selectedDates.last;
+                  if (!_selectedTanggalMasukKerja!.isAfter(lastCutiDate)) {
+                    return 'Harus setelah tanggal cuti terakhir';
+                  }
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // --- AKHIR TAMBAHAN ---
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: FormField<Set<String>>(
@@ -784,7 +917,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 },
               ),
             ),
-            // --- AKHIR PENGGANTIAN ---
             const SizedBox(height: 20),
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,

@@ -223,10 +223,27 @@ class PengajuanCutiProvider extends ChangeNotifier {
     Map<String, dynamic>? additionalFields,
     String supervisorsFieldName = 'recipient',
   }) async {
+    _startSaving();
+
+    // --- PERBAIKAN DIMULAI ---
+    if (tanggalList.isEmpty) {
+      _finishSaving(error: 'Tanggal cuti tidak boleh kosong.');
+      return null;
+    }
+    // Pastikan diurutkan untuk dapat tanggal_cuti (pertama) & tanggal_selesai (terakhir)
+    final List<DateTime> sortedDates = List<DateTime>.from(tanggalList)..sort();
+    final DateTime tanggalCuti = sortedDates.first;
+    final DateTime tanggalSelesai = sortedDates.last;
+    // --- PERBAIKAN SELESAI ---
+
     final payload = <String, dynamic>{
       'id_kategori_cuti': idKategoriCuti,
       'keperluan': keperluan,
       'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
+      // --- TAMBAHAN BARU ---
+      'tanggal_cuti': _formatDate(tanggalCuti),
+      'tanggal_selesai': _formatDate(tanggalSelesai),
+      // --- AKHIR TAMBAHAN ---
       if (handover != null) 'handover': handover,
       if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
     };
@@ -248,8 +265,6 @@ class PengajuanCutiProvider extends ChangeNotifier {
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
     ];
-
-    _startSaving();
 
     try {
       final response = await _api.postFormDataPrivate(
@@ -298,10 +313,27 @@ class PengajuanCutiProvider extends ChangeNotifier {
     Map<String, dynamic>? additionalFields,
     String supervisorsFieldName = 'recipient',
   }) async {
+    _startSaving();
+
+    // --- PERBAIKAN DIMULAI ---
+    if (tanggalList.isEmpty) {
+      _finishSaving(error: 'Tanggal cuti tidak boleh kosong.');
+      return null;
+    }
+    // Pastikan diurutkan untuk dapat tanggal_cuti (pertama) & tanggal_selesai (terakhir)
+    final List<DateTime> sortedDates = List<DateTime>.from(tanggalList)..sort();
+    final DateTime tanggalCuti = sortedDates.first;
+    final DateTime tanggalSelesai = sortedDates.last;
+    // --- PERBAIKAN SELESAI ---
+
     final payload = <String, dynamic>{
       'id_kategori_cuti': idKategoriCuti,
       'keperluan': keperluan,
       'tanggal_masuk_kerja': _formatDate(tanggalMasukKerja),
+      // --- TAMBAHAN BARU ---
+      'tanggal_cuti': _formatDate(tanggalCuti),
+      'tanggal_selesai': _formatDate(tanggalSelesai),
+      // --- AKHIR TAMBAHAN ---
       if (handover != null) 'handover': handover,
       if (jenisPengajuan != null) 'jenis_pengajuan': jenisPengajuan,
     };
@@ -323,8 +355,6 @@ class PengajuanCutiProvider extends ChangeNotifier {
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
     ];
-
-    _startSaving();
 
     try {
       final response = await _api.putFormDataPrivate(

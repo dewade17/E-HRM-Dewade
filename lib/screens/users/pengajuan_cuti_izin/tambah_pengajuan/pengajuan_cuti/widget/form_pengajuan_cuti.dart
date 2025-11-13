@@ -5,6 +5,7 @@ import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
     as kategori_dto;
 import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as pengajuan_dto;
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
@@ -232,6 +233,39 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     }
   }
 
+  Future<void> _handlePickDate(
+    FormFieldState<List<DateTime>> state,
+    int? remainingQuota,
+  ) async {
+    if (remainingQuota != null && remainingQuota <= 0) {
+      _showSnackBar('Kuota cuti Anda sudah habis.', isError: true);
+      return;
+    }
+
+    await _pickDate(state);
+  }
+
+  int? _calculateAvailableQuota(KonfigurasiCutiProvider provider) {
+    if (provider.items.isEmpty) return null;
+
+    final latestData = provider.items.last;
+    final String rawStatus = provider.statusCuti?.trim().toLowerCase() ?? '';
+    final bool statusActive = rawStatus == 'aktif';
+
+    int available = latestData.koutaCuti;
+    if (statusActive) {
+      available += latestData.cutiTabung;
+    }
+
+    return available;
+  }
+
+  int? _calculateRemainingQuota(int? availableQuota) {
+    if (availableQuota == null) return null;
+    final int remaining = availableQuota - _selectedDates.length;
+    return remaining > 0 ? remaining : 0;
+  }
+
   void _removeDate(DateTime date, FormFieldState<List<DateTime>> state) {
     setState(() {
       _selectedDates.remove(date);
@@ -432,6 +466,10 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         : AutovalidateMode.disabled;
 
     final kategoriCutiProvider = context.watch<KategoriCutiProvider>();
+    final konfigurasiProvider = context.watch<KonfigurasiCutiProvider>();
+    final int? availableQuota = _calculateAvailableQuota(konfigurasiProvider);
+    final int? remainingQuota = _calculateRemainingQuota(availableQuota);
+    final bool canSelectMore = remainingQuota == null || remainingQuota > 0;
     final tagProvider = context.watch<TagHandOverProvider>();
 
     return Form(
@@ -471,6 +509,22 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
             const SizedBox(height: 20),
 
             // Handover Pekerjaan + Mentions
+            // Keperluan
+            TextFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Keperluan',
+              controller: keperluanController,
+              hintText: 'Tulis Keperluan Cuti...',
+              isRequired: true,
+              prefixIcon: Icons.description_outlined,
+              keyboardType: TextInputType.multiline,
+              maxLines: 3,
+              autovalidateMode: autovalidateMode,
+            ),
+
+            const SizedBox(height: 20),
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -638,22 +692,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
             const SizedBox(height: 20),
 
-            // Keperluan
-            TextFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Keperluan',
-              controller: keperluanController,
-              hintText: 'Tulis Keperluan Cuti...',
-              isRequired: true,
-              prefixIcon: Icons.description_outlined,
-              keyboardType: TextInputType.multiline,
-              maxLines: 3,
-              autovalidateMode: autovalidateMode,
-            ),
-
-            const SizedBox(height: 20),
-
             // Tanggal Cuti (multi-date)
             FormField<List<DateTime>>(
               key: ValueKey(_selectedDates.length),
@@ -760,14 +798,37 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                                   ),
                           ),
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.add_circle_outline,
-                              color: AppColors.secondaryColor,
+                              color: canSelectMore
+                                  ? AppColors.secondaryColor
+                                  : Colors.grey,
                             ),
-                            onPressed: () => _pickDate(state),
+                            onPressed: canSelectMore
+                                ? () => _handlePickDate(state, remainingQuota)
+                                : null,
                             tooltip: 'Tambah Tanggal Cuti',
                           ),
                         ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          remainingQuota == null
+                              ? 'Sisa kuota cuti: --'
+                              : 'Sisa kuota cuti: $remainingQuota hari',
+                          style: GoogleFonts.poppins(
+                            textStyle: TextStyle(
+                              fontSize: 12,
+                              color: remainingQuota == null || canSelectMore
+                                  ? AppColors.textDefaultColor
+                                  : AppColors.errorColor,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     if (hasError)

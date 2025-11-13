@@ -26,9 +26,6 @@ class DatePickerFieldWidget extends StatefulWidget {
     this.backgroundColor,
     this.borderColor,
     this.borderWidth = 1.0,
-    // --- TAMBAHAN BARU ---
-    this.validator,
-    this.selectableDayPredicate,
   });
 
   /// Teks label di atas field.
@@ -79,14 +76,6 @@ class DatePickerFieldWidget extends StatefulWidget {
 
   /// Ketebalan border (default 1.0).
   final double borderWidth;
-
-  // --- TAMBAHAN BARU ---
-  /// Validator custom (opsional).
-  final String? Function(String?)? validator;
-
-  /// Fungsi (opsional) untuk menonaktifkan tanggal tertentu di kalender.
-  final bool Function(DateTime)? selectableDayPredicate;
-  // --- AKHIR TAMBAHAN BARU ---
 
   @override
   State<DatePickerFieldWidget> createState() => _DatePickerFieldWidgetState();
@@ -150,10 +139,6 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
       firstDate: widget.firstDate ?? DateTime(1900),
       lastDate: widget.lastDate ?? DateTime(2100),
       locale: const Locale('id', 'ID'),
-      // --- TAMBAHAN BARU ---
-      // Teruskan fungsi predikat ke date picker
-      selectableDayPredicate: widget.selectableDayPredicate,
-      // --- AKHIR TAMBAHAN BARU ---
       builder: (context, child) {
         // Kustomisasi tema date picker agar sesuai dengan tema aplikasi
         return Theme(
@@ -218,20 +203,12 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
           // Diubah: Dibungkus dengan FormField
           FormField<String>(
             initialValue: widget.controller.text,
-            // --- MODIFIKASI VALIDATOR ---
             validator: (value) {
-              // 1. Jalankan validasi internal (isRequired)
               if (widget.isRequired && (value == null || value.isEmpty)) {
                 return '${widget.label} tidak boleh kosong';
               }
-              // 2. Jika lolos, jalankan validator kustom dari luar (jika ada)
-              if (widget.validator != null) {
-                return widget.validator!(value);
-              }
-              // 3. Jika semua lolos, kembalikan null
               return null;
             },
-            // --- AKHIR MODIFIKASI VALIDATOR ---
             builder: (FormFieldState<String> state) {
               // Sinkronkan state jika controller berubah (misal oleh _updateDate)
               if (widget.controller.text != state.value) {

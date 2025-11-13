@@ -240,6 +240,9 @@ class PengajuanCutiProvider extends ChangeNotifier {
     }
     // Pastikan diurutkan untuk dapat tanggal_cuti (pertama) & tanggal_selesai (terakhir)
     final List<DateTime> sortedDates = List<DateTime>.from(tanggalList)..sort();
+    final List<String> formattedDates = sortedDates
+        .map((t) => _formatDate(t))
+        .toList(growable: false);
     final DateTime tanggalCuti = sortedDates.first;
     final DateTime tanggalSelesai = sortedDates.last;
     // --- PERBAIKAN SELESAI ---
@@ -285,6 +288,8 @@ class PengajuanCutiProvider extends ChangeNotifier {
       ..._createMultipartStrings('$supervisorsFieldName[]', approverIds),
       ..._createMultipartStrings('recipient_ids', approverIds),
       ..._createMultipartStrings('recipient_ids[]', approverIds),
+      ..._createMultipartStrings('tanggal_cuti[]', formattedDates),
+      ..._createMultipartStrings('tanggal_list', formattedDates),
       ..._createMultipartStrings(
         'tanggal_list[]',
         tanggalList.map((t) => _formatDate(t)).toList(),
@@ -356,6 +361,9 @@ class PengajuanCutiProvider extends ChangeNotifier {
     }
     // Pastikan diurutkan untuk dapat tanggal_cuti (pertama) & tanggal_selesai (terakhir)
     final List<DateTime> sortedDates = List<DateTime>.from(tanggalList)..sort();
+    final List<String> formattedDates = sortedDates
+        .map((t) => _formatDate(t))
+        .toList(growable: false);
     final DateTime tanggalCuti = sortedDates.first;
     final DateTime tanggalSelesai = sortedDates.last;
     // --- PERBAIKAN SELESAI ---
@@ -401,6 +409,8 @@ class PengajuanCutiProvider extends ChangeNotifier {
       ..._createMultipartStrings('$supervisorsFieldName[]', approverIds),
       ..._createMultipartStrings('recipient_ids', approverIds),
       ..._createMultipartStrings('recipient_ids[]', approverIds),
+      ..._createMultipartStrings('tanggal_cuti[]', formattedDates),
+      ..._createMultipartStrings('tanggal_list', formattedDates),
       ..._createMultipartStrings(
         'tanggal_list[]',
         tanggalList.map((t) => _formatDate(t)).toList(),
@@ -579,6 +589,8 @@ class PengajuanCutiProvider extends ChangeNotifier {
     return fields;
   }
 
+  // lib/providers/pengajuan_cuti/pengajuan_cuti_provider.dart
+
   Iterable<String> _resolveHandoverUserIds({
     Iterable<String>? provided,
     String? handover,
@@ -591,35 +603,52 @@ class PengajuanCutiProvider extends ChangeNotifier {
       unique.add(trimmed);
     }
 
+    // --- PERBAIKAN DIMULAI ---
+    // 1. Prioritaskan daftar ID (handoverUserIds) yang sudah diekstrak oleh form
     if (provided != null) {
       for (final value in provided) {
         add(value);
       }
+      // 2. Jika sudah ada ID dari 'provided', JANGAN parsing markup lagi.
+      if (unique.isNotEmpty) {
+        return unique;
+      }
     }
 
+    // 3. Hanya parsing 'handover' (markup) jika 'provided' KOSONG
     if (handover != null && handover.isNotEmpty) {
       for (final match in _mentionMarkupRegex.allMatches(handover)) {
-        final String first = match.group(1) ?? '';
-        final String second = match.group(2) ?? '';
-        final String? candidate = _pickBestMentionId(first, second);
+        // Gunakan group(2) untuk ID, bukan group(1)
+        final String idPart = match.group(2) ?? '';
+        // Kirim ID (group 2) dan display name (group 3) ke helper
+        final String displayPart = match.group(3) ?? '';
+        final String? candidate = _pickBestMentionId(idPart, displayPart);
         if (candidate != null) {
           add(candidate);
         }
       }
     }
+    // --- PERBAIKAN SELESAI ---
 
     return unique;
   }
 
+  // lib/providers/pengajuan_cuti/pengajuan_cuti_provider.dart
+
   String? _pickBestMentionId(String first, String second) {
-    final String a = first.trim();
-    final String b = second.trim();
+    // --- PERBAIKAN DIMULAI ---
+    // Bersihkan karakter "__" dari string ID dan display name
+    final String a = first.trim().replaceAll(RegExp(r'_'), '');
+    final String b = second.trim().replaceAll(RegExp(r'_'), '');
+    // --- PERBAIKAN SELESAI ---
+
     final bool aIsUuid = _looksLikeUuid(a);
     final bool bIsUuid = _looksLikeUuid(b);
 
-    if (aIsUuid && !bIsUuid) return a;
-    if (bIsUuid && !aIsUuid) return b;
-    if (aIsUuid && bIsUuid) return a;
+    if (aIsUuid) return a; // Prioritaskan ID (dari group 2)
+    if (bIsUuid) return b; // Fallback jika ID ada di group 3 (seharusnya tidak)
+
+    // Fallback jika tidak ada UUID
     if (a.isNotEmpty && !a.contains(' ')) return a;
     if (b.isNotEmpty && !b.contains(' ')) return b;
     if (a.isNotEmpty) return a;

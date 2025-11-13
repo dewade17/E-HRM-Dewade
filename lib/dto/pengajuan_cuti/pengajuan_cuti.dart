@@ -1,3 +1,5 @@
+// lib/dto/pengajuan_cuti/pengajuan_cuti.dart
+
 // To parse this JSON data, do
 //
 //     final pengajuanCuti = pengajuanCutiFromJson(jsonString);
@@ -5,6 +7,17 @@
 import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart';
 import 'package:meta/meta.dart';
 import 'dart:convert';
+
+// --- HELPER PARSING ---
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is String && value.isNotEmpty) {
+    return DateTime.tryParse(value);
+  }
+  return null;
+}
+// --- AKHIR HELPER ---
 
 PengajuanCuti pengajuanCutiFromJson(String str) =>
     PengajuanCuti.fromJson(json.decode(str));
@@ -76,38 +89,54 @@ class Data {
     required this.tanggalList,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) => Data(
-    idPengajuanCuti: json["id_pengajuan_cuti"],
-    idUser: json["id_user"],
-    idKategoriCuti: json["id_kategori_cuti"],
-    keperluan: json["keperluan"],
-    tanggalMasukKerja: DateTime.parse(json["tanggal_masuk_kerja"]),
-    handover: json["handover"],
-    status: json["status"],
-    currentLevel: json["current_level"] is int
-        ? json["current_level"]
-        : json["current_level"] is num
-        ? (json["current_level"] as num).toInt()
-        : json["current_level"] is String
-        ? int.tryParse(json["current_level"] as String) ?? 0
-        : 0,
-    jenisPengajuan: json["jenis_pengajuan"],
-    lampiranCutiUrl: json["lampiran_cuti_url"],
-    createdAt: DateTime.parse(json["created_at"]),
-    updatedAt: DateTime.parse(json["updated_at"]),
-    deletedAt: json["deleted_at"],
-    user: User.fromJson(json["user"]),
-    kategoriCuti: KategoriCuti.fromJson(json["kategori_cuti"]),
-    handoverUsers: _parseHandoverUsers(json["handover_users"]),
-    approvals: _parseApprovals(json["approvals"]),
-    tanggalCuti: json["tanggal_cuti"] != null
-        ? DateTime.parse(json["tanggal_cuti"])
-        : null,
-    tanggalSelesai: json["tanggal_selesai"] != null
-        ? DateTime.parse(json["tanggal_selesai"])
-        : null,
-    tanggalList: _parseDateList(json["tanggal_list"]),
-  );
+  factory Data.fromJson(Map<String, dynamic> json) {
+    // --- Parsing aman yang sudah kita buat sebelumnya ---
+    final createdAtTime = _parseDateTime(json["created_at"]);
+    final updatedAtTime = _parseDateTime(json["updated_at"]);
+    final tanggalMasuk = _parseDateTime(json["tanggal_masuk_kerja"]);
+
+    if (createdAtTime == null) {
+      throw FormatException("Field 'created_at' tidak valid atau null.");
+    }
+    if (updatedAtTime == null) {
+      throw FormatException("Field 'updated_at' tidak valid atau null.");
+    }
+    if (tanggalMasuk == null) {
+      throw FormatException(
+        "Field 'tanggal_masuk_kerja' tidak valid atau null.",
+      );
+    }
+    // --- Akhir parsing aman ---
+
+    return Data(
+      idPengajuanCuti: json["id_pengajuan_cuti"],
+      idUser: json["id_user"],
+      idKategoriCuti: json["id_kategori_cuti"],
+      keperluan: json["keperluan"],
+      tanggalMasukKerja: tanggalMasuk,
+      handover: json["handover"],
+      status: json["status"],
+      currentLevel: json["current_level"] is int
+          ? json["current_level"]
+          : json["current_level"] is num
+          ? (json["current_level"] as num).toInt()
+          : json["current_level"] is String
+          ? int.tryParse(json["current_level"] as String) ?? 0
+          : 0,
+      jenisPengajuan: json["jenis_pengajuan"],
+      lampiranCutiUrl: json["lampiran_cuti_url"],
+      createdAt: createdAtTime,
+      updatedAt: updatedAtTime,
+      deletedAt: json["deletedAt"],
+      user: User.fromJson(json["user"]), // <-- Akan memanggil User.fromJson
+      kategoriCuti: KategoriCuti.fromJson(json["kategori_cuti"]),
+      handoverUsers: _parseHandoverUsers(json["handover_users"]),
+      approvals: _parseApprovals(json["approvals"]),
+      tanggalCuti: _parseDateTime(json["tanggal_cuti"]),
+      tanggalSelesai: _parseDateTime(json["tanggal_selesai"]),
+      tanggalList: _parseDateList(json["tanggal_list"]),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     "id_pengajuan_cuti": idPengajuanCuti,
@@ -202,10 +231,10 @@ class Approval {
   String idApprovalPengajuanCuti;
   int level;
   dynamic approverUserId;
-  Role approverRole;
+  Role? approverRole;
   String decision;
-  DateTime decidedAt;
-  String note;
+  DateTime? decidedAt;
+  String? note;
 
   Approval({
     required this.idApprovalPengajuanCuti,
@@ -221,9 +250,12 @@ class Approval {
     idApprovalPengajuanCuti: json["id_approval_pengajuan_cuti"],
     level: json["level"],
     approverUserId: json["approver_user_id"],
-    approverRole: roleValues.map[json["approver_role"]]!,
+    // --- PARSING AMAN UNTUK ROLE ---
+    approverRole: roleValues.map[json["approver_role"]],
     decision: json["decision"],
-    decidedAt: DateTime.parse(json["decided_at"]),
+    decidedAt: json["decided_at"] == null
+        ? null
+        : DateTime.parse(json["decided_at"]),
     note: json["note"],
   );
 
@@ -231,18 +263,25 @@ class Approval {
     "id_approval_pengajuan_cuti": idApprovalPengajuanCuti,
     "level": level,
     "approver_user_id": approverUserId,
-    "approver_role": roleValues.reverse[approverRole],
+    "approver_role": approverRole == null
+        ? null
+        : roleValues.reverse[approverRole],
     "decision": decision,
-    "decided_at": decidedAt.toIso8601String(),
+    "decided_at": decidedAt?.toIso8601String(),
     "note": note,
   };
 }
 
-enum Role { KARYAWAN, SUPERADMIN }
+// Enum Role tetap dipertahankan
+enum Role { KARYAWAN, SUPERADMIN, HR, OPERASIONAL, DIREKTUR }
 
 final roleValues = EnumValues({
   "KARYAWAN": Role.KARYAWAN,
   "SUPERADMIN": Role.SUPERADMIN,
+  // Tambahkan role lain jika ada di JSON
+  "HR": Role.HR,
+  "OPERASIONAL": Role.OPERASIONAL,
+  "DIREKTUR": Role.DIREKTUR,
 });
 
 class HandoverUser {
@@ -277,11 +316,12 @@ class HandoverUser {
   };
 }
 
+// --- KELAS USER YANG DIPERBAIKI ---
 class User {
   String idUser;
-  NamaPengguna namaPengguna;
-  Email email;
-  Role role;
+  String namaPengguna; // <-- Diubah ke String
+  String email; // <-- Diubah ke String
+  Role? role; // <-- Dibuat nullable dan tetap enum
   dynamic fotoProfilUser;
 
   User({
@@ -292,36 +332,28 @@ class User {
     required this.fotoProfilUser,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) => User(
-    idUser: json["id_user"],
-    namaPengguna: namaPenggunaValues.map[json["nama_pengguna"]]!,
-    email: emailValues.map[json["email"]]!,
-    role: roleValues.map[json["role"]]!,
-    fotoProfilUser: json["foto_profil_user"],
-  );
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      idUser: json["id_user"] ?? '',
+      // Parsing aman sebagai String
+      namaPengguna: json["nama_pengguna"]?.toString() ?? '',
+      // Parsing aman sebagai String
+      email: json["email"]?.toString() ?? '',
+      // Parsing enum yang aman (nullable)
+      role: roleValues.map[json["role"]],
+      fotoProfilUser: json["foto_profil_user"],
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     "id_user": idUser,
-    "nama_pengguna": namaPenggunaValues.reverse[namaPengguna],
-    "email": emailValues.reverse[email],
-    "role": roleValues.reverse[role],
+    "nama_pengguna": namaPengguna,
+    "email": email,
+    // Serialisasi enum yang aman
+    "role": role == null ? null : roleValues.reverse[role],
     "foto_profil_user": fotoProfilUser,
   };
 }
-
-enum Email { ADITYA_YOGANTARAZ_GMAIL_COM, ODE_GMAIL_COM }
-
-final emailValues = EnumValues({
-  "aditya.yogantaraz@gmail.com": Email.ADITYA_YOGANTARAZ_GMAIL_COM,
-  "ode@gmail.com": Email.ODE_GMAIL_COM,
-});
-
-enum NamaPengguna { ADITYA, ODE }
-
-final namaPenggunaValues = EnumValues({
-  "aditya": NamaPengguna.ADITYA,
-  "ode": NamaPengguna.ODE,
-});
 
 class KategoriCuti {
   String idKategoriCuti;

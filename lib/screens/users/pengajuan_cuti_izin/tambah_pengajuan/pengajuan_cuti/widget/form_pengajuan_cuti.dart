@@ -42,6 +42,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       GlobalKey<FlutterMentionsState>();
   final TextEditingController tanggalMasukKerjaController =
       TextEditingController();
+  final GlobalKey<FormFieldState<List<DateTime>>> _tanggalCutiFieldKey =
+      GlobalKey<FormFieldState<List<DateTime>>>();
 
   String _handoverPlainText = '';
   String _handoverMarkupText = '';
@@ -105,54 +107,153 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     }
   }
 
+  void _scheduleTanggalFieldSync() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tanggalCutiFieldKey.currentState?.didChange(
+        List<DateTime>.from(_selectedDates),
+      );
+    });
+  }
+
+  void _handleKategoriSelected(
+    kategori_dto.Data? selected,
+    KonfigurasiCutiProvider konfigurasiProvider,
+  ) {
+    final bool requiresQuota = selected?.penguranganKouta ?? false;
+    final int? rawQuota = requiresQuota
+        ? _calculateAvailableQuota(konfigurasiProvider)
+        : null;
+    final int? sanitizedQuota = rawQuota == null
+        ? null
+        : (rawQuota < 0 ? 0 : rawQuota);
+
+    bool datesTrimmed = false;
+    List<DateTime> adjustedDates = _selectedDates;
+
+    if (requiresQuota && sanitizedQuota != null) {
+      if (_selectedDates.length > sanitizedQuota) {
+        adjustedDates = List<DateTime>.from(_selectedDates)
+          ..sort()
+          ..removeRange(sanitizedQuota, _selectedDates.length);
+        datesTrimmed = true;
+      }
+    }
+
+    setState(() {
+      _selectedKategoriCuti = selected;
+      if (datesTrimmed) {
+        _selectedDates = adjustedDates;
+      }
+    });
+
+    _scheduleTanggalFieldSync();
+
+    if (datesTrimmed) {
+      final String message = sanitizedQuota == 0
+          ? 'Tanggal cuti dihapus karena kuota cuti Anda habis untuk kategori ini.'
+          : 'Jumlah tanggal cuti disesuaikan agar tidak melebihi kuota ($sanitizedQuota hari).';
+      _showSnackBar(message, isError: true);
+    }
+
+    if (_autoValidate) {
+      formKey.currentState?.validate();
+    }
+  }
+
   Future<void> _submitForm() async {
+    // --- [DEBUG] Tambahan print ---
+    debugPrint("DEBUG: _submitForm() initiated.");
+    // --- Akhir Tambahan ---
+
     setState(() {
       _autoValidate = true;
     });
 
     final formState = formKey.currentState;
     if (formState == null || !formState.validate()) {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: Form is invalid or formState is null.");
+      // --- Akhir Tambahan ---
       _showSnackBar('Harap periksa kembali semua isian form.', isError: true);
       return;
     }
+    // --- [DEBUG] Tambahan print ---
+    debugPrint("DEBUG: Form validation passed.");
+    // --- Akhir Tambahan ---
 
     if (_selectedKategoriCuti == null) {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: _selectedKategoriCuti is null.");
+      // --- Akhir Tambahan ---
       _showSnackBar('Harap pilih jenis cuti terlebih dahulu.', isError: true);
       return;
     }
+    // --- [DEBUG] Tambahan print ---
+    debugPrint(
+      "DEBUG: Kategori Cuti ID: ${_selectedKategoriCuti!.idKategoriCuti}",
+    );
+    // --- Akhir Tambahan ---
 
     if (_selectedDates.isEmpty) {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: _selectedDates is empty.");
+      // --- Akhir Tambahan ---
       _showSnackBar('Tanggal cuti wajib diisi.', isError: true);
       return;
     }
+    // --- [DEBUG] Tambahan print ---
+    debugPrint("DEBUG: Selected Dates: $_selectedDates");
+    // --- Akhir Tambahan ---
 
     if (_tanggalMasukKerja == null) {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: _tanggalMasukKerja is null.");
+      // --- Akhir Tambahan ---
       _showSnackBar('Tanggal masuk kerja wajib diisi.', isError: true);
       return;
     }
+    // --- [DEBUG] Tambahan print ---
+    debugPrint("DEBUG: Tanggal Masuk: $_tanggalMasukKerja");
+    // --- Akhir Tambahan ---
 
     final approvers = context.read<ApproversPengajuanProvider>();
     if (approvers.selectedRecipientIds.isEmpty) {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: Approvers are empty.");
+      // --- Akhir Tambahan ---
       _showSnackBar(
         'Pilih minimal satu penerima laporan (supervisi).',
         isError: true,
       );
       return;
     }
+    // --- [DEBUG] Tambahan print ---
+    debugPrint("DEBUG: Approvers: ${approvers.selectedRecipientIds}");
+    // --- Akhir Tambahan ---
 
     FocusScope.of(context).unfocus();
 
     http.MultipartFile? lampiran;
     if (_buktiFile != null) {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: Preparing file: ${_buktiFile!.path}");
+      // --- Akhir Tambahan ---
       try {
         lampiran = await http.MultipartFile.fromPath(
           'lampiran_cuti',
           _buktiFile!.path,
         );
       } catch (e) {
+        // --- [DEBUG] Tambahan print ---
+        debugPrint("DEBUG: Error preparing file: $e");
+        // --- Akhir Tambahan ---
         _showSnackBar('Gagal membaca lampiran: $e', isError: true);
         return;
       }
+    } else {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: No file attached.");
+      // --- Akhir Tambahan ---
     }
 
     final pengajuanProvider = context.read<PengajuanCutiProvider>();
@@ -163,9 +264,18 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
     _selectedDates.sort();
 
+    // --- [DEBUG] Tambahan print ---
+    debugPrint("DEBUG: Submitting to provider. Editing: $_isEditing");
+    debugPrint("DEBUG: Handover Markup: $handover");
+    debugPrint("DEBUG: Handover Tagged IDs: $handoverUserIds");
+    // --- Akhir Tambahan ---
+
     pengajuan_dto.Data? result;
     if (_isEditing) {
       final String id = widget.initialData!.idPengajuanCuti;
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: Calling updatePengajuan for ID: $id");
+      // --- Akhir Tambahan ---
       result = await pengajuanProvider.updatePengajuan(
         id,
         idKategoriCuti: idKategori,
@@ -178,6 +288,9 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         lampiran: lampiran,
       );
     } else {
+      // --- [DEBUG] Tambahan print ---
+      debugPrint("DEBUG: Calling createPengajuan");
+      // --- Akhir Tambahan ---
       result = await pengajuanProvider.createPengajuan(
         idKategoriCuti: idKategori,
         keperluan: keperluan,
@@ -189,6 +302,10 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         lampiran: lampiran,
       );
     }
+
+    // --- [DEBUG] Tambahan print ---
+    debugPrint("DEBUG: Provider call finished. Result: ${result != null}");
+    // --- Akhir Tambahan ---
     if (!mounted) return;
 
     final String? errorMessage = pengajuanProvider.saveError;
@@ -349,7 +466,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       } else {
         apply();
       }
-
+      _scheduleTanggalFieldSync();
       _scheduleHandoverControllerSync('');
       return;
     }
@@ -399,7 +516,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     } else {
       apply();
     }
-
+    _scheduleTanggalFieldSync();
     _scheduleHandoverControllerSync(plainHandover);
   }
 
@@ -539,10 +656,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               label: 'Jenis Cuti',
               selectedKategori: _selectedKategoriCuti,
               onKategoriSelected: (selected) {
-                setState(() => _selectedKategoriCuti = selected);
-                if (_autoValidate) {
-                  formKey.currentState?.validate();
-                }
+                _handleKategoriSelected(selected, konfigurasiProvider);
               },
               isRequired: true,
               autovalidateMode: autovalidateMode,
@@ -747,7 +861,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
             // Tanggal Cuti (multi-date)
             FormField<List<DateTime>>(
-              key: ValueKey(_selectedDates.length),
+              key: _tanggalCutiFieldKey,
               autovalidateMode: autovalidateMode,
               initialValue: _selectedDates,
               validator: (value) {

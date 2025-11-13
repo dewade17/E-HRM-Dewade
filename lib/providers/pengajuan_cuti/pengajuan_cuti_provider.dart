@@ -1,6 +1,6 @@
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:flutter/foundation.dart';
-
+import 'dart:convert';
 import 'package:e_hrm/contraints/endpoints.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as dto;
 import 'package:e_hrm/services/api_services.dart';
@@ -39,6 +39,13 @@ class PengajuanCutiProvider extends ChangeNotifier {
     'ditolak',
     'pending',
   };
+
+  static final RegExp _mentionMarkupRegex = RegExp(
+    '[@#]\\[__(.*?)__\\]\\(__(.*?)__\\)',
+  );
+  static final RegExp _uuidRegex = RegExp(
+    '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\$',
+  );
 
   static const Map<String, String> _statusSynonyms = <String, String>{
     'menunggu': 'pending',
@@ -217,6 +224,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     required DateTime tanggalMasukKerja,
     String? handover,
     String? jenisPengajuan,
+    List<String>? handoverUserIds,
     List<String>? supervisorIds,
     ApproversPengajuanProvider? approversProvider,
     http.MultipartFile? lampiran,
@@ -252,18 +260,36 @@ class PengajuanCutiProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final supervisorList = _resolveSupervisorIds(
+    final List<String> supervisorList = _resolveSupervisorIds(
       supervisorIds: supervisorIds,
       approversProvider: approversProvider,
-    );
+    ).toList(growable: false);
+
+    if (supervisorList.isNotEmpty) {
+      payload['recipient_ids'] = jsonEncode(supervisorList);
+    }
+
+    final List<String> handoverIds = _resolveHandoverUserIds(
+      provided: handoverUserIds,
+      handover: handover,
+    ).toList(growable: false);
+
+    if (handoverIds.isNotEmpty) {
+      payload['handover_user_ids'] = jsonEncode(handoverIds);
+    }
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
       ..._createMultipartStrings(supervisorsFieldName, supervisorList),
+      ..._createMultipartStrings('${supervisorsFieldName}[]', supervisorList),
+      ..._createMultipartStrings('recipient_ids', supervisorList),
+      ..._createMultipartStrings('recipient_ids[]', supervisorList),
       ..._createMultipartStrings(
         'tanggal_list',
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
+      ..._createMultipartStrings('handover_user_ids', handoverIds),
+      ..._createMultipartStrings('handover_user_ids[]', handoverIds),
     ];
 
     try {
@@ -306,6 +332,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
     required List<DateTime> tanggalList,
     required DateTime tanggalMasukKerja,
     String? handover,
+    List<String>? handoverUserIds,
     String? jenisPengajuan,
     List<String>? supervisorIds,
     ApproversPengajuanProvider? approversProvider,
@@ -342,18 +369,36 @@ class PengajuanCutiProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final supervisorList = _resolveSupervisorIds(
+    final List<String> supervisorList = _resolveSupervisorIds(
       supervisorIds: supervisorIds,
       approversProvider: approversProvider,
-    );
+    ).toList(growable: false);
+
+    if (supervisorList.isNotEmpty) {
+      payload['recipient_ids'] = jsonEncode(supervisorList);
+    }
+
+    final List<String> handoverIds = _resolveHandoverUserIds(
+      provided: handoverUserIds,
+      handover: handover,
+    ).toList(growable: false);
+
+    if (handoverIds.isNotEmpty) {
+      payload['handover_user_ids'] = jsonEncode(handoverIds);
+    }
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
       ..._createMultipartStrings(supervisorsFieldName, supervisorList),
+      ..._createMultipartStrings('${supervisorsFieldName}[]', supervisorList),
+      ..._createMultipartStrings('recipient_ids', supervisorList),
+      ..._createMultipartStrings('recipient_ids[]', supervisorList),
       ..._createMultipartStrings(
         'tanggal_list',
         tanggalList.map((t) => _formatDate(t)).toList(),
       ),
+      ..._createMultipartStrings('handover_user_ids', handoverIds),
+      ..._createMultipartStrings('handover_user_ids[]', handoverIds),
     ];
 
     try {
@@ -503,6 +548,58 @@ class PengajuanCutiProvider extends ChangeNotifier {
     }
 
     return unique;
+  }
+
+  Iterable<String> _resolveHandoverUserIds({
+    Iterable<String>? provided,
+    String? handover,
+  }) {
+    final Set<String> unique = <String>{};
+
+    void add(String? raw) {
+      final trimmed = raw?.trim();
+      if (trimmed == null || trimmed.isEmpty) return;
+      unique.add(trimmed);
+    }
+
+    if (provided != null) {
+      for (final value in provided) {
+        add(value);
+      }
+    }
+
+    if (handover != null && handover.isNotEmpty) {
+      for (final match in _mentionMarkupRegex.allMatches(handover)) {
+        final String first = match.group(1) ?? '';
+        final String second = match.group(2) ?? '';
+        final String? candidate = _pickBestMentionId(first, second);
+        if (candidate != null) {
+          add(candidate);
+        }
+      }
+    }
+
+    return unique;
+  }
+
+  String? _pickBestMentionId(String first, String second) {
+    final String a = first.trim();
+    final String b = second.trim();
+    final bool aIsUuid = _looksLikeUuid(a);
+    final bool bIsUuid = _looksLikeUuid(b);
+
+    if (aIsUuid && !bIsUuid) return a;
+    if (bIsUuid && !aIsUuid) return b;
+    if (aIsUuid && bIsUuid) return a;
+    if (a.isNotEmpty && !a.contains(' ')) return a;
+    if (b.isNotEmpty && !b.contains(' ')) return b;
+    if (a.isNotEmpty) return a;
+    if (b.isNotEmpty) return b;
+    return null;
+  }
+
+  bool _looksLikeUuid(String value) {
+    return _uuidRegex.hasMatch(value);
   }
 
   List<http.MultipartFile> _createMultipartStrings(

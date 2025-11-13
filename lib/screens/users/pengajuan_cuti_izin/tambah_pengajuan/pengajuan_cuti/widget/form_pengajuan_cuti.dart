@@ -62,6 +62,10 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     r'([@#])\[__(.*?)__\]\(__(.*?)__\)',
   );
 
+  static final RegExp _uuidRegex = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+  );
+
   @override
   void initState() {
     super.initState();
@@ -155,6 +159,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final String idKategori = _selectedKategoriCuti!.idKategoriCuti;
     final String keperluan = keperluanController.text.trim();
     final String handover = _getCurrentHandoverMarkup().trim();
+    final List<String> handoverUserIds = _extractMentionedUserIds(handover);
 
     _selectedDates.sort();
 
@@ -168,6 +173,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         tanggalList: _selectedDates,
         tanggalMasukKerja: _tanggalMasukKerja!,
         handover: handover,
+        handoverUserIds: handoverUserIds,
         approversProvider: approvers,
         lampiran: lampiran,
       );
@@ -178,6 +184,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         tanggalList: _selectedDates,
         tanggalMasukKerja: _tanggalMasukKerja!,
         handover: handover,
+        handoverUserIds: handoverUserIds,
         approversProvider: approvers,
         lampiran: lampiran,
       );
@@ -418,6 +425,37 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final String v = text.trim();
     if (v.isEmpty) return 0;
     return v.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+  }
+
+  List<String> _extractMentionedUserIds(String markup) {
+    if (markup.isEmpty) return const <String>[];
+
+    final Set<String> ids = <String>{};
+    for (final match in _mentionMarkupRegex.allMatches(markup)) {
+      final String candidate = _pickBestMentionId(
+        match.group(2) ?? '',
+        match.group(3) ?? '',
+      );
+      if (candidate.isNotEmpty) {
+        ids.add(candidate);
+      }
+    }
+
+    return ids.toList(growable: false);
+  }
+
+  String _pickBestMentionId(String first, String second) {
+    final String a = first.trim();
+    final String b = second.trim();
+    final bool aIsUuid = _uuidRegex.hasMatch(a);
+    final bool bIsUuid = _uuidRegex.hasMatch(b);
+
+    if (aIsUuid && !bIsUuid) return a;
+    if (bIsUuid && !aIsUuid) return b;
+    if (aIsUuid && bIsUuid) return a;
+    if (a.isNotEmpty && !a.contains(' ')) return a;
+    if (b.isNotEmpty && !b.contains(' ')) return b;
+    return a.isNotEmpty ? a : b;
   }
 
   String _convertMarkupToDisplay(String markup) {

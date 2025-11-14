@@ -7,6 +7,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+class _TanggalTukarPair {
+  DateTime? tanggalIzin;
+  DateTime? tanggalPengganti;
+  final TextEditingController izinController = TextEditingController();
+  final TextEditingController penggantiController = TextEditingController();
+
+  void dispose() {
+    izinController.dispose();
+    penggantiController.dispose();
+  }
+}
+
 class FormPengajuanIzinTukarHari extends StatefulWidget {
   const FormPengajuanIzinTukarHari({super.key});
 
@@ -22,11 +34,8 @@ class _FormPengajuanIzinTukarHariState
   final TextEditingController jenisCutiController = TextEditingController();
   final TextEditingController keperluanController = TextEditingController();
   final TextEditingController handoverController = TextEditingController();
-  final TextEditingController tanggalMulaiController = TextEditingController();
-  final TextEditingController tanggalMasukController = TextEditingController();
 
-  DateTime? _tanggalMulai;
-  DateTime? _tanggalMasuk;
+  final List<_TanggalTukarPair> _daftarTanggal = [];
 
   bool _autoValidate = false;
 
@@ -34,6 +43,7 @@ class _FormPengajuanIzinTukarHariState
   void initState() {
     super.initState();
     jenisCutiController.text = "Izin Tukar Hari";
+    _addPair();
   }
 
   @override
@@ -41,9 +51,38 @@ class _FormPengajuanIzinTukarHariState
     jenisCutiController.dispose();
     keperluanController.dispose();
     handoverController.dispose();
-    tanggalMulaiController.dispose();
-    tanggalMasukController.dispose();
+
+    for (var pair in _daftarTanggal) {
+      pair.dispose();
+    }
     super.dispose();
+  }
+
+  void _addPair() {
+    setState(() {
+      _daftarTanggal.add(_TanggalTukarPair());
+    });
+  }
+
+  void _removePair(int index) {
+    if (_daftarTanggal.length <= 1) {
+      _showSnackBar('Minimal harus ada satu pasangan tanggal.', isError: true);
+      return;
+    }
+    setState(() {
+      _daftarTanggal[index].dispose();
+      _daftarTanggal.removeAt(index);
+    });
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.errorColor : AppColors.succesColor,
+      ),
+    );
   }
 
   void _submitForm() {
@@ -52,9 +91,34 @@ class _FormPengajuanIzinTukarHariState
     });
 
     if (formKey.currentState?.validate() ?? false) {
-      // TODO: Logika submit data pengajuan cuti
+      bool allDatesValid = true;
+      for (var pair in _daftarTanggal) {
+        if (pair.tanggalIzin == null || pair.tanggalPengganti == null) {
+          allDatesValid = false;
+          break;
+        }
+        if (pair.tanggalIzin!.isAtSameMomentAs(pair.tanggalPengganti!)) {
+          _showSnackBar(
+            'Tanggal pengganti tidak boleh sama dengan tanggal izin.',
+            isError: true,
+          );
+          return;
+        }
+      }
+
+      if (!allDatesValid) {
+        _showSnackBar(
+          'Harap lengkapi semua pasangan tanggal izin dan pengganti.',
+          isError: true,
+        );
+        return;
+      }
+
       print("Form valid. Mengirim data...");
-      // Kirim _buktiFile (File) ke API Anda
+      print("Jumlah pasangan tanggal: ${_daftarTanggal.length}");
+      for (var pair in _daftarTanggal) {
+        print("Izin: ${pair.tanggalIzin}, Pengganti: ${pair.tanggalPengganti}");
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -156,24 +220,26 @@ class _FormPengajuanIzinTukarHariState
               autovalidateMode: autovalidateMode,
             ),
             SizedBox(height: 20),
-            DatePickerFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Tanggal Izin',
-              controller: tanggalMulaiController,
-              initialDate: _tanggalMulai,
-              onDateChanged: (date) => setState(() => _tanggalMulai = date),
-              isRequired: true,
+            Column(
+              children: [
+                ..._daftarTanggal.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  _TanggalTukarPair pair = entry.value;
+                  return _buildPairRow(index, pair);
+                }),
+              ],
             ),
-            SizedBox(height: 20),
-            DatePickerFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Tanggal Izin Pengganti',
-              controller: tanggalMasukController,
-              initialDate: _tanggalMasuk,
-              onDateChanged: (date) => setState(() => _tanggalMasuk = date),
-              isRequired: true,
+            SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                icon: const Icon(Icons.add_circle_outline, size: 20),
+                label: const Text("Tambah Tanggal"),
+                onPressed: _addPair,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.secondaryColor,
+                ),
+              ),
             ),
             SizedBox(height: 20),
             TextFieldWidget(
@@ -203,7 +269,6 @@ class _FormPengajuanIzinTukarHariState
               },
             ),
             SizedBox(height: 20),
-
             SizedBox(
               width: 150,
               child: ElevatedButton(
@@ -226,6 +291,58 @@ class _FormPengajuanIzinTukarHariState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPairRow(int index, _TanggalTukarPair pair) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 24.0),
+            child: IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              color: AppColors.errorColor,
+              disabledColor: Colors.grey,
+              tooltip: 'Hapus pasangan tanggal',
+              onPressed: _daftarTanggal.length > 1
+                  ? () => _removePair(index)
+                  : null,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                DatePickerFieldWidget(
+                  width: null,
+                  backgroundColor: AppColors.textColor,
+                  borderColor: AppColors.textDefaultColor,
+                  label: 'Tanggal Izin',
+                  controller: pair.izinController,
+                  initialDate: pair.tanggalIzin,
+                  onDateChanged: (date) =>
+                      setState(() => pair.tanggalIzin = date),
+                  isRequired: true,
+                ),
+                const SizedBox(height: 16),
+                DatePickerFieldWidget(
+                  width: null,
+                  backgroundColor: AppColors.textColor,
+                  borderColor: AppColors.textDefaultColor,
+                  label: 'Tanggal Pengganti',
+                  controller: pair.penggantiController,
+                  initialDate: pair.tanggalPengganti,
+                  onDateChanged: (date) =>
+                      setState(() => pair.tanggalPengganti = date),
+                  isRequired: true,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

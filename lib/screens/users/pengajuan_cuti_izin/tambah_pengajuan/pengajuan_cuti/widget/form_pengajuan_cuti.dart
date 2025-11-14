@@ -19,8 +19,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
-// Mentions
+import 'package:e_hrm/utils/id_user_resolver.dart';
+import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto;
@@ -48,6 +48,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   String _handoverPlainText = '';
   String _handoverMarkupText = '';
   int _handoverFieldVersion = 0;
+  String? _currentUserId;
 
   List<DateTime> _selectedDates = [];
   DateTime? _tanggalMasukKerja;
@@ -74,6 +75,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     if (widget.initialData != null) {
       _applyInitialData(widget.initialData, notify: false);
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _resolveCurrentUserId();
+    });
   }
 
   @override
@@ -93,6 +99,29 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     keperluanController.dispose();
     tanggalMasukKerjaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _resolveCurrentUserId() async {
+    final auth = context.read<AuthProvider>();
+    final current = auth.currentUser?.user.idUser;
+    if (current != null && current.isNotEmpty) {
+      setState(() {
+        _currentUserId = current;
+      });
+      return;
+    }
+
+    final fallback = await loadUserIdFromPrefs();
+    if (!mounted) return;
+    setState(() {
+      _currentUserId = fallback;
+    });
+  }
+
+  String? _sanitizeUserId(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   void _scheduleApproverUpdate(VoidCallback action) {
@@ -641,6 +670,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final bool canSelectMore =
         !reducesQuota || remainingQuota == null || remainingQuota > 0;
     final tagProvider = context.watch<TagHandOverProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    final String? providerUserId = _sanitizeUserId(
+      authProvider.currentUser?.user.idUser,
+    );
+    final String? effectiveCurrentUserId =
+        providerUserId ?? _sanitizeUserId(_currentUserId);
 
     return Form(
       key: formKey,
@@ -795,6 +830,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                                 fontWeight: FontWeight.bold,
                               ),
                               data: tagProvider.items
+                                  .where(
+                                    (dto.Data user) =>
+                                        effectiveCurrentUserId == null ||
+                                        user.idUser != effectiveCurrentUserId,
+                                  )
                                   .map(
                                     (dto.Data user) => {
                                       'id': user.idUser,

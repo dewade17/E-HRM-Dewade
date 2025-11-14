@@ -21,6 +21,16 @@ class Endpoints {
   static String konfigurasiCuti(String userId) =>
       "$baseURL/mobile/konfigurasi-cuti/$userId";
 
+  // pengajuan izin tukar hari
+  static const String pengajuanIzinTukarHari =
+      "$baseURL/mobile/izin-tukar-hari";
+  static String pengajuanIzinTukarHariDetail(String id) =>
+      "$pengajuanIzinTukarHari/$id";
+  static String pengajuanIzinTukarHariUpdate(String id) =>
+      "$pengajuanIzinTukarHari/$id";
+  static String pengajuanIzinTukarHariDelete(String id) =>
+      "$pengajuanIzinTukarHari/$id";
+
   //departements
   static const String departements = "$baseURL/mobile/departements";
 

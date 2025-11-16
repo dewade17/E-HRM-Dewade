@@ -56,45 +56,6 @@ class PengajuanSakitProvider extends ChangeNotifier {
   String? get saveError => _saveError;
   String? get saveMessage => _saveMessage;
 
-  /// Helper untuk membuat field multipart 'approvals' (flattened)
-  List<http.MultipartFile> _createApprovalMultipartFields(
-    List<Map<String, dynamic>> approvals,
-  ) {
-    final files = <http.MultipartFile>[];
-    for (var index = 0; index < approvals.length; index++) {
-      final approval = approvals[index];
-      final level = approval['level'];
-      final userId = approval['approver_user_id'];
-      final role = approval['approver_role'];
-
-      if (level != null) {
-        files.add(
-          http.MultipartFile.fromString(
-            'approvals[$index][level]', // Format: approvals[0][level]
-            level.toString(),
-          ),
-        );
-      }
-      if (userId != null) {
-        files.add(
-          http.MultipartFile.fromString(
-            'approvals[$index][approver_user_id]',
-            userId.toString(),
-          ),
-        );
-      }
-      if (role != null) {
-        files.add(
-          http.MultipartFile.fromString(
-            'approvals[$index][approver_role]',
-            role.toString(),
-          ),
-        );
-      }
-    }
-    return files;
-  }
-
   Future<bool> fetch({int? page, int? perPage, bool append = false}) async {
     var requestedPage = page ?? this.page;
     if (requestedPage < 1) requestedPage = 1;
@@ -266,11 +227,9 @@ class PengajuanSakitProvider extends ChangeNotifier {
     final List<Map<String, dynamic>> approvalPayload =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
 
-    // --- PERBAIKAN: HAPUS `jsonEncode` DARI PAYLOAD ---
-    // if (approvalPayload.isNotEmpty) {
-    //   payload['approvals'] = jsonEncode(approvalPayload);
-    // }
-    // --- AKHIR PERBAIKAN ---
+    if (approvalPayload.isNotEmpty) {
+      payload['approvals'] = jsonEncode(approvalPayload);
+    }
 
     final List<String> tagUserIds = _resolveHandoverUserIds(
       provided: handoverUserIds,
@@ -281,10 +240,6 @@ class PengajuanSakitProvider extends ChangeNotifier {
       if (lampiran != null) lampiran,
       ..._createMultipartStrings('tag_user_ids', tagUserIds),
       ..._createMultipartStrings('handover_user_ids', tagUserIds),
-
-      // --- PERBAIKAN: HANYA KIRIM `approvals` SEBAGAI FLATTENED FILES ---
-      ..._createApprovalMultipartFields(approvalPayload),
-      // --- AKHIR PERBAIKAN ---
     ];
 
     // --- DEBUG PRINT (Masih dipertahankan untuk verifikasi) ---
@@ -387,11 +342,9 @@ class PengajuanSakitProvider extends ChangeNotifier {
     final List<Map<String, dynamic>> approvalPayload =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
 
-    // --- PERBAIKAN: HAPUS `jsonEncode` DARI PAYLOAD ---
-    // if (approvalPayload.isNotEmpty) {
-    //   payload['approvals'] = jsonEncode(approvalPayload);
-    // }
-    // --- AKHIR PERBAIKAN ---
+    if (approvalPayload.isNotEmpty) {
+      payload['approvals'] = jsonEncode(approvalPayload);
+    }
 
     final List<String>? tagUserIds = _resolveTagIdsForUpdate(
       provided: handoverUserIds,
@@ -404,10 +357,6 @@ class PengajuanSakitProvider extends ChangeNotifier {
         ..._createMultipartStrings('tag_user_ids', tagUserIds),
       if (tagUserIds != null)
         ..._createMultipartStrings('handover_user_ids', tagUserIds),
-
-      // --- PERBAIKAN: HANYA KIRIM `approvals` SEBAGAI FLATTENED FILES ---
-      ..._createApprovalMultipartFields(approvalPayload),
-      // --- AKHIR PERBAIKAN ---
     ];
 
     // --- DEBUG PRINT (Masih dipertahankan untuk verifikasi) ---

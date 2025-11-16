@@ -31,6 +31,9 @@ class Endpoints {
   static String pengajuanIzinTukarHariDelete(String id) =>
       "$pengajuanIzinTukarHari/$id";
 
+  // kategori izin
+  static const String kategoriIzinJam = "$baseURL/admin/kategori-izin-jam";
+
   //departements
   static const String departements = "$baseURL/mobile/departements";
 

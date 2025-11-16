@@ -31,7 +31,9 @@ import 'dart:async';
 // --- AKHIR IMPORT BARU ---
 
 class FormPengajuanIzinJam extends StatefulWidget {
-  const FormPengajuanIzinJam({super.key});
+  const FormPengajuanIzinJam({super.key, this.onRefresh});
+
+  final Future<void> Function()? onRefresh;
 
   @override
   State<FormPengajuanIzinJam> createState() => _FormPengajuanIzinJamState();
@@ -302,6 +304,11 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
         _handoverFieldVersion++;
         _autoValidate = false;
       });
+      await widget.onRefresh?.call();
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      Navigator.of(context).pop(result);
     }
   }
 

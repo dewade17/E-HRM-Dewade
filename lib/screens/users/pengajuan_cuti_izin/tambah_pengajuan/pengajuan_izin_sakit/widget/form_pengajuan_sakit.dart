@@ -12,7 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 // --- IMPORT BARU ---
-import 'package:e_hrm/providers/pengajuan_izin_sakit/kategori_pengajuan_sakit_provider.dart';
+import 'package:e_hrm/providers/pengajuan_sakit/kategori_pengajuan_sakit_provider.dart';
 import 'package:e_hrm/dto/pengajuan_sakit/kategori_pengajuan_sakit.dart'
     as dto_sakit;
 import 'package:e_hrm/shared_widget/kategori_sakit_selection_field.dart';

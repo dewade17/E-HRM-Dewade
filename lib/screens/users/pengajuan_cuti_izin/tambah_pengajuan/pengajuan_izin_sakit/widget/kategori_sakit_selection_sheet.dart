@@ -2,7 +2,7 @@
 
 import 'dart:async';
 import 'package:e_hrm/dto/pengajuan_sakit/kategori_pengajuan_sakit.dart' as dto;
-import 'package:e_hrm/providers/pengajuan_izin_sakit/kategori_pengajuan_sakit_provider.dart';
+import 'package:e_hrm/providers/pengajuan_sakit/kategori_pengajuan_sakit_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';

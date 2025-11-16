@@ -4,7 +4,7 @@
 //
 //     final izinTukarHari = izinTukarHariFromJson(jsonString);
 
-import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart';
+import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart';
 import 'package:meta/meta.dart';
 import 'dart:convert';
 

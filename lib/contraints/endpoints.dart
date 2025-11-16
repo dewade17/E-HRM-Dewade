@@ -33,10 +33,11 @@ class Endpoints {
 
   // kategori izin
   static const String kategoriIzinJam = "$baseURL/admin/kategori-izin-jam";
-  static const String kategoriPengajuanSakit =
-      "$baseURL/admin/kategori-sakit";
+  static const String kategoriPengajuanSakit = "$baseURL/admin/kategori-sakit";
   static const String pengajuanIzinJam = "$baseURL/mobile/pengajuan-izin-jam";
   static String pengajuanIzinJamDetail(String id) => "$pengajuanIzinJam/$id";
+  static const String pengajuanSakit = "$baseURL/mobile/pengajuan-izin-sakit";
+  static String pengajuanSakitDetail(String id) => "$pengajuanSakit/$id";
 
   //departements
   static const String departements = "$baseURL/mobile/departements";

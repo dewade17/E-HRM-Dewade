@@ -6,6 +6,7 @@ import 'package:e_hrm/services/api_services.dart';
 import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:e_hrm/dto/approvers/approvers.dart' as dto_approvers;
 
 class PengajuanIzinJamProvider extends ChangeNotifier {
   PengajuanIzinJamProvider();
@@ -147,7 +148,24 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
 
     if (approverIds.isNotEmpty) {
       payload['recipient_ids'] = jsonEncode(approverIds);
-      payload.addAll(_buildApprovalFormFields(approverIds));
+    }
+
+    final List<dto_approvers.User> approvers =
+        (approversProvider?.selectedUsers ?? [])
+            .where((user) => user.idUser.trim().isNotEmpty)
+            .toList(growable: false);
+
+    if (approvers.isNotEmpty) {
+      payload['approvals'] = jsonEncode(
+        List<Map<String, dynamic>>.generate(
+          approvers.length,
+          (index) => <String, dynamic>{
+            'approver_user_id': approvers[index].idUser,
+            'level': index + 1,
+            'approver_role': approvers[index].role.trim().toUpperCase(),
+          },
+        ),
+      );
     }
 
     final List<String> handoverIds = _resolveHandoverUserIds(
@@ -161,10 +179,6 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
-      ..._createMultipartStrings(supervisorsFieldName, approverIds),
-      ..._createMultipartStrings('$supervisorsFieldName[]', approverIds),
-      ..._createMultipartStrings('recipient_ids', approverIds),
-      ..._createMultipartStrings('recipient_ids[]', approverIds),
       ..._createMultipartStrings('tag_user_ids', handoverIds),
       ..._createMultipartStrings('tag_user_ids[]', handoverIds),
     ];
@@ -473,16 +487,6 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
     }
 
     return ordered;
-  }
-
-  Map<String, String> _buildApprovalFormFields(List<String> approverIds) {
-    final Map<String, String> fields = <String, String>{};
-    for (var index = 0; index < approverIds.length; index++) {
-      final id = approverIds[index];
-      fields['approvals[$index][approver_user_id]'] = id;
-      fields['approvals[$index][level]'] = '${index + 1}';
-    }
-    return fields;
   }
 
   Iterable<String> _resolveHandoverUserIds({

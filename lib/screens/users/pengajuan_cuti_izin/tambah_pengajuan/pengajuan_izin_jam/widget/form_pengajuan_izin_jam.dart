@@ -271,12 +271,20 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
     final String? errorMessage = pengajuanProvider.saveError;
     final String? successMessage = pengajuanProvider.saveMessage;
 
+    // --- PERBAIKAN DIMULAI DI SINI ---
+
     if (errorMessage != null && errorMessage.isNotEmpty) {
       _showSnackBar(errorMessage, isError: true);
-      return;
+      return; // Hentikan jika ada error
     }
 
     if (result != null) {
+      // 1. Tampilkan pesan sukses terlebih dahulu
+      final messageToShow =
+          successMessage ?? 'Pengajuan izin jam berhasil dibuat.';
+      _showSnackBar(messageToShow, isError: false);
+
+      // 2. Reset form
       formState.reset();
       approversProvider.clearSelection();
       setState(() {
@@ -301,19 +309,16 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
         _autoValidate = false;
       });
 
-      // --- PERUBAHAN DI SINI ---
-      // Hapus pemanggilan 'onRefresh'
-      // await widget.onRefresh?.call();
-      // --- AKHIR PERUBAHAN ---
-
       if (!mounted) return;
 
-      final messageToPop =
-          successMessage ?? 'Pengajuan izin jam berhasil dibuat.';
-      Navigator.of(context).pop(messageToPop);
+      // 3. Baru tutup halaman (pop)
+      Navigator.of(context).pop(messageToShow);
     } else {
+      // Kasus jika result null tapi tidak ada error (sebagai fallback)
+      _showSnackBar('Gagal membuat pengajuan.', isError: true);
       Navigator.of(context).pop();
     }
+    // --- AKHIR PERBAIKAN ---
   }
 
   @override

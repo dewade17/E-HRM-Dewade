@@ -1,3 +1,4 @@
+// lib/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart
 import 'package:flutter/foundation.dart';
 
 import 'package:e_hrm/contraints/endpoints.dart';
@@ -62,6 +63,42 @@ class KonfigurasiCutiProvider extends ChangeNotifier {
   bool isValidMonth(String value) =>
       _validMonths.contains(value.trim().toUpperCase());
 
+  // --- LOGIKA BARU PINDAHAN DARI FORM (SARAN #2) ---
+
+  /// Menghitung total kuota yang tersedia (cuti + tabung jika aktif)
+  /// Mengembalikan null jika data belum dimuat.
+  int? get availableQuota {
+    if (items.isEmpty) return null;
+
+    final latestData = items.last;
+    final String rawStatus = statusCuti?.trim().toLowerCase() ?? '';
+    final bool statusActive = rawStatus == 'aktif';
+
+    int available = latestData.koutaCuti;
+    if (statusActive) {
+      available += latestData.cutiTabung;
+    }
+    return available;
+  }
+
+  /// Menghitung sisa kuota berdasarkan kuota tersedia dan jumlah hari yang dipilih.
+  /// [selectedDaysCount] = jumlah hari yang *saat ini* dipilih di form.
+  /// [reducesQuota] = apakah kategori yang dipilih mengurangi kuota?
+  int? getRemainingQuota({
+    required int selectedDaysCount,
+    required bool reducesQuota,
+  }) {
+    final currentAvailable = availableQuota;
+    if (currentAvailable == null) return null; // Belum tahu kuota
+    if (!reducesQuota)
+      return currentAvailable; // Kategori tidak mengurangi kuota
+
+    final int remaining = currentAvailable - selectedDaysCount;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  // --- AKHIR LOGIKA BARU ---
+
   Future<bool> fetch({String? idUser, Iterable<String>? months}) async {
     final resolvedUserId = await _resolveUserId(idUser);
     if (resolvedUserId == null || resolvedUserId.isEmpty) {
@@ -86,8 +123,7 @@ class KonfigurasiCutiProvider extends ChangeNotifier {
 
     var success = true;
     try {
-      final baseUri =
-          Uri.parse(Endpoints.konfigurasiCuti(resolvedUserId));
+      final baseUri = Uri.parse(Endpoints.konfigurasiCuti(resolvedUserId));
       final uri = normalizedMonths.isEmpty
           ? baseUri
           : baseUri.replace(

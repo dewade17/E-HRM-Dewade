@@ -1,3 +1,5 @@
+// lib/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart
+
 // To parse this JSON data, do
 //
 //     final izinTukarHari = izinTukarHariFromJson(jsonString);
@@ -115,29 +117,32 @@ class Approval {
   String idApprovalIzinTukarHari;
   int level;
   dynamic approverUserId;
-  String approverRole;
+  String? approverRole; // <-- DIUBAH
   String decision;
-  DateTime decidedAt;
-  String note;
+  DateTime? decidedAt; // <-- DIUBAH
+  String? note; // <-- DIUBAH
 
   Approval({
     required this.idApprovalIzinTukarHari,
     required this.level,
     required this.approverUserId,
-    required this.approverRole,
+    this.approverRole, // <-- DIUBAH
     required this.decision,
-    required this.decidedAt,
-    required this.note,
+    this.decidedAt, // <-- DIUBAH
+    this.note, // <-- DIUBAH
   });
 
   factory Approval.fromJson(Map<String, dynamic> json) => Approval(
     idApprovalIzinTukarHari: json["id_approval_izin_tukar_hari"],
     level: json["level"],
     approverUserId: json["approver_user_id"],
-    approverRole: json["approver_role"],
+    approverRole: json["approver_role"], // <-- AMAN (menerima null)
     decision: json["decision"],
-    decidedAt: DateTime.parse(json["decided_at"]),
-    note: json["note"],
+    // <-- DIUBAH (parsing aman)
+    decidedAt: json["decided_at"] == null
+        ? null
+        : DateTime.tryParse(json["decided_at"]),
+    note: json["note"], // <-- AMAN (menerima null)
   );
 
   Map<String, dynamic> toJson() => {
@@ -146,7 +151,7 @@ class Approval {
     "approver_user_id": approverUserId,
     "approver_role": approverRole,
     "decision": decision,
-    "decided_at": decidedAt.toIso8601String(),
+    "decided_at": decidedAt?.toIso8601String(), // <-- DIUBAH (handle null)
     "note": note,
   };
 }

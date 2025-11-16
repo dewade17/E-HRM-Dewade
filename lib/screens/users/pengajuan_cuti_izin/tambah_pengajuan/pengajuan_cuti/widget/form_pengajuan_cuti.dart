@@ -1,3 +1,5 @@
+// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/widget/form_pengajuan_cuti.dart
+
 import 'dart:io';
 
 import 'package:e_hrm/contraints/colors.dart';
@@ -12,6 +14,7 @@ import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/kategori_cuti_selection_field.dart';
+import 'package:e_hrm/shared_widget/multi_date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -24,6 +27,7 @@ import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto;
+import 'package:e_hrm/utils/mention_parser.dart'; // <-- IMPORT BARU
 
 class FormPengajuanCuti extends StatefulWidget {
   const FormPengajuanCuti({super.key, this.initialData});
@@ -42,8 +46,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       GlobalKey<FlutterMentionsState>();
   final TextEditingController tanggalMasukKerjaController =
       TextEditingController();
-  final GlobalKey<FormFieldState<List<DateTime>>> _tanggalCutiFieldKey =
-      GlobalKey<FormFieldState<List<DateTime>>>();
 
   String _handoverPlainText = '';
   String _handoverMarkupText = '';
@@ -60,14 +62,9 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
   bool get _isEditing => widget.initialData != null;
 
-  // Regex markup mentions
-  static final RegExp _mentionMarkupRegex = RegExp(
-    r'([@#])\[__(.*?)__\]\(__(.*?)__\)',
-  );
-
-  static final RegExp _uuidRegex = RegExp(
-    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-  );
+  // --- REGEX DAN FUNGSI PARSING MENTION DIHAPUS DARI SINI ---
+  // static final RegExp _mentionMarkupRegex = ... (DIHAPUS)
+  // static final RegExp _uuidRegex = ... (DIHAPUS)
 
   @override
   void initState() {
@@ -136,22 +133,16 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     }
   }
 
-  void _scheduleTanggalFieldSync() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _tanggalCutiFieldKey.currentState?.didChange(
-        List<DateTime>.from(_selectedDates),
-      );
-    });
-  }
-
   void _handleKategoriSelected(
     kategori_dto.Data? selected,
     KonfigurasiCutiProvider konfigurasiProvider,
   ) {
     final bool requiresQuota = selected?.penguranganKouta ?? false;
+    // --- DIUBAH: Gunakan getter dari provider ---
     final int? rawQuota = requiresQuota
-        ? _calculateAvailableQuota(konfigurasiProvider)
+        ? konfigurasiProvider.availableQuota
         : null;
+    // --- AKHIR PERUBAHAN ---
     final int? sanitizedQuota = rawQuota == null
         ? null
         : (rawQuota < 0 ? 0 : rawQuota);
@@ -175,8 +166,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       }
     });
 
-    _scheduleTanggalFieldSync();
-
     if (datesTrimmed) {
       final String message = sanitizedQuota == 0
           ? 'Tanggal cuti dihapus karena kuota cuti Anda habis untuk kategori ini.'
@@ -190,121 +179,70 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
   }
 
   Future<void> _submitForm() async {
-    // --- [DEBUG] Tambahan print ---
-    debugPrint("DEBUG: _submitForm() initiated.");
-    // --- Akhir Tambahan ---
-
     setState(() {
       _autoValidate = true;
     });
 
     final formState = formKey.currentState;
     if (formState == null || !formState.validate()) {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: Form is invalid or formState is null.");
-      // --- Akhir Tambahan ---
       _showSnackBar('Harap periksa kembali semua isian form.', isError: true);
       return;
     }
-    // --- [DEBUG] Tambahan print ---
-    debugPrint("DEBUG: Form validation passed.");
-    // --- Akhir Tambahan ---
 
     if (_selectedKategoriCuti == null) {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: _selectedKategoriCuti is null.");
-      // --- Akhir Tambahan ---
       _showSnackBar('Harap pilih jenis cuti terlebih dahulu.', isError: true);
       return;
     }
-    // --- [DEBUG] Tambahan print ---
-    debugPrint(
-      "DEBUG: Kategori Cuti ID: ${_selectedKategoriCuti!.idKategoriCuti}",
-    );
-    // --- Akhir Tambahan ---
 
     if (_selectedDates.isEmpty) {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: _selectedDates is empty.");
-      // --- Akhir Tambahan ---
       _showSnackBar('Tanggal cuti wajib diisi.', isError: true);
       return;
     }
-    // --- [DEBUG] Tambahan print ---
-    debugPrint("DEBUG: Selected Dates: $_selectedDates");
-    // --- Akhir Tambahan ---
 
     if (_tanggalMasukKerja == null) {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: _tanggalMasukKerja is null.");
-      // --- Akhir Tambahan ---
       _showSnackBar('Tanggal masuk kerja wajib diisi.', isError: true);
       return;
     }
-    // --- [DEBUG] Tambahan print ---
-    debugPrint("DEBUG: Tanggal Masuk: $_tanggalMasukKerja");
-    // --- Akhir Tambahan ---
 
     final approvers = context.read<ApproversPengajuanProvider>();
     if (approvers.selectedRecipientIds.isEmpty) {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: Approvers are empty.");
-      // --- Akhir Tambahan ---
       _showSnackBar(
         'Pilih minimal satu penerima laporan (supervisi).',
         isError: true,
       );
       return;
     }
-    // --- [DEBUG] Tambahan print ---
-    debugPrint("DEBUG: Approvers: ${approvers.selectedRecipientIds}");
-    // --- Akhir Tambahan ---
 
     FocusScope.of(context).unfocus();
 
     http.MultipartFile? lampiran;
     if (_buktiFile != null) {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: Preparing file: ${_buktiFile!.path}");
-      // --- Akhir Tambahan ---
       try {
         lampiran = await http.MultipartFile.fromPath(
           'lampiran_cuti',
           _buktiFile!.path,
         );
       } catch (e) {
-        // --- [DEBUG] Tambahan print ---
-        debugPrint("DEBUG: Error preparing file: $e");
-        // --- Akhir Tambahan ---
         _showSnackBar('Gagal membaca lampiran: $e', isError: true);
         return;
       }
-    } else {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: No file attached.");
-      // --- Akhir Tambahan ---
     }
 
     final pengajuanProvider = context.read<PengajuanCutiProvider>();
     final String idKategori = _selectedKategoriCuti!.idKategoriCuti;
     final String keperluan = keperluanController.text.trim();
     final String handover = _getCurrentHandoverMarkup().trim();
-    final List<String> handoverUserIds = _extractMentionedUserIds(handover);
+    // --- DIUBAH: Panggil parser utilitas ---
+    final List<String> handoverUserIds = MentionParser.extractMentionedUserIds(
+      handover,
+    );
+    // --- AKHIR PERUBAHAN ---
 
     _selectedDates.sort();
-
-    // --- [DEBUG] Tambahan print ---
-    debugPrint("DEBUG: Submitting to provider. Editing: $_isEditing");
-    debugPrint("DEBUG: Handover Markup: $handover");
-    debugPrint("DEBUG: Handover Tagged IDs: $handoverUserIds");
-    // --- Akhir Tambahan ---
 
     pengajuan_dto.Data? result;
     if (_isEditing) {
       final String id = widget.initialData!.idPengajuanCuti;
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: Calling updatePengajuan for ID: $id");
-      // --- Akhir Tambahan ---
       result = await pengajuanProvider.updatePengajuan(
         id,
         idKategoriCuti: idKategori,
@@ -317,9 +255,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         lampiran: lampiran,
       );
     } else {
-      // --- [DEBUG] Tambahan print ---
-      debugPrint("DEBUG: Calling createPengajuan");
-      // --- Akhir Tambahan ---
       result = await pengajuanProvider.createPengajuan(
         idKategoriCuti: idKategori,
         keperluan: keperluan,
@@ -332,9 +267,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       );
     }
 
-    // --- [DEBUG] Tambahan print ---
-    debugPrint("DEBUG: Provider call finished. Result: ${result != null}");
-    // --- Akhir Tambahan ---
     if (!mounted) return;
 
     final String? errorMessage = pengajuanProvider.saveError;
@@ -359,78 +291,17 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
           _buktiFile = null;
           _autoValidate = false;
           _tanggalMasukKerja = null;
+          _selectedDates = [];
         });
       }
     }
   }
 
-  Future<void> _pickDate(FormFieldState<List<DateTime>> state) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDates.lastOrNull ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-      locale: const Locale('id', 'ID'),
-    );
+  // --- FUNGSI _calculateAvailableQuota DIHAPUS DARI SINI ---
+  // int? _calculateAvailableQuota(KonfigurasiCutiProvider provider) { ... }
 
-    if (picked != null) {
-      setState(() {
-        if (!_selectedDates.contains(picked)) {
-          _selectedDates.add(picked);
-          _selectedDates.sort();
-          state.didChange(_selectedDates);
-        } else {
-          _showSnackBar('Tanggal sudah dipilih.', isError: true);
-        }
-      });
-    }
-  }
-
-  Future<void> _handlePickDate(
-    FormFieldState<List<DateTime>> state, {
-    int? remainingQuota,
-    required bool reducesQuota,
-  }) async {
-    if (reducesQuota && remainingQuota != null && remainingQuota <= 0) {
-      _showSnackBar('Kuota cuti Anda sudah habis.', isError: true);
-      return;
-    }
-
-    await _pickDate(state);
-  }
-
-  int? _calculateAvailableQuota(KonfigurasiCutiProvider provider) {
-    if (provider.items.isEmpty) return null;
-
-    final latestData = provider.items.last;
-    final String rawStatus = provider.statusCuti?.trim().toLowerCase() ?? '';
-    final bool statusActive = rawStatus == 'aktif';
-
-    int available = latestData.koutaCuti;
-    if (statusActive) {
-      available += latestData.cutiTabung;
-    }
-
-    return available;
-  }
-
-  int? _calculateRemainingQuota(
-    int? availableQuota, {
-    required bool reducesQuota,
-  }) {
-    if (availableQuota == null) return null;
-    if (!reducesQuota) return availableQuota;
-
-    final int remaining = availableQuota - _selectedDates.length;
-    return remaining > 0 ? remaining : 0;
-  }
-
-  void _removeDate(DateTime date, FormFieldState<List<DateTime>> state) {
-    setState(() {
-      _selectedDates.remove(date);
-      state.didChange(_selectedDates);
-    });
-  }
+  // --- FUNGSI _calculateRemainingQuota DIHAPUS DARI SINI ---
+  // int? _calculateRemainingQuota(int? availableQuota, { ... }) { ... }
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
@@ -495,12 +366,10 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       } else {
         apply();
       }
-      _scheduleTanggalFieldSync();
       _scheduleHandoverControllerSync('');
       return;
     }
 
-    // Ada data existing (edit)
     keperluanController.text = data.keperluan;
 
     final List<DateTime> newSelectedDates =
@@ -528,7 +397,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       }
     });
 
-    final String plainHandover = _convertMarkupToDisplay(data.handover);
+    // --- DIUBAH: Panggil parser utilitas ---
+    final String plainHandover = MentionParser.convertMarkupToDisplay(
+      data.handover,
+    );
+    // --- AKHIR PERUBAHAN ---
 
     void apply() {
       updateState(
@@ -545,7 +418,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     } else {
       apply();
     }
-    _scheduleTanggalFieldSync();
     _scheduleHandoverControllerSync(plainHandover);
   }
 
@@ -576,52 +448,20 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     );
   }
 
-  // Helper validasi
   int _getWordCount(String text) {
     final String v = text.trim();
     if (v.isEmpty) return 0;
     return v.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
   }
 
-  List<String> _extractMentionedUserIds(String markup) {
-    if (markup.isEmpty) return const <String>[];
+  // --- FUNGSI _extractMentionedUserIds DIHAPUS DARI SINI ---
+  // List<String> _extractMentionedUserIds(String markup) { ... }
 
-    final Set<String> ids = <String>{};
-    for (final match in _mentionMarkupRegex.allMatches(markup)) {
-      final String candidate = _pickBestMentionId(
-        match.group(2) ?? '',
-        match.group(3) ?? '',
-      );
-      if (candidate.isNotEmpty) {
-        ids.add(candidate);
-      }
-    }
+  // --- FUNGSI _pickBestMentionId DIHAPUS DARI SINI ---
+  // String _pickBestMentionId(String first, String second) { ... }
 
-    return ids.toList(growable: false);
-  }
-
-  String _pickBestMentionId(String first, String second) {
-    final String a = first.trim();
-    final String b = second.trim();
-    final bool aIsUuid = _uuidRegex.hasMatch(a);
-    final bool bIsUuid = _uuidRegex.hasMatch(b);
-
-    if (aIsUuid && !bIsUuid) return a;
-    if (bIsUuid && !aIsUuid) return b;
-    if (aIsUuid && bIsUuid) return a;
-    if (a.isNotEmpty && !a.contains(' ')) return a;
-    if (b.isNotEmpty && !b.contains(' ')) return b;
-    return a.isNotEmpty ? a : b;
-  }
-
-  String _convertMarkupToDisplay(String markup) {
-    if (markup.isEmpty) return '';
-    return markup.replaceAllMapped(_mentionMarkupRegex, (match) {
-      final String trigger = match.group(1) ?? '';
-      final String display = match.group(3) ?? '';
-      return '$trigger$display';
-    });
-  }
+  // --- FUNGSI _convertMarkupToDisplay DIHAPUS DARI SINI ---
+  // String _convertMarkupToDisplay(String markup) { ... }
 
   void _scheduleHandoverControllerSync(String text) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -661,12 +501,16 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
     final kategoriCutiProvider = context.watch<KategoriCutiProvider>();
     final konfigurasiProvider = context.watch<KonfigurasiCutiProvider>();
-    final int? availableQuota = _calculateAvailableQuota(konfigurasiProvider);
+
+    // --- DIUBAH: Gunakan getter dari provider ---
+    final int? availableQuota = konfigurasiProvider.availableQuota;
     final bool reducesQuota = _selectedKategoriCuti?.penguranganKouta ?? true;
-    final int? remainingQuota = _calculateRemainingQuota(
-      availableQuota,
+    final int? remainingQuota = konfigurasiProvider.getRemainingQuota(
+      selectedDaysCount: _selectedDates.length,
       reducesQuota: reducesQuota,
     );
+    // --- AKHIR PERUBAHAN ---
+
     final bool canSelectMore =
         !reducesQuota || remainingQuota == null || remainingQuota > 0;
     final tagProvider = context.watch<TagHandOverProvider>();
@@ -684,7 +528,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
-            // Jenis Cuti
             KategoriCutiSelectionField(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -709,9 +552,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 child: LinearProgressIndicator(),
               ),
             const SizedBox(height: 20),
-
-            // Handover Pekerjaan + Mentions
-            // Keperluan
             TextFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -724,9 +564,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               maxLines: 3,
               autovalidateMode: autovalidateMode,
             ),
-
             const SizedBox(height: 20),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -896,175 +734,43 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
-
-            // Tanggal Cuti (multi-date)
-            FormField<List<DateTime>>(
-              key: _tanggalCutiFieldKey,
+            MultiDatePickerFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Tanggal Cuti',
+              initialDates: _selectedDates,
+              onDatesChanged: (List<DateTime> dates) {
+                setState(() {
+                  _selectedDates = dates;
+                });
+                if (_autoValidate) {
+                  formKey.currentState?.validate();
+                }
+              },
+              isRequired: true,
               autovalidateMode: autovalidateMode,
-              initialValue: _selectedDates,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Tanggal cuti wajib diisi.';
                 }
                 return null;
               },
-              builder: (FormFieldState<List<DateTime>> state) {
-                final bool hasError = state.hasError;
-                final Color borderColor = hasError
-                    ? AppColors.errorColor
-                    : AppColors.textDefaultColor;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '* ',
-                            style: GoogleFonts.poppins(
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.errorColor,
-                              ),
-                            ),
-                          ),
-                          TextSpan(
-                            text: 'Tanggal Cuti',
-                            style: GoogleFonts.poppins(
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textDefaultColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: 50),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.textColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: borderColor),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            blurRadius: 3,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _selectedDates.isEmpty
-                                ? Text(
-                                    'Pilih tanggal...',
-                                    style: GoogleFonts.poppins(
-                                      textStyle: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  )
-                                : Wrap(
-                                    spacing: 6.0,
-                                    runSpacing: 6.0,
-                                    children: _selectedDates.map((date) {
-                                      return Chip(
-                                        label: Text(
-                                          _dateFormatter.format(date),
-                                          style: GoogleFonts.poppins(
-                                            textStyle: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                        onDeleted: () =>
-                                            _removeDate(date, state),
-                                        deleteIconColor: Colors.red.shade700,
-                                        backgroundColor: AppColors.accentColor,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                          vertical: 2,
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.add_circle_outline,
-                              color: canSelectMore
-                                  ? AppColors.secondaryColor
-                                  : Colors.grey,
-                            ),
-                            onPressed: canSelectMore
-                                ? () => _handlePickDate(
-                                    state,
-                                    remainingQuota: remainingQuota,
-                                    reducesQuota: reducesQuota,
-                                  )
-                                : null,
-                            tooltip: 'Tambah Tanggal Cuti',
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          !reducesQuota
-                              ? 'Tidak mengurangi kuota'
-                              : remainingQuota == null
-                              ? 'Sisa kuota cuti: --'
-                              : 'Sisa kuota cuti: $remainingQuota hari',
-                          style: GoogleFonts.poppins(
-                            textStyle: TextStyle(
-                              fontSize: 12,
-                              color:
-                                  !reducesQuota ||
-                                      remainingQuota == null ||
-                                      canSelectMore
-                                  ? AppColors.textDefaultColor
-                                  : AppColors.errorColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (hasError)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12, top: 8),
-                        child: Text(
-                          state.errorText!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
+              maxSelectableDates: (reducesQuota ? remainingQuota : null),
+              maxDatesErrorMessage: remainingQuota == 0
+                  ? 'Kuota cuti Anda sudah habis.'
+                  : 'Jumlah tanggal melebihi sisa kuota cuti ($remainingQuota hari).',
+              quotaDisplayLabel: !reducesQuota
+                  ? 'Tidak mengurangi kuota'
+                  : remainingQuota == null
+                  ? 'Sisa kuota cuti: --'
+                  : 'Sisa kuota cuti: $remainingQuota hari',
+              quotaLabelColor:
+                  !reducesQuota || remainingQuota == null || canSelectMore
+                  ? AppColors.textDefaultColor
+                  : AppColors.errorColor,
             ),
-
             const SizedBox(height: 20),
-
             DatePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -1078,10 +784,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               },
               isRequired: true,
             ),
-
             const SizedBox(height: 20),
-
-            // Recipient Supervisi
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: FormField<Set<String>>(
@@ -1127,10 +830,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 },
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Lampiran / Bukti
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -1152,10 +852,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                 return null;
               },
             ),
-
             const SizedBox(height: 20),
-
-            // Tombol Submit
             Consumer<PengajuanCutiProvider>(
               builder: (context, provider, _) {
                 final bool saving = provider.saving;

@@ -1,4 +1,10 @@
+// lib/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart
+
+// --- IMPORT BARU ---
 import 'dart:convert';
+
+import 'package:e_hrm/dto/approvers/approvers.dart' as dto_approvers;
+// --- AKHIR IMPORT BARU ---
 
 import 'package:e_hrm/contraints/endpoints.dart';
 import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
@@ -241,22 +247,25 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final List<String> approverIds = _collectApproverIds(
-      approverUserIds: approverUserIds,
-      approversProvider: approversProvider,
-    );
+    final List<dto_approvers.User> approvers =
+        (approversProvider?.selectedUsers ?? [])
+            .where((user) => user.idUser.trim().isNotEmpty)
+            .toList();
 
-    if (approverIds.isNotEmpty) {
+    if (approvers.isNotEmpty) {
+      // --- PERBAIKAN: KEMBALIKAN BARIS INI ---
       payload['approvals'] = jsonEncode(
         List<Map<String, dynamic>>.generate(
-          approverIds.length,
+          approvers.length,
           (index) => <String, dynamic>{
-            'approver_user_id': approverIds[index],
+            'approver_user_id': approvers[index].idUser,
             'level': index + 1,
+            'approver_role': approvers[index].role.trim().toUpperCase(),
           },
         ),
       );
-      payload.addAll(_buildApprovalFormFields(approverIds));
+      // --- PERBAIKAN: HAPUS BARIS INI ---
+      // payload.addAll(_buildApprovalFormFields(approvers));
     }
 
     final List<String> handoverIds = _resolveHandoverUserIds(
@@ -293,6 +302,26 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
       ),
       ..._createPairMultipartFields(normalizedPairs),
     ];
+
+    // --- DEBUG PRINT (TETAP AKTIF) ---
+    if (kDebugMode) {
+      print("--- DEBUG: createPengajuan PAYLOAD ---");
+      payload.forEach((key, value) {
+        print("Payload Field: $key = $value");
+      });
+      print("--- DEBUG: createPengajuan FILES ---");
+      for (var file in files) {
+        if (file.filename != null) {
+          print(
+            "File: ${file.field} (name: ${file.filename}, size: ${file.length})",
+          );
+        } else {
+          print("File (from string): ${file.field}");
+        }
+      }
+      print("--------------------------------------");
+    }
+    // --- AKHIR DEBUG PRINT ---
 
     try {
       final response = await _api.postFormDataPrivate(
@@ -365,22 +394,25 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final List<String> approverIds = _collectApproverIds(
-      approverUserIds: approverUserIds,
-      approversProvider: approversProvider,
-    );
+    final List<dto_approvers.User> approvers =
+        (approversProvider?.selectedUsers ?? [])
+            .where((user) => user.idUser.trim().isNotEmpty)
+            .toList();
 
-    if (approverIds.isNotEmpty) {
+    if (approvers.isNotEmpty) {
+      // --- PERBAIKAN: KEMBALIKAN BARIS INI ---
       payload['approvals'] = jsonEncode(
         List<Map<String, dynamic>>.generate(
-          approverIds.length,
+          approvers.length,
           (index) => <String, dynamic>{
-            'approver_user_id': approverIds[index],
+            'approver_user_id': approvers[index].idUser,
             'level': index + 1,
+            'approver_role': approvers[index].role.trim().toUpperCase(),
           },
         ),
       );
-      payload.addAll(_buildApprovalFormFields(approverIds));
+      // --- PERBAIKAN: HAPUS BARIS INI ---
+      // payload.addAll(_buildApprovalFormFields(approvers));
     }
 
     final List<String> handoverIds = _resolveHandoverUserIds(
@@ -416,6 +448,26 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
       ),
       ..._createPairMultipartFields(normalizedPairs),
     ];
+
+    // --- DEBUG PRINT (TETAP AKTIF) ---
+    if (kDebugMode) {
+      print("--- DEBUG: updatePengajuan PAYLOAD (ID: $id) ---");
+      payload.forEach((key, value) {
+        print("Payload Field: $key = $value");
+      });
+      print("--- DEBUG: updatePengajuan FILES ---");
+      for (var file in files) {
+        if (file.filename != null) {
+          print(
+            "File: ${file.field} (name: ${file.filename}, size: ${file.length})",
+          );
+        } else {
+          print("File (from string): ${file.field}");
+        }
+      }
+      print("------------------------------------------");
+    }
+    // --- AKHIR DEBUG PRINT ---
 
     try {
       final response = await _api.putFormDataPrivate(
@@ -569,45 +621,14 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<String> _collectApproverIds({
-    Iterable<String>? approverUserIds,
-    ApproversPengajuanProvider? approversProvider,
-  }) {
-    final List<String> ordered = <String>[];
-    final Set<String> seen = <String>{};
-
-    void add(String? value) {
-      final trimmed = value?.trim();
-      if (trimmed == null || trimmed.isEmpty) return;
-      if (seen.add(trimmed)) {
-        ordered.add(trimmed);
-      }
-    }
-
-    if (approversProvider != null) {
-      for (final id in approversProvider.selectedRecipientIds) {
-        add(id);
-      }
-    }
-
-    if (approverUserIds != null) {
-      for (final id in approverUserIds) {
-        add(id);
-      }
-    }
-
-    return ordered;
-  }
-
-  Map<String, String> _buildApprovalFormFields(List<String> approverIds) {
-    final Map<String, String> fields = <String, String>{};
-    for (var index = 0; index < approverIds.length; index++) {
-      final id = approverIds[index];
-      fields['approvals[$index][approver_user_id]'] = id;
-      fields['approvals[$index][level]'] = '${index + 1}';
-    }
-    return fields;
-  }
+  // --- FUNGSI INI SUDAH TIDAK DIPAKAI LAGI ---
+  // Map<String, String> _buildApprovalFormFields(
+  //     List<dto_approvers.User> approvers) {
+  //   final Map<String, String> fields = <String, String>{};
+  //   ...
+  //   return fields;
+  // }
+  // ---
 
   Iterable<String> _resolveHandoverUserIds({
     Iterable<String>? provided,

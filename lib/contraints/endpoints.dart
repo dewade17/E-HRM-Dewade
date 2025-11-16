@@ -23,7 +23,7 @@ class Endpoints {
 
   // pengajuan izin tukar hari
   static const String pengajuanIzinTukarHari =
-      "$baseURL/mobile/izin-tukar-hari";
+      "$baseURL/mobile/pengajuan-izin-tukar-hari";
   static String pengajuanIzinTukarHariDetail(String id) =>
       "$pengajuanIzinTukarHari/$id";
   static String pengajuanIzinTukarHariUpdate(String id) =>

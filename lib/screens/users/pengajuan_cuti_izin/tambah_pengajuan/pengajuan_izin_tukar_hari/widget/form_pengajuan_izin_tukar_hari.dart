@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
+import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +15,9 @@ import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto;
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
+import 'package:e_hrm/utils/mention_parser.dart';
 
 class _TanggalTukarPair {
   DateTime? tanggalIzin;
@@ -37,7 +43,6 @@ class _FormPengajuanIzinTukarHariState
     extends State<FormPengajuanIzinTukarHari> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  final TextEditingController jenisCutiController = TextEditingController();
   final TextEditingController keperluanController = TextEditingController();
 
   final GlobalKey<FlutterMentionsState> _mentionsKey =
@@ -50,19 +55,14 @@ class _FormPengajuanIzinTukarHariState
   final List<_TanggalTukarPair> _daftarTanggal = [];
 
   bool _autoValidate = false;
+  File? _buktiFile;
 
-  static final RegExp _mentionMarkupRegex = RegExp(
-    r'([@#])\[__(.*?)__\]\(__(.*?)__\)',
-  );
-
-  static final RegExp _uuidRegex = RegExp(
-    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-  );
+  String? _selectedKategori;
+  final List<String> _kategoriItems = ['Personal Impact', 'Company Impact'];
 
   @override
   void initState() {
     super.initState();
-    jenisCutiController.text = "Izin Tukar Hari";
     _addPair();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -102,7 +102,6 @@ class _FormPengajuanIzinTukarHariState
 
   @override
   void dispose() {
-    jenisCutiController.dispose();
     keperluanController.dispose();
 
     for (var pair in _daftarTanggal) {
@@ -138,58 +137,24 @@ class _FormPengajuanIzinTukarHariState
     );
   }
 
-  List<String> _extractMentionedUserIds(String markup) {
-    if (markup.isEmpty) return const <String>[];
-
-    final Set<String> ids = <String>{};
-    for (final match in _mentionMarkupRegex.allMatches(markup)) {
-      final String candidate = _pickBestMentionId(
-        match.group(2) ?? '',
-        match.group(3) ?? '',
-      );
-      if (candidate.isNotEmpty) {
-        ids.add(candidate);
-      }
-    }
-    return ids.toList(growable: false);
-  }
-
-  String _pickBestMentionId(String first, String second) {
-    final String a = first.trim();
-    final String b = second.trim();
-    final bool aIsUuid = _uuidRegex.hasMatch(a);
-    final bool bIsUuid = _uuidRegex.hasMatch(b);
-
-    if (aIsUuid && !bIsUuid) return a;
-    if (bIsUuid && !aIsUuid) return b;
-    if (aIsUuid && bIsUuid) return a;
-    if (a.isNotEmpty && !a.contains(' ')) return a;
-    if (b.isNotEmpty && !b.contains(' ')) return b;
-    return a.isNotEmpty ? a : b;
-  }
-
-  void _submitForm() {
+  Future<void> _submitForm() async {
     setState(() {
       _autoValidate = true;
     });
 
-    if (formKey.currentState?.validate() ?? false) {
-      bool allDatesValid = true;
-      for (var pair in _daftarTanggal) {
-        if (pair.tanggalIzin == null || pair.tanggalPengganti == null) {
-          allDatesValid = false;
-          break;
-        }
-        if (pair.tanggalIzin!.isAtSameMomentAs(pair.tanggalPengganti!)) {
-          _showSnackBar(
-            'Tanggal pengganti tidak boleh sama dengan tanggal izin.',
-            isError: true,
-          );
-          return;
-        }
-      }
+    if (!(formKey.currentState?.validate() ?? false)) {
+      _showSnackBar('Harap periksa kembali semua isian form.', isError: true);
+      return;
+    }
 
-      if (!allDatesValid) {
+    final List<DateTime> hariIzinList = <DateTime>[];
+    final List<DateTime> hariPenggantiList = <DateTime>[];
+
+    for (final pair in _daftarTanggal) {
+      final DateTime? tanggalIzin = pair.tanggalIzin;
+      final DateTime? tanggalPengganti = pair.tanggalPengganti;
+
+      if (tanggalIzin == null || tanggalPengganti == null) {
         _showSnackBar(
           'Harap lengkapi semua pasangan tanggal izin dan pengganti.',
           isError: true,
@@ -197,39 +162,109 @@ class _FormPengajuanIzinTukarHariState
         return;
       }
 
-      final String handoverMarkup =
-          _mentionsKey.currentState?.controller?.markupText ??
-          _handoverMarkupText;
-      final String handoverPlainText =
-          _mentionsKey.currentState?.controller?.text ?? _handoverPlainText;
-
-      final List<String> handoverUserIds = _extractMentionedUserIds(
-        handoverMarkup,
-      );
-
-      print("Form valid. Mengirim data...");
-      print("Keperluan: ${keperluanController.text}");
-      print("Handover (Markup): $handoverMarkup");
-      print("Handover (Plain): $handoverPlainText");
-      print("Handover User IDs: $handoverUserIds");
-      print("Jumlah pasangan tanggal: ${_daftarTanggal.length}");
-      for (var pair in _daftarTanggal) {
-        print("Izin: ${pair.tanggalIzin}, Pengganti: ${pair.tanggalPengganti}");
+      if (tanggalIzin.isAtSameMomentAs(tanggalPengganti)) {
+        _showSnackBar(
+          'Tanggal pengganti tidak boleh sama dengan tanggal izin.',
+          isError: true,
+        );
+        return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Form Valid. Logika submit belum diimplementasikan.'),
-          backgroundColor: AppColors.succesColor,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Harap periksa kembali semua isian form.'),
-          backgroundColor: AppColors.errorColor,
-        ),
-      );
+      hariIzinList.add(tanggalIzin);
+      hariPenggantiList.add(tanggalPengganti);
+    }
+
+    if (_selectedKategori == null) {
+      _showSnackBar('Kategori wajib dipilih.', isError: true);
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    http.MultipartFile? lampiran;
+    if (_buktiFile != null) {
+      try {
+        lampiran = await http.MultipartFile.fromPath(
+          'lampiran_izin_tukar_hari',
+          _buktiFile!.path,
+        );
+      } catch (e) {
+        _showSnackBar('Gagal membaca lampiran: $e', isError: true);
+        return;
+      }
+    }
+
+    final String rawKeperluan = keperluanController.text.trim();
+    final String kategori = _selectedKategori!;
+    final String handoverMarkup =
+        (_mentionsKey.currentState?.controller?.markupText ??
+                _handoverMarkupText)
+            .trim();
+
+    final List<String> handoverUserIds = MentionParser.extractMentionedUserIds(
+      handoverMarkup,
+    );
+
+    final approvers = context.read<ApproversPengajuanProvider>();
+    final pengajuanProvider = context.read<PengajuanIzinTukarHariProvider>();
+
+    final result = await pengajuanProvider.createPengajuan(
+      kategori: kategori,
+      keperluan: rawKeperluan,
+      handover: handoverMarkup,
+      handoverTagUserIds: handoverUserIds,
+      approversProvider: approvers,
+      hariIzinList: hariIzinList,
+      hariPenggantiList: hariPenggantiList,
+      lampiran: lampiran,
+    );
+
+    if (!mounted) return;
+
+    final String? errorMessage = pengajuanProvider.saveError;
+    final String? successMessage = pengajuanProvider.saveMessage;
+
+    if (errorMessage != null && errorMessage.isNotEmpty) {
+      _showSnackBar(errorMessage, isError: true);
+      return;
+    }
+
+    if (successMessage != null && successMessage.isNotEmpty) {
+      _showSnackBar(successMessage);
+    }
+
+    if (result != null) {
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop(result);
+      } else {
+        _resetFormState(resetApprovers: true);
+      }
+    }
+  }
+
+  void _resetFormState({bool resetApprovers = false}) {
+    formKey.currentState?.reset();
+
+    for (final pair in _daftarTanggal) {
+      pair.dispose();
+    }
+
+    setState(() {
+      _daftarTanggal
+        ..clear()
+        ..add(_TanggalTukarPair());
+      keperluanController.clear();
+      _handoverPlainText = '';
+      _handoverMarkupText = '';
+      _handoverFieldVersion++;
+      _autoValidate = false;
+      _buktiFile = null;
+      _selectedKategori = null;
+    });
+
+    if (resetApprovers) {
+      context.read<ApproversPengajuanProvider>().clearSelection();
     }
   }
 
@@ -255,64 +290,33 @@ class _FormPengajuanIzinTukarHariState
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
-            TextFieldWidget(
+            DropdownFieldWidget<String>(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
-              label: 'Jenis Cuti',
-              controller: jenisCutiController,
-              hintText: 'Izin Tukar Hari',
+              label: 'Kategori',
+              hintText: 'Pilih Kategori Izin...',
+              value: _selectedKategori,
+              items: _kategoriItems.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedKategori = newValue;
+                });
+              },
               isRequired: true,
-              prefixIcon: Icons.description_outlined,
-              keyboardType: TextInputType.text,
-              maxLines: 1,
-              enabled: false,
               autovalidateMode: autovalidateMode,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Kategori wajib dipilih';
+                }
+                return null;
+              },
             ),
             SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-              child: FormField<Set<String>>(
-                autovalidateMode: autovalidateMode,
-                initialValue: context
-                    .watch<ApproversPengajuanProvider>()
-                    .selectedRecipientIds,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Penerima laporan (Supervisi) wajib dipilih.';
-                  }
-                  return null;
-                },
-                builder: (FormFieldState<Set<String>> state) {
-                  final provider = context.watch<ApproversPengajuanProvider>();
-                  final currentValue = provider.selectedRecipientIds;
-                  if (state.value != currentValue) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        state.didChange(currentValue);
-                      }
-                    });
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const RecipientCuti(),
-                      if (state.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12, top: 8),
-                          child: Text(
-                            state.errorText!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
             TextFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -324,28 +328,6 @@ class _FormPengajuanIzinTukarHariState
               keyboardType: TextInputType.multiline,
               maxLines: 3,
               autovalidateMode: autovalidateMode,
-            ),
-            SizedBox(height: 20),
-            Column(
-              children: [
-                ..._daftarTanggal.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  _TanggalTukarPair pair = entry.value;
-                  return _buildPairRow(index, pair);
-                }),
-              ],
-            ),
-            SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                icon: const Icon(Icons.add_circle_outline, size: 20),
-                label: const Text("Tambah Tanggal"),
-                onPressed: _addPair,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.secondaryColor,
-                ),
-              ),
             ),
             SizedBox(height: 20),
             Column(
@@ -519,25 +501,128 @@ class _FormPengajuanIzinTukarHariState
               ],
             ),
             SizedBox(height: 20),
-            SizedBox(
-              width: 150,
-              child: ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                ),
-                child: Text(
-                  "Kirim",
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textColor,
-                  ),
+            Column(
+              children: [
+                ..._daftarTanggal.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  _TanggalTukarPair pair = entry.value;
+                  return _buildPairRow(index, pair);
+                }),
+              ],
+            ),
+            SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                icon: const Icon(Icons.add_circle_outline, size: 20),
+                label: const Text("Tambah Tanggal"),
+                onPressed: _addPair,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.secondaryColor,
                 ),
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+              child: FormField<Set<String>>(
+                autovalidateMode: autovalidateMode,
+                initialValue: context
+                    .watch<ApproversPengajuanProvider>()
+                    .selectedRecipientIds,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Penerima laporan (Supervisi) wajib dipilih.';
+                  }
+                  return null;
+                },
+                builder: (FormFieldState<Set<String>> state) {
+                  final provider = context.watch<ApproversPengajuanProvider>();
+                  final currentValue = provider.selectedRecipientIds;
+                  if (state.value != currentValue) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        state.didChange(currentValue);
+                      }
+                    });
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const RecipientCuti(),
+                      if (state.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12, top: 8),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: 20),
+            FilePickerFieldWidget(
+              backgroundColor: AppColors.textColor,
+              borderColor: AppColors.textDefaultColor,
+              label: 'Unggah Bukti (Opsional)',
+              buttonText: 'Unggah Bukti',
+              prefixIcon: Icons.camera_alt_outlined,
+              file: _buktiFile,
+              onFileChanged: (newFile) {
+                setState(() {
+                  _buktiFile = newFile;
+                });
+                if (_autoValidate) {
+                  formKey.currentState?.validate();
+                }
+              },
+              isRequired: false,
+              autovalidateMode: autovalidateMode,
+              validator: (file) {
+                return null;
+              },
+            ),
+            SizedBox(height: 20),
+            Consumer<PengajuanIzinTukarHariProvider>(
+              builder: (context, provider, _) {
+                final bool saving = provider.saving;
+                return SizedBox(
+                  width: 150,
+                  child: ElevatedButton(
+                    onPressed: saving ? null : () => _submitForm(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
+                    child: saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.textColor,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            "Kirim",
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textColor,
+                            ),
+                          ),
+                  ),
+                );
+              },
             ),
           ],
         ),

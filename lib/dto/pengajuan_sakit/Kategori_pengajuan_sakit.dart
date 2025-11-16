@@ -1,20 +1,23 @@
+import 'package:meta/meta.dart';
 import 'dart:convert';
 
-Kategorisakit kategorisakitFromJson(String str) =>
-    Kategorisakit.fromJson(json.decode(str));
+Kategoripengajuansakit kategoripengajuansakitFromJson(String str) =>
+    Kategoripengajuansakit.fromJson(json.decode(str));
 
-String kategorisakitToJson(Kategorisakit data) => json.encode(data.toJson());
+String kategoripengajuansakitToJson(Kategoripengajuansakit data) =>
+    json.encode(data.toJson());
 
-class Kategorisakit {
+class Kategoripengajuansakit {
   List<Data> data;
   Pagination pagination;
 
-  Kategorisakit({required this.data, required this.pagination});
+  Kategoripengajuansakit({required this.data, required this.pagination});
 
-  factory Kategorisakit.fromJson(Map<String, dynamic> json) => Kategorisakit(
-    data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
-    pagination: Pagination.fromJson(json["pagination"]),
-  );
+  factory Kategoripengajuansakit.fromJson(Map<String, dynamic> json) =>
+      Kategoripengajuansakit(
+        data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
+        pagination: Pagination.fromJson(json["pagination"]),
+      );
 
   Map<String, dynamic> toJson() => {
     "data": List<dynamic>.from(data.map((x) => x.toJson())),
@@ -34,7 +37,7 @@ class Data {
     required this.namaKategori,
     required this.createdAt,
     required this.updatedAt,
-    this.deletedAt,
+    required this.deletedAt,
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(

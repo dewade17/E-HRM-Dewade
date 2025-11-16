@@ -1,8 +1,11 @@
-import 'package:flutter/foundation.dart';
-
+import 'dart:convert';
 import 'package:e_hrm/contraints/endpoints.dart';
 import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart' as dto;
+import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/services/api_services.dart';
+import 'package:e_hrm/utils/mention_parser.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 class PengajuanIzinJamProvider extends ChangeNotifier {
   PengajuanIzinJamProvider();
@@ -11,6 +14,10 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
 
   bool loading = false;
   String? error;
+
+  bool _saving = false;
+  String? _saveError;
+  String? _saveMessage;
 
   List<dto.Data> items = <dto.Data>[];
   dto.Meta? meta;
@@ -40,6 +47,10 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
     if (currentMeta == null) return false;
     return currentMeta.page < currentMeta.totalPages;
   }
+
+  bool get saving => _saving;
+  String? get saveError => _saveError;
+  String? get saveMessage => _saveMessage;
 
   Future<bool> fetch({int? page, int? perPage, bool append = false}) async {
     var requestedPage = page ?? this.page;
@@ -91,6 +102,103 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
     } finally {
       loading = false;
       notifyListeners();
+    }
+  }
+
+  Future<dto.Data?> createPengajuan({
+    required String idKategoriIzinJam,
+    required String keperluan,
+    required DateTime tanggalIzin,
+    required DateTime jamMulai,
+    required DateTime jamSelesai,
+    required DateTime tanggalPengganti,
+    required DateTime jamMulaiPengganti,
+    required DateTime jamSelesaiPengganti,
+    String? handover,
+    List<String>? handoverUserIds,
+    List<String>? supervisorIds,
+    ApproversPengajuanProvider? approversProvider,
+    http.MultipartFile? lampiran,
+    Map<String, dynamic>? additionalFields,
+    String supervisorsFieldName = 'recipient',
+  }) async {
+    _startSaving();
+
+    final payload = <String, dynamic>{
+      'id_kategori_izin_jam': idKategoriIzinJam,
+      'keperluan': keperluan,
+      'tanggal_izin': _formatDate(tanggalIzin),
+      'jam_mulai': _formatDateTime(jamMulai),
+      'jam_selesai': _formatDateTime(jamSelesai),
+      'tanggal_pengganti': _formatDate(tanggalPengganti),
+      'jam_mulai_pengganti': _formatDateTime(jamMulaiPengganti),
+      'jam_selesai_pengganti': _formatDateTime(jamSelesaiPengganti),
+      if (handover != null && handover.isNotEmpty) 'handover': handover,
+    };
+
+    if (additionalFields != null) {
+      payload.addAll(additionalFields);
+    }
+
+    final List<String> approverIds = _collectApproverIds(
+      supervisorIds: supervisorIds,
+      approversProvider: approversProvider,
+    );
+
+    if (approverIds.isNotEmpty) {
+      payload['recipient_ids'] = jsonEncode(approverIds);
+      payload.addAll(_buildApprovalFormFields(approverIds));
+    }
+
+    final List<String> handoverIds = _resolveHandoverUserIds(
+      provided: handoverUserIds,
+      handover: handover,
+    ).toList(growable: false);
+
+    if (handoverIds.isNotEmpty) {
+      payload['handover_tag_user_ids'] = jsonEncode(handoverIds);
+    }
+
+    final files = <http.MultipartFile>[
+      if (lampiran != null) lampiran,
+      ..._createMultipartStrings(supervisorsFieldName, approverIds),
+      ..._createMultipartStrings('$supervisorsFieldName[]', approverIds),
+      ..._createMultipartStrings('recipient_ids', approverIds),
+      ..._createMultipartStrings('recipient_ids[]', approverIds),
+      ..._createMultipartStrings('handover_tag_user_ids', handoverIds),
+      ..._createMultipartStrings('handover_tag_user_ids[]', handoverIds),
+    ];
+
+    try {
+      final response = await _api.postFormDataPrivate(
+        Endpoints.pengajuanIzinJam,
+        payload,
+        files: files.isEmpty ? null : files,
+      );
+
+      final dto.Data? created = _parseSingleData(response['data']);
+      final dto.Meta? parsedMeta = _parseMeta(
+        response['meta'] ??
+            (response['data'] is Map<String, dynamic>
+                ? (response['data'] as Map<String, dynamic>)['meta']
+                : null),
+      );
+
+      if (parsedMeta != null) {
+        meta = parsedMeta;
+      }
+
+      if (created != null) {
+        _upsertItem(created);
+      }
+
+      final message =
+          _extractMessage(response) ?? 'Pengajuan izin jam berhasil dibuat.';
+      _finishSaving(message: message);
+      return created;
+    } catch (e) {
+      _finishSaving(error: e.toString());
+      return null;
     }
   }
 
@@ -310,5 +418,116 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
   }
 
   String _formatDate(DateTime value) =>
-      value.toIso8601String().split('T').first;
+      value.toLocal().toIso8601String().split('T').first;
+
+  String _formatDateTime(DateTime value) {
+    final local = value.toLocal();
+    final datePart = _formatDate(local);
+    final hh = _twoDigits(local.hour);
+    final mm = _twoDigits(local.minute);
+    final ss = _twoDigits(local.second);
+    return '$datePart $hh:$mm:$ss';
+  }
+
+  String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+  void _startSaving() {
+    _saving = true;
+    _saveError = null;
+    _saveMessage = null;
+    notifyListeners();
+  }
+
+  void _finishSaving({String? message, String? error}) {
+    _saving = false;
+    _saveMessage = message;
+    _saveError = error;
+    notifyListeners();
+  }
+
+  List<String> _collectApproverIds({
+    List<String>? supervisorIds,
+    ApproversPengajuanProvider? approversProvider,
+  }) {
+    final List<String> ordered = <String>[];
+    final Set<String> seen = <String>{};
+
+    void add(String? value) {
+      final trimmed = value?.trim();
+      if (trimmed == null || trimmed.isEmpty) return;
+      if (seen.add(trimmed)) {
+        ordered.add(trimmed);
+      }
+    }
+
+    if (approversProvider != null) {
+      for (final id in approversProvider.selectedRecipientIds) {
+        add(id);
+      }
+    }
+
+    if (supervisorIds != null) {
+      for (final id in supervisorIds) {
+        add(id);
+      }
+    }
+
+    return ordered;
+  }
+
+  Map<String, String> _buildApprovalFormFields(List<String> approverIds) {
+    final Map<String, String> fields = <String, String>{};
+    for (var index = 0; index < approverIds.length; index++) {
+      final id = approverIds[index];
+      fields['approvals[$index][approver_user_id]'] = id;
+      fields['approvals[$index][level]'] = '${index + 1}';
+    }
+    return fields;
+  }
+
+  Iterable<String> _resolveHandoverUserIds({
+    Iterable<String>? provided,
+    String? handover,
+  }) {
+    final Set<String> unique = <String>{};
+
+    void add(String? raw) {
+      final trimmed = raw?.trim();
+      if (trimmed == null || trimmed.isEmpty) return;
+      unique.add(trimmed);
+    }
+
+    if (provided != null) {
+      for (final value in provided) {
+        add(value);
+      }
+      if (unique.isNotEmpty) {
+        return unique;
+      }
+    }
+
+    if (handover != null && handover.isNotEmpty) {
+      for (final id in MentionParser.extractMentionedUserIds(handover)) {
+        add(id);
+      }
+    }
+
+    return unique;
+  }
+
+  List<http.MultipartFile> _createMultipartStrings(
+    String fieldName,
+    Iterable<String> values,
+  ) {
+    final files = <http.MultipartFile>[];
+    for (final value in values) {
+      files.add(http.MultipartFile.fromString(fieldName, value));
+    }
+    return files;
+  }
+
+  String? _extractMessage(Map<String, dynamic> response) {
+    final dynamic message = response['message'] ?? response['msg'];
+    return message is String ? message : null;
+  }
 }

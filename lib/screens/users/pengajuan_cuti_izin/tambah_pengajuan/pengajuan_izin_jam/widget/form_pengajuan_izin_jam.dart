@@ -17,8 +17,9 @@ import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:e_hrm/shared_widget/time_picker_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-
+import 'package:e_hrm/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart';
 // --- IMPORT BARU UNTUK MENTION ---
 import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
@@ -135,6 +136,25 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
   }
   // --- AKHIR FUNGSI HELPER BARU ---
 
+  DateTime? _combineDateAndTime(DateTime? date, TimeOfDay? time) {
+    if (date == null || time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError
+              ? AppColors.errorColor
+              : AppColors.succesColor,
+        ),
+      );
+  }
+
   @override
   void dispose() {
     keperluanController.dispose();
@@ -148,56 +168,140 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     setState(() {
       _autoValidate = true;
     });
 
-    if (formKey.currentState?.validate() ?? false) {
-      // Validasi tambahan jika state belum ter-update
-      if (_selectedKategoriIzinJam == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Kategori izin wajib dipilih.'),
-            backgroundColor: AppColors.errorColor,
-          ),
+    final formState = formKey.currentState;
+    if (formState == null || !formState.validate()) {
+      _showSnackBar('Harap periksa kembali semua isian form.', isError: true);
+      return;
+    }
+
+    if (_selectedKategoriIzinJam == null) {
+      _showSnackBar('Kategori izin wajib dipilih.', isError: true);
+      return;
+    }
+
+    if (_tanggalIjinJam == null ||
+        _tanggalPenggantiJam == null ||
+        _startTimeIjin == null ||
+        _endTimeIjin == null ||
+        _startTimePengganti == null ||
+        _endTimePengganti == null) {
+      _showSnackBar('Tanggal dan jam wajib diisi.', isError: true);
+      return;
+    }
+
+    final approversProvider = context.read<ApproversPengajuanProvider>();
+    if (approversProvider.selectedRecipientIds.isEmpty) {
+      _showSnackBar(
+        'Pilih minimal satu penerima laporan (supervisi).',
+        isError: true,
+      );
+      return;
+    }
+
+    final DateTime? jamMulai = _combineDateAndTime(
+      _tanggalIjinJam,
+      _startTimeIjin,
+    );
+    final DateTime? jamSelesai = _combineDateAndTime(
+      _tanggalIjinJam,
+      _endTimeIjin,
+    );
+    final DateTime? jamMulaiPengganti = _combineDateAndTime(
+      _tanggalPenggantiJam,
+      _startTimePengganti,
+    );
+    final DateTime? jamSelesaiPengganti = _combineDateAndTime(
+      _tanggalPenggantiJam,
+      _endTimePengganti,
+    );
+
+    if (jamMulai == null ||
+        jamSelesai == null ||
+        jamMulaiPengganti == null ||
+        jamSelesaiPengganti == null) {
+      _showSnackBar('Gagal membaca kombinasi tanggal dan jam.', isError: true);
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    http.MultipartFile? lampiran;
+    if (_buktiFile != null) {
+      try {
+        lampiran = await http.MultipartFile.fromPath(
+          'lampiran_izin_jam',
+          _buktiFile!.path,
         );
+      } catch (e) {
+        _showSnackBar('Gagal membaca lampiran: $e', isError: true);
         return;
       }
+    }
 
-      // TODO: Logika submit data
-      print("Form valid. Mengirim data...");
-      print("Keperluan: ${keperluanController.text}");
+    final pengajuanProvider = context.read<PengajuanIzinJamProvider>();
+    final String handoverMarkup = _getCurrentHandoverMarkup().trim();
+    final List<String> handoverUserIds = MentionParser.extractMentionedUserIds(
+      handoverMarkup,
+    );
 
-      print("Kategori ID: ${_selectedKategoriIzinJam?.idKategoriIzinJam}");
+    final result = await pengajuanProvider.createPengajuan(
+      idKategoriIzinJam: _selectedKategoriIzinJam!.idKategoriIzinJam,
+      keperluan: keperluanController.text.trim(),
+      tanggalIzin: _tanggalIjinJam!,
+      jamMulai: jamMulai,
+      jamSelesai: jamSelesai,
+      tanggalPengganti: _tanggalPenggantiJam!,
+      jamMulaiPengganti: jamMulaiPengganti,
+      jamSelesaiPengganti: jamSelesaiPengganti,
+      handover: handoverMarkup,
+      handoverUserIds: handoverUserIds,
+      approversProvider: approversProvider,
+      lampiran: lampiran,
+    );
 
-      // --- PERUBAHAN UNTUK MENTION ---
-      final String handoverMarkup = _getCurrentHandoverMarkup().trim();
-      final List<String> handoverUserIds =
-          MentionParser.extractMentionedUserIds(handoverMarkup); //
+    if (!mounted) return;
 
-      print("Handover (Markup): $handoverMarkup");
-      print("Handover User IDs: $handoverUserIds");
-      // --- AKHIR PERUBAHAN ---
+    final String? errorMessage = pengajuanProvider.saveError;
+    final String? successMessage = pengajuanProvider.saveMessage;
 
-      print("File yang diunggah: ${_buktiFile?.path ?? 'Tidak ada'}");
-      print(
-        "Ukuran file: ${_buktiFile != null ? _buktiFile!.lengthSync() : 0} bytes",
-      );
+    if (errorMessage != null && errorMessage.isNotEmpty) {
+      _showSnackBar(errorMessage, isError: true);
+      return;
+    }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Form Valid. Logika submit belum diimplementasikan.'),
-          backgroundColor: AppColors.succesColor,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Harap periksa kembali semua isian form.'),
-          backgroundColor: AppColors.errorColor,
-        ),
-      );
+    if (successMessage != null && successMessage.isNotEmpty) {
+      _showSnackBar(successMessage, isError: false);
+    }
+
+    if (result != null) {
+      formState.reset();
+      approversProvider.clearSelection();
+      setState(() {
+        _selectedKategoriIzinJam = null;
+        keperluanController.clear();
+        tanggalIjinJamController.clear();
+        tanggalPenggantiJamController.clear();
+        startTimeIjinController.clear();
+        endTimeIjinController.clear();
+        startTimePenggantiController.clear();
+        endTimePenggantiController.clear();
+        _tanggalIjinJam = null;
+        _tanggalPenggantiJam = null;
+        _startTimeIjin = null;
+        _endTimeIjin = null;
+        _startTimePengganti = null;
+        _endTimePengganti = null;
+        _buktiFile = null;
+        _handoverPlainText = '';
+        _handoverMarkupText = '';
+        _handoverFieldVersion++;
+        _autoValidate = false;
+      });
     }
   }
 
@@ -320,8 +424,8 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
 
                     final int wordCount = _getWordCount(text);
                     // Validasi 50 kata, sesuai file asli
-                    if (wordCount < 50) {
-                      return 'Minimal 50 kata. (Sekarang: $wordCount kata)';
+                    if (wordCount < 10) {
+                      return 'Minimal 10 kata. (Sekarang: $wordCount kata)';
                     }
 
                     return null;
@@ -357,7 +461,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                             fillColor: AppColors.textColor,
                             filled: true,
                             hintText:
-                                'Handover Pekerjaan (min. 50 kata). Ketik @ untuk mention...',
+                                'Handover Pekerjaan (min. 10 kata). Ketik @ untuk mention...',
                             prefixIcon: const Icon(Icons.description_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -445,51 +549,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                   },
                 ),
               ],
-            ),
-
-            SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-              child: FormField<Set<String>>(
-                autovalidateMode: autovalidateMode,
-                initialValue: context
-                    .watch<ApproversPengajuanProvider>()
-                    .selectedRecipientIds,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Penerima laporan (Supervisi) wajib dipilih.';
-                  }
-                  return null;
-                },
-                builder: (FormFieldState<Set<String>> state) {
-                  final provider = context.watch<ApproversPengajuanProvider>();
-                  final currentValue = provider.selectedRecipientIds;
-                  if (state.value != currentValue) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        state.didChange(currentValue);
-                      }
-                    });
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const RecipientCuti(),
-                      if (state.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12, top: 8),
-                          child: Text(
-                            state.errorText!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
             ),
 
             SizedBox(height: 20),
@@ -651,7 +710,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
               ),
             ),
 
-            // --- AKHIR BLOK PENGGANTI HANDOVER ---
             SizedBox(height: 20),
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
@@ -675,22 +733,38 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
               },
             ),
             SizedBox(height: 20),
-            SizedBox(
-              width: 150,
-              child: ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondaryColor,
-                ),
-                child: Text(
-                  "Kirim",
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textColor,
+            Consumer<PengajuanIzinJamProvider>(
+              builder: (context, provider, _) {
+                final bool saving = provider.saving;
+                return SizedBox(
+                  width: 170,
+                  child: ElevatedButton(
+                    onPressed: saving ? null : _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondaryColor,
+                    ),
+                    child: saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.textColor,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            "Kirim",
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textColor,
+                            ),
+                          ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

@@ -1,7 +1,10 @@
+// lib/providers/pengajuan_izin_jam/kategori_izin_jam.dart
+
 import 'package:flutter/foundation.dart';
 
 import 'package:e_hrm/contraints/endpoints.dart';
-import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart';
+// Perubahan: Menggunakan alias 'dto' untuk menghindari konflik nama
+import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart' as dto;
 import 'package:e_hrm/services/api_services.dart';
 
 class KategoriIzinJamProvider extends ChangeNotifier {
@@ -12,7 +15,20 @@ class KategoriIzinJamProvider extends ChangeNotifier {
   bool loading = false;
   String? error;
 
-  List<Data> items = [];
+  // Perubahan: Menggunakan tipe data dari DTO
+  List<dto.Data> items = [];
+
+  // --- TAMBAHAN BARU ---
+  // State untuk menyimpan kategori yang sedang dipilih
+  dto.Data? _selectedKategori;
+  dto.Data? get selectedKategori => _selectedKategori;
+
+  /// Memperbarui kategori yang dipilih dan memberitahu listener.
+  void selectKategori(dto.Data? kategori) {
+    _selectedKategori = kategori;
+    notifyListeners();
+  }
+  // --- AKHIR TAMBAHAN ---
 
   int page = 1;
   int pageSize = 10;
@@ -54,8 +70,9 @@ class KategoriIzinJamProvider extends ChangeNotifier {
       final currentIncludeDeleted = includeDeleted ?? this.includeDeleted;
       final currentDeletedOnly = deletedOnly ?? this.deletedOnly;
       final currentOrderBy = orderBy ?? this.orderBy;
-      final currentSort =
-          (sort ?? this.sort).toLowerCase() == 'asc' ? 'asc' : 'desc';
+      final currentSort = (sort ?? this.sort).toLowerCase() == 'asc'
+          ? 'asc'
+          : 'desc';
 
       final queryParameters = <String, String>{
         'page': currentPage.toString(),
@@ -67,25 +84,26 @@ class KategoriIzinJamProvider extends ChangeNotifier {
         'sort': currentSort,
       };
 
-      final url = Uri.parse(Endpoints.kategoriIzinJam)
-          .replace(queryParameters: queryParameters)
-          .toString();
+      final url = Uri.parse(
+        Endpoints.kategoriIzinJam,
+      ).replace(queryParameters: queryParameters).toString();
 
       final response = await _api.fetchDataPrivate(url);
 
       final List<dynamic> rawList = response['data'] is List
           ? List<dynamic>.from(response['data'])
           : [];
-      final List<Data> mapped = rawList
+
+      // Perubahan: Menggunakan dto.Data.fromJson
+      final List<dto.Data> mapped = rawList
           .whereType<Map<String, dynamic>>()
-          .map(Data.fromJson)
+          .map(dto.Data.fromJson)
           .toList();
 
       final dynamic paginationMap = response['pagination'];
-      final Pagination? pagination = paginationMap is Map
-          ? Pagination.fromJson(
-              Map<String, dynamic>.from(paginationMap),
-            )
+      // Perubahan: Menggunakan dto.Pagination.fromJson
+      final dto.Pagination? pagination = paginationMap is Map
+          ? dto.Pagination.fromJson(Map<String, dynamic>.from(paginationMap))
           : null;
 
       this.page = pagination?.page ?? currentPage;
@@ -162,6 +180,12 @@ class KategoriIzinJamProvider extends ChangeNotifier {
     deletedOnly = false;
     orderBy = 'created_at';
     sort = 'desc';
+
+    // --- TAMBAHAN BARU ---
+    // Reset kategori yang dipilih
+    _selectedKategori = null;
+    // --- AKHIR TAMBAHAN ---
+
     notifyListeners();
   }
 }

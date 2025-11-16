@@ -1,3 +1,5 @@
+// lib/providers/pengajuan_sakit/pengajuan_sakit_provider.dart
+
 import 'dart:convert';
 
 import 'package:e_hrm/contraints/endpoints.dart';
@@ -53,6 +55,45 @@ class PengajuanSakitProvider extends ChangeNotifier {
   bool get saving => _saving;
   String? get saveError => _saveError;
   String? get saveMessage => _saveMessage;
+
+  /// Helper untuk membuat field multipart 'approvals' (flattened)
+  List<http.MultipartFile> _createApprovalMultipartFields(
+    List<Map<String, dynamic>> approvals,
+  ) {
+    final files = <http.MultipartFile>[];
+    for (var index = 0; index < approvals.length; index++) {
+      final approval = approvals[index];
+      final level = approval['level'];
+      final userId = approval['approver_user_id'];
+      final role = approval['approver_role'];
+
+      if (level != null) {
+        files.add(
+          http.MultipartFile.fromString(
+            'approvals[$index][level]', // Format: approvals[0][level]
+            level.toString(),
+          ),
+        );
+      }
+      if (userId != null) {
+        files.add(
+          http.MultipartFile.fromString(
+            'approvals[$index][approver_user_id]',
+            userId.toString(),
+          ),
+        );
+      }
+      if (role != null) {
+        files.add(
+          http.MultipartFile.fromString(
+            'approvals[$index][approver_role]',
+            role.toString(),
+          ),
+        );
+      }
+    }
+    return files;
+  }
 
   Future<bool> fetch({int? page, int? perPage, bool append = false}) async {
     var requestedPage = page ?? this.page;
@@ -224,9 +265,12 @@ class PengajuanSakitProvider extends ChangeNotifier {
 
     final List<Map<String, dynamic>> approvalPayload =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
-    if (approvalPayload.isNotEmpty) {
-      payload['approvals'] = jsonEncode(approvalPayload);
-    }
+
+    // --- PERBAIKAN: HAPUS `jsonEncode` DARI PAYLOAD ---
+    // if (approvalPayload.isNotEmpty) {
+    //   payload['approvals'] = jsonEncode(approvalPayload);
+    // }
+    // --- AKHIR PERBAIKAN ---
 
     final List<String> tagUserIds = _resolveHandoverUserIds(
       provided: handoverUserIds,
@@ -237,7 +281,35 @@ class PengajuanSakitProvider extends ChangeNotifier {
       if (lampiran != null) lampiran,
       ..._createMultipartStrings('tag_user_ids', tagUserIds),
       ..._createMultipartStrings('handover_user_ids', tagUserIds),
+
+      // --- PERBAIKAN: HANYA KIRIM `approvals` SEBAGAI FLATTENED FILES ---
+      ..._createApprovalMultipartFields(approvalPayload),
+      // --- AKHIR PERBAIKAN ---
     ];
+
+    // --- DEBUG PRINT (Masih dipertahankan untuk verifikasi) ---
+    if (kDebugMode) {
+      print(
+        "--- [DEBUG] PENGAMATAN CREATE PENGAJUAN SAKIT (Perbaikan Definitif) ---",
+      );
+      print("Endpoint: ${Endpoints.pengajuanSakit}");
+      print("--- Payload (Fields) ---");
+      payload.forEach((key, value) {
+        print("$key: $value");
+      });
+      print("--- Files (Multipart) ---");
+      for (var file in files) {
+        if (file.filename != null) {
+          print(
+            "File: ${file.field} (name: ${file.filename}, size: ${file.length}, type: ${file.contentType})",
+          );
+        } else {
+          print("File (from string): ${file.field}");
+        }
+      }
+      print("-------------------------------------------------");
+    }
+    // --- AKHIR DEBUG PRINT ---
 
     try {
       final response = await _api.postFormDataPrivate(
@@ -265,6 +337,11 @@ class PengajuanSakitProvider extends ChangeNotifier {
       _finishSaving(message: message);
       return created;
     } catch (e) {
+      if (kDebugMode) {
+        print("--- [DEBUG] ERROR CREATE PENGAJUAN SAKIT ---");
+        print(e.toString());
+        print("---------------------------------------------");
+      }
       _finishSaving(error: e.toString());
       return null;
     }
@@ -309,9 +386,12 @@ class PengajuanSakitProvider extends ChangeNotifier {
 
     final List<Map<String, dynamic>> approvalPayload =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
-    if (approvalPayload.isNotEmpty) {
-      payload['approvals'] = jsonEncode(approvalPayload);
-    }
+
+    // --- PERBAIKAN: HAPUS `jsonEncode` DARI PAYLOAD ---
+    // if (approvalPayload.isNotEmpty) {
+    //   payload['approvals'] = jsonEncode(approvalPayload);
+    // }
+    // --- AKHIR PERBAIKAN ---
 
     final List<String>? tagUserIds = _resolveTagIdsForUpdate(
       provided: handoverUserIds,
@@ -324,7 +404,35 @@ class PengajuanSakitProvider extends ChangeNotifier {
         ..._createMultipartStrings('tag_user_ids', tagUserIds),
       if (tagUserIds != null)
         ..._createMultipartStrings('handover_user_ids', tagUserIds),
+
+      // --- PERBAIKAN: HANYA KIRIM `approvals` SEBAGAI FLATTENED FILES ---
+      ..._createApprovalMultipartFields(approvalPayload),
+      // --- AKHIR PERBAIKAN ---
     ];
+
+    // --- DEBUG PRINT (Masih dipertahankan untuk verifikasi) ---
+    if (kDebugMode) {
+      print(
+        "--- [DEBUG] PENGAMATAN UPDATE PENGAJUAN SAKIT (Perbaikan Definitif) ---",
+      );
+      print("Endpoint: ${Endpoints.pengajuanSakit}/$id");
+      print("--- Payload (Fields) ---");
+      payload.forEach((key, value) {
+        print("$key: $value");
+      });
+      print("--- Files (Multipart) ---");
+      for (var file in files) {
+        if (file.filename != null) {
+          print(
+            "File: ${file.field} (name: ${file.filename}, size: ${file.length}, type: ${file.contentType})",
+          );
+        } else {
+          print("File (from string): ${file.field}");
+        }
+      }
+      print("-------------------------------------------------");
+    }
+    // --- AKHIR DEBUG PRINT ---
 
     try {
       final response = await _api.putFormDataPrivate(
@@ -353,6 +461,11 @@ class PengajuanSakitProvider extends ChangeNotifier {
       _finishSaving(message: message);
       return updated;
     } catch (e) {
+      if (kDebugMode) {
+        print("--- [DEBUG] ERROR UPDATE PENGAJUAN SAKIT ---");
+        print(e.toString());
+        print("---------------------------------------------");
+      }
       _finishSaving(error: e.toString());
       return null;
     }
@@ -409,11 +522,19 @@ class PengajuanSakitProvider extends ChangeNotifier {
           continue;
         }
         if (entry is Map<String, dynamic>) {
-          parsed.add(dto.Data.fromJson(entry));
+          try {
+            parsed.add(dto.Data.fromJson(entry));
+          } catch (e) {
+            debugPrint("Failed to parse PengajuanSakit Data: $e. Item: $entry");
+          }
           continue;
         }
         if (entry is Map) {
-          parsed.add(dto.Data.fromJson(Map<String, dynamic>.from(entry)));
+          try {
+            parsed.add(dto.Data.fromJson(Map<String, dynamic>.from(entry)));
+          } catch (e) {
+            debugPrint("Failed to parse PengajuanSakit Data: $e. Item: $entry");
+          }
         }
       }
       return parsed;
@@ -423,9 +544,21 @@ class PengajuanSakitProvider extends ChangeNotifier {
 
   dto.Meta? _parseMeta(dynamic raw) {
     if (raw is dto.Meta) return raw;
-    if (raw is Map<String, dynamic>) return dto.Meta.fromJson(raw);
+    if (raw is Map<String, dynamic>) {
+      try {
+        return dto.Meta.fromJson(raw);
+      } catch (e) {
+        debugPrint("Failed to parse PengajuanSakit Meta: $e. Item: $raw");
+        return null;
+      }
+    }
     if (raw is Map) {
-      return dto.Meta.fromJson(Map<String, dynamic>.from(raw));
+      try {
+        return dto.Meta.fromJson(Map<String, dynamic>.from(raw));
+      } catch (e) {
+        debugPrint("Failed to parse PengajuanSakit Meta: $e. Item: $raw");
+        return null;
+      }
     }
     return null;
   }
@@ -537,7 +670,12 @@ class PengajuanSakitProvider extends ChangeNotifier {
     if (raw is dto.Data) return raw;
     if (raw is Map<String, dynamic>) {
       if (raw.containsKey('id_pengajuan_izin_sakit')) {
-        return dto.Data.fromJson(raw);
+        try {
+          return dto.Data.fromJson(raw);
+        } catch (e) {
+          debugPrint("Failed to parse PengajuanSakit Data: $e. Item: $raw");
+          return null;
+        }
       }
       for (final entry in raw.values) {
         final parsed = _parseSingleData(entry);

@@ -6,12 +6,12 @@ import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
-// import 'package:e_hrm/shared_widget/text_field_widget.dart'; // Diganti
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-
-// --- IMPORT BARU ---
+import 'package:e_hrm/providers/pengajuan_sakit/pengajuan_sakit_provider.dart';
+import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/kategori_pengajuan_sakit_provider.dart';
 import 'package:e_hrm/dto/pengajuan_sakit/kategori_pengajuan_sakit.dart'
     as dto_sakit;
@@ -33,9 +33,6 @@ class FormPengajuanSakit extends StatefulWidget {
 
 class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
-  // Dihapus: final TextEditingController jenisCutiController = TextEditingController();
-  // Dihapus: final TextEditingController handoverController = TextEditingController();
 
   final TextEditingController tanggalPengajuanSakitController =
       TextEditingController();
@@ -118,64 +115,109 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
   }
   // --- AKHIR FUNGSI HELPER BARU ---
 
+  void _resetFormFields(ApproversPengajuanProvider approversProvider) {
+    formKey.currentState?.reset();
+    approversProvider.clearSelection();
+    tanggalPengajuanSakitController.clear();
+
+    setState(() {
+      _selectedKategoriSakit = null;
+      _tanggalPengajuanSakit = null;
+      _buktiFile = null;
+      _handoverPlainText = '';
+      _handoverMarkupText = '';
+      _handoverFieldVersion++;
+      _autoValidate = false;
+    });
+  }
+
   @override
   void dispose() {
-    // Dihapus: jenisCutiController.dispose();
-    // Dihapus: handoverController.dispose();
     tanggalPengajuanSakitController.dispose();
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     setState(() {
       _autoValidate = true;
     });
 
-    if (formKey.currentState?.validate() ?? false) {
-      // Validasi tambahan
-      if (_selectedKategoriSakit == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Kategori sakit wajib dipilih.'),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
-        return;
-      }
+    final messenger = ScaffoldMessenger.of(context);
 
-      // Validasi _buktiFile (karena validator FormField mungkin belum ter-trigger jika belum disentuh)
-      if (_buktiFile == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bukti wajib diunggah.'),
-            backgroundColor: AppColors.errorColor,
-          ),
-        );
-        return;
-      }
-
-      final String handoverMarkup = _getCurrentHandoverMarkup().trim();
-
-      // TODO: Logika submit data pengajuan sakit
-      print("Form valid. Mengirim data...");
-      print("Kategori ID: ${_selectedKategoriSakit?.idKategoriSakit ?? 'N/A'}");
-      print("Tanggal Sakit: $_tanggalPengajuanSakit");
-      print("Handover: $handoverMarkup");
-      print("File yang diunggah: ${_buktiFile?.path ?? 'Tidak ada'}");
-      print(
-        "Ukuran file: ${_buktiFile != null ? _buktiFile!.lengthSync() : 0} bytes",
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Form Valid. Logika submit belum diimplementasikan.'),
-          backgroundColor: AppColors.succesColor,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (!(formKey.currentState?.validate() ?? false)) {
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Harap periksa kembali semua isian form.'),
+          backgroundColor: AppColors.errorColor,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedKategoriSakit == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Kategori sakit wajib dipilih.'),
+          backgroundColor: AppColors.errorColor,
+        ),
+      );
+      return;
+    }
+
+    if (_buktiFile == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Bukti wajib diunggah.'),
+          backgroundColor: AppColors.errorColor,
+        ),
+      );
+      return;
+    }
+
+    final approversProvider = context.read<ApproversPengajuanProvider>();
+    final pengajuanSakitProvider = context.read<PengajuanSakitProvider>();
+
+    final String handoverMarkup = _getCurrentHandoverMarkup().trim();
+    final List<String> handoverUserIds = MentionParser.extractMentionedUserIds(
+      handoverMarkup,
+    );
+
+    final http.MultipartFile lampiran = await http.MultipartFile.fromPath(
+      'lampiran_izin_sakit',
+      _buktiFile!.path,
+    );
+
+    final created = await pengajuanSakitProvider.createPengajuan(
+      idKategoriSakit: _selectedKategoriSakit!.idKategoriSakit,
+      tanggalPengajuan: _tanggalPengajuanSakit,
+      handover: handoverMarkup,
+      handoverUserIds: handoverUserIds,
+      approversProvider: approversProvider,
+      lampiran: lampiran,
+    );
+
+    final String? saveError = pengajuanSakitProvider.saveError;
+    final String? saveMessage = pengajuanSakitProvider.saveMessage;
+
+    if (created != null && saveError == null) {
+      if (saveMessage != null && saveMessage.isNotEmpty) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(saveMessage),
+            backgroundColor: AppColors.succesColor,
+          ),
+        );
+      }
+
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(true);
+      } else {
+        _resetFormFields(approversProvider);
+      }
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(saveError ?? 'Gagal mengirim pengajuan sakit.'),
           backgroundColor: AppColors.errorColor,
         ),
       );
@@ -502,7 +544,9 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
             SizedBox(
               width: 150,
               child: ElevatedButton(
-                onPressed: _submitForm,
+                onPressed: () {
+                  _submitForm();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondaryColor,
                   shape: RoundedRectangleBorder(

@@ -19,6 +19,7 @@ import 'package:e_hrm/providers/pengajuan_izin_jam/kategori_izin_jam.dart';
 import 'package:e_hrm/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart';
 
 import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
+import 'package:e_hrm/providers/pengajuan_sakit/pengajuan_sakit_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
@@ -91,9 +92,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PengajuanIzinTukarHariProvider()),
         ChangeNotifierProvider(create: (_) => PengajuanIzinJamProvider()),
         ChangeNotifierProvider(create: (_) => KategoriIzinJamProvider()),
-        ChangeNotifierProvider(
-          create: (_) => KategoriPengajuanSakitProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => KategoriPengajuanSakitProvider()),
+        ChangeNotifierProvider(create: (_) => PengajuanSakitProvider()),
       ],
       child: Portal(
         child: MaterialApp(

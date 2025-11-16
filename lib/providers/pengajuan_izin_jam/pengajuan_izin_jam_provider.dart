@@ -156,7 +156,7 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
     ).toList(growable: false);
 
     if (handoverIds.isNotEmpty) {
-      payload['handover_tag_user_ids'] = jsonEncode(handoverIds);
+      payload['tag_user_ids'] = jsonEncode(handoverIds);
     }
 
     final files = <http.MultipartFile>[
@@ -165,8 +165,8 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
       ..._createMultipartStrings('$supervisorsFieldName[]', approverIds),
       ..._createMultipartStrings('recipient_ids', approverIds),
       ..._createMultipartStrings('recipient_ids[]', approverIds),
-      ..._createMultipartStrings('handover_tag_user_ids', handoverIds),
-      ..._createMultipartStrings('handover_tag_user_ids[]', handoverIds),
+      ..._createMultipartStrings('tag_user_ids', handoverIds),
+      ..._createMultipartStrings('tag_user_ids[]', handoverIds),
     ];
 
     try {

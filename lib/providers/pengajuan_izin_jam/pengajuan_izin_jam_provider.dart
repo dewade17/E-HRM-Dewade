@@ -1,3 +1,5 @@
+// lib/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart
+
 import 'dart:convert';
 import 'package:e_hrm/contraints/endpoints.dart';
 import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart' as dto;
@@ -173,15 +175,51 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
       handover: handover,
     ).toList(growable: false);
 
-    if (handoverIds.isNotEmpty) {
-      payload['tag_user_ids'] = jsonEncode(handoverIds);
-    }
+    // [PERBAIKAN 1]: Hapus pengiriman 'tag_user_ids' dalam payload JSON
+    // if (handoverIds.isNotEmpty) {
+    //   payload['tag_user_ids'] = jsonEncode(handoverIds);
+    // }
 
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
+      // [PERBAIKAN 2]: HANYA kirim field 'tag_user_ids' (backend akan handle array)
       ..._createMultipartStrings('tag_user_ids', handoverIds),
-      ..._createMultipartStrings('tag_user_ids[]', handoverIds),
+      // [PERBAIKAN 3]: Hapus field 'tag_user_ids[]'
+      // ..._createMultipartStrings('tag_user_ids[]', handoverIds),
     ];
+
+    // --- TAMBAHAN DEBUG PRINT ---
+    if (kDebugMode) {
+      print("--- [DEBUG] CREATE PENGAJUAN IZIN JAM (Telah Diperbaiki) ---");
+      print("Endpoint: ${Endpoints.pengajuanIzinJam}");
+      print("--- Payload Fields ---");
+      payload.forEach((key, value) {
+        print("$key: $value");
+      });
+      print("--- Multipart Files ---");
+      if (files.isEmpty) {
+        print("(Tidak ada file)");
+      } else {
+        for (var file in files) {
+          if (file.filename != null) {
+            print(
+              "File: ${file.field} (name: ${file.filename}, size: ${file.length}, type: ${file.contentType})",
+            );
+          } else {
+            // Untuk file 'tag_user_ids', kita print manual agar terlihat
+            if (file.field == 'tag_user_ids') {
+              print(
+                "Field (from string): ${file.field} (ID terkirim: ${handoverIds.join(', ')})",
+              );
+            } else {
+              print("Field (from string): ${file.field}");
+            }
+          }
+        }
+      }
+      print("--------------------------------------");
+    }
+    // --- AKHIR TAMBAHAN DEBUG PRINT ---
 
     try {
       final response = await _api.postFormDataPrivate(

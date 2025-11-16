@@ -1,4 +1,3 @@
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 PengajuanSakit pengajuanSakitFromJson(String str) =>
@@ -8,7 +7,7 @@ String pengajuanSakitToJson(PengajuanSakit data) => json.encode(data.toJson());
 
 class PengajuanSakit {
   String message;
-  List<Datum> data;
+  List<Data> data;
   Meta meta;
 
   PengajuanSakit({
@@ -19,7 +18,7 @@ class PengajuanSakit {
 
   factory PengajuanSakit.fromJson(Map<String, dynamic> json) => PengajuanSakit(
     message: json["message"],
-    data: List<Datum>.from(json["data"].map((x) => Datum.fromJson(x))),
+    data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
     meta: Meta.fromJson(json["meta"]),
   );
 
@@ -30,7 +29,7 @@ class PengajuanSakit {
   };
 }
 
-class Datum {
+class Data {
   String idPengajuanIzinSakit;
   String idUser;
   String idKategoriSakit;
@@ -43,12 +42,12 @@ class Datum {
   DateTime createdAt;
   DateTime updatedAt;
   dynamic deletedAt;
-  DatumUser user;
+  DataUser user;
   Kategori kategori;
   List<HandoverUser> handoverUsers;
   List<Approval> approvals;
 
-  Datum({
+  Data({
     required this.idPengajuanIzinSakit,
     required this.idUser,
     required this.idKategoriSakit,
@@ -67,7 +66,7 @@ class Datum {
     required this.approvals,
   });
 
-  factory Datum.fromJson(Map<String, dynamic> json) => Datum(
+  factory Data.fromJson(Map<String, dynamic> json) => Data(
     idPengajuanIzinSakit: json["id_pengajuan_izin_sakit"],
     idUser: json["id_user"],
     idKategoriSakit: json["id_kategori_sakit"],
@@ -80,7 +79,7 @@ class Datum {
     createdAt: DateTime.parse(json["created_at"]),
     updatedAt: DateTime.parse(json["updated_at"]),
     deletedAt: json["deleted_at"],
-    user: DatumUser.fromJson(json["user"]),
+    user: DataUser.fromJson(json["user"]),
     kategori: Kategori.fromJson(json["kategori"]),
     handoverUsers: List<HandoverUser>.from(
       json["handover_users"].map((x) => HandoverUser.fromJson(x)),
@@ -232,7 +231,7 @@ class Kategori {
   };
 }
 
-class DatumUser {
+class DataUser {
   String idUser;
   String namaPengguna;
   String email;
@@ -242,7 +241,7 @@ class DatumUser {
   Departement departement;
   Jabatan jabatan;
 
-  DatumUser({
+  DataUser({
     required this.idUser,
     required this.namaPengguna,
     required this.email,
@@ -253,7 +252,7 @@ class DatumUser {
     required this.jabatan,
   });
 
-  factory DatumUser.fromJson(Map<String, dynamic> json) => DatumUser(
+  factory DataUser.fromJson(Map<String, dynamic> json) => DataUser(
     idUser: json["id_user"],
     namaPengguna: json["nama_pengguna"],
     email: json["email"],

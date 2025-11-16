@@ -1,11 +1,5 @@
-// lib/dto/pengajuan_cuti/pengajuan_cuti.dart
+// ignore_for_file: unnecessary_cast, constant_identifier_names
 
-// To parse this JSON data, do
-//
-//     final pengajuanCuti = pengajuanCutiFromJson(jsonString);
-
-import 'package:e_hrm/dto/agenda_kerja/agenda_kerja.dart';
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 // --- HELPER PARSING ---
@@ -278,7 +272,6 @@ enum Role { KARYAWAN, SUPERADMIN, HR, OPERASIONAL, DIREKTUR }
 final roleValues = EnumValues({
   "KARYAWAN": Role.KARYAWAN,
   "SUPERADMIN": Role.SUPERADMIN,
-  // Tambahkan role lain jika ada di JSON
   "HR": Role.HR,
   "OPERASIONAL": Role.OPERASIONAL,
   "DIREKTUR": Role.DIREKTUR,

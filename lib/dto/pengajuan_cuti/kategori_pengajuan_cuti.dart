@@ -1,8 +1,3 @@
-// To parse this JSON data, do
-//
-//     final pengajuanCuti = pengajuanCutiFromJson(jsonString);
-
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 PengajuanCuti pengajuanCutiFromJson(String str) =>

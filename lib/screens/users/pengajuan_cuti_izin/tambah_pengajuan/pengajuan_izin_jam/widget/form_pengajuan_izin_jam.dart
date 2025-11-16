@@ -31,9 +31,9 @@ import 'dart:async';
 // --- AKHIR IMPORT BARU ---
 
 class FormPengajuanIzinJam extends StatefulWidget {
-  const FormPengajuanIzinJam({super.key, this.onRefresh});
-
-  final Future<void> Function()? onRefresh;
+  // --- PERUBAHAN DI SINI ---
+  const FormPengajuanIzinJam({super.key});
+  // --- AKHIR PERUBAHAN ---
 
   @override
   State<FormPengajuanIzinJam> createState() => _FormPengajuanIzinJamState();
@@ -153,6 +153,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
           backgroundColor: isError
               ? AppColors.errorColor
               : AppColors.succesColor,
+          duration: const Duration(seconds: 5),
         ),
       );
   }
@@ -160,7 +161,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
   @override
   void dispose() {
     keperluanController.dispose();
-    // handoverController.dispose(); // Sudah diganti
     tanggalIjinJamController.dispose();
     tanggalPenggantiJamController.dispose();
     startTimeIjinController.dispose();
@@ -276,10 +276,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
       return;
     }
 
-    if (successMessage != null && successMessage.isNotEmpty) {
-      _showSnackBar(successMessage, isError: false);
-    }
-
     if (result != null) {
       formState.reset();
       approversProvider.clearSelection();
@@ -304,11 +300,19 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
         _handoverFieldVersion++;
         _autoValidate = false;
       });
-      await widget.onRefresh?.call();
+
+      // --- PERUBAHAN DI SINI ---
+      // Hapus pemanggilan 'onRefresh'
+      // await widget.onRefresh?.call();
+      // --- AKHIR PERUBAHAN ---
+
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.hideCurrentSnackBar();
-      Navigator.of(context).pop(result);
+
+      final messageToPop =
+          successMessage ?? 'Pengajuan izin jam berhasil dibuat.';
+      Navigator.of(context).pop(messageToPop);
+    } else {
+      Navigator.of(context).pop();
     }
   }
 

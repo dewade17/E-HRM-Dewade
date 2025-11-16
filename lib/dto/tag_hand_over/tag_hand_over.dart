@@ -1,8 +1,3 @@
-// To parse this JSON data, do
-//
-//     final tagHandOver = tagHandOverFromJson(jsonString);
-
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 TagHandOver tagHandOverFromJson(String str) =>

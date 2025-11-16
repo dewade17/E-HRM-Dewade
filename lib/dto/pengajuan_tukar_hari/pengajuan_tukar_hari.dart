@@ -1,11 +1,3 @@
-// lib/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart
-
-// To parse this JSON data, do
-//
-//     final izinTukarHari = izinTukarHariFromJson(jsonString);
-
-import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart';
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 IzinTukarHari izinTukarHariFromJson(String str) =>

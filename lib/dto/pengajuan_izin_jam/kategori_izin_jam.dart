@@ -1,4 +1,3 @@
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 KategoriIzinJam kategoriIzinJamFromJson(String str) => KategoriIzinJam.fromJson(json.decode(str));

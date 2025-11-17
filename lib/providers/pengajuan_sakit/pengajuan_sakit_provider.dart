@@ -188,6 +188,9 @@ class PengajuanSakitProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ==========================================
+  // PERBAIKAN CREATE PENGAJUAN
+  // ==========================================
   Future<dto.Data?> createPengajuan({
     required String idKategoriSakit,
     DateTime? tanggalPengajuan,
@@ -203,6 +206,7 @@ class PengajuanSakitProvider extends ChangeNotifier {
   }) async {
     _startSaving();
 
+    // 1. Payload Dasar (Field biasa)
     final payload = <String, dynamic>{
       'id_kategori_sakit': idKategoriSakit.trim(),
       if (idUser != null && idUser.trim().isNotEmpty) 'id_user': idUser.trim(),
@@ -224,33 +228,50 @@ class PengajuanSakitProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    // --- [FIX: APPROVALS] ---
-    // Menggunakan JSON Encode, bukan field terpisah
+    // 2. Siapkan List Files untuk Multipart
+    // (Karena di Dart http, duplicate key harus via files)
+    final List<http.MultipartFile> files = [];
+
+    // Tambahkan lampiran jika ada
+    if (lampiran != null) {
+      files.add(lampiran);
+    }
+
+    // 3. Handle Approvals (PERBAIKAN ROBUST)
+    // Kita kirim setiap approval item sebagai JSON string terpisah dengan key 'approvals'.
+    // Backend akan menerima Array of String JSON, lalu parse per item -> Object {level: 1}.
     final List<Map<String, dynamic>> approvalList =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
 
-    if (approvalList.isNotEmpty) {
-      payload['approvals'] = jsonEncode(approvalList);
+    for (final approvalItem in approvalList) {
+      files.add(
+        http.MultipartFile.fromString(
+          'approvals',
+          jsonEncode(approvalItem), // Mengirim {"level":1,...} sebagai string
+        ),
+      );
     }
-    // --- [END FIX] ---
 
+    // 4. Handle Handover Users
     final List<String> tagUserIds = _resolveHandoverUserIds(
       provided: handoverUserIds,
       handover: handover,
     );
 
-    // Kirim tag_user_ids sebagai multipart string (array)
-    final files = <http.MultipartFile>[
-      if (lampiran != null) lampiran,
-      ..._createMultipartStrings('tag_user_ids', tagUserIds),
-      // Opsional: kirim dengan kurung siku jika backend membutuhkannya
-      // ..._createMultipartStrings('tag_user_ids[]', tagUserIds),
-    ];
+    // Kirim sebagai tag_user_ids (multiple fields)
+    files.addAll(_createMultipartStrings('tag_user_ids', tagUserIds));
 
+    // Opsional: Kirim handover_user_ids juga untuk redundansi
+    // files.addAll(_createMultipartStrings('handover_user_ids', tagUserIds));
+
+    // --- DEBUG PRINT ---
     if (kDebugMode) {
-      print("--- [DEBUG] CREATE PENGAJUAN SAKIT (FIXED JSON) ---");
-      payload.forEach((key, value) => print("$key: $value"));
-      print("-------------------------------------------------");
+      print("--- [DEBUG] CREATE PENGAJUAN SAKIT (MULTI-PART FIELD FIX) ---");
+      print("Endpoint: ${Endpoints.pengajuanSakit}");
+      payload.forEach((k, v) => print("$k: $v"));
+      print("Approvals count: ${approvalList.length}");
+      print("Total Files parts: ${files.length}");
+      print("-----------------------------------------------------------");
     }
 
     try {
@@ -288,6 +309,9 @@ class PengajuanSakitProvider extends ChangeNotifier {
     }
   }
 
+  // ==========================================
+  // PERBAIKAN UPDATE PENGAJUAN
+  // ==========================================
   Future<dto.Data?> updatePengajuan(
     String id, {
     required String idKategoriSakit,
@@ -325,31 +349,29 @@ class PengajuanSakitProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    // --- [FIX: APPROVALS] ---
-    // Menggunakan JSON Encode
+    // Setup Files
+    final List<http.MultipartFile> files = [];
+    if (lampiran != null) {
+      files.add(lampiran);
+    }
+
+    // Handle Approvals (Sama seperti Create)
     final List<Map<String, dynamic>> approvalList =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
 
-    if (approvalList.isNotEmpty) {
-      payload['approvals'] = jsonEncode(approvalList);
+    for (final approvalItem in approvalList) {
+      files.add(
+        http.MultipartFile.fromString('approvals', jsonEncode(approvalItem)),
+      );
     }
-    // --- [END FIX] ---
 
+    // Handle Handover Users
     final List<String>? tagUserIds = _resolveTagIdsForUpdate(
       provided: handoverUserIds,
       handover: handover,
     );
-
-    final files = <http.MultipartFile>[
-      if (lampiran != null) lampiran,
-      if (tagUserIds != null)
-        ..._createMultipartStrings('tag_user_ids', tagUserIds),
-    ];
-
-    if (kDebugMode) {
-      print("--- [DEBUG] UPDATE PENGAJUAN SAKIT (FIXED JSON) ---");
-      payload.forEach((key, value) => print("$key: $value"));
-      print("-------------------------------------------------");
+    if (tagUserIds != null) {
+      files.addAll(_createMultipartStrings('tag_user_ids', tagUserIds));
     }
 
     try {
@@ -379,10 +401,6 @@ class PengajuanSakitProvider extends ChangeNotifier {
       _finishSaving(message: message);
       return updated;
     } catch (e) {
-      if (kDebugMode) {
-        print("--- [DEBUG] ERROR UPDATE ---");
-        print(e.toString());
-      }
       _finishSaving(error: e.toString());
       return null;
     }
@@ -465,7 +483,6 @@ class PengajuanSakitProvider extends ChangeNotifier {
       try {
         return dto.Meta.fromJson(raw);
       } catch (e) {
-        debugPrint("Failed to parse PengajuanSakit Meta: $e. Item: $raw");
         return null;
       }
     }
@@ -473,7 +490,6 @@ class PengajuanSakitProvider extends ChangeNotifier {
       try {
         return dto.Meta.fromJson(Map<String, dynamic>.from(raw));
       } catch (e) {
-        debugPrint("Failed to parse PengajuanSakit Meta: $e. Item: $raw");
         return null;
       }
     }
@@ -590,7 +606,7 @@ class PengajuanSakitProvider extends ChangeNotifier {
         try {
           return dto.Data.fromJson(raw);
         } catch (e) {
-          debugPrint("Failed to parse PengajuanSakit Data: $e. Item: $raw");
+          debugPrint("Failed to parse Data: $e");
           return null;
         }
       }

@@ -224,47 +224,34 @@ class PengajuanSakitProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final List<Map<String, dynamic>> approvalPayload =
+    // --- [FIX: APPROVALS] ---
+    // Menggunakan JSON Encode, bukan field terpisah
+    final List<Map<String, dynamic>> approvalList =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
 
-    if (approvalPayload.isNotEmpty) {
-      payload['approvals'] = jsonEncode(approvalPayload);
+    if (approvalList.isNotEmpty) {
+      payload['approvals'] = jsonEncode(approvalList);
     }
+    // --- [END FIX] ---
 
     final List<String> tagUserIds = _resolveHandoverUserIds(
       provided: handoverUserIds,
       handover: handover,
     );
 
+    // Kirim tag_user_ids sebagai multipart string (array)
     final files = <http.MultipartFile>[
       if (lampiran != null) lampiran,
       ..._createMultipartStrings('tag_user_ids', tagUserIds),
-      ..._createMultipartStrings('handover_user_ids', tagUserIds),
+      // Opsional: kirim dengan kurung siku jika backend membutuhkannya
+      // ..._createMultipartStrings('tag_user_ids[]', tagUserIds),
     ];
 
-    // --- DEBUG PRINT (Masih dipertahankan untuk verifikasi) ---
     if (kDebugMode) {
-      print(
-        "--- [DEBUG] PENGAMATAN CREATE PENGAJUAN SAKIT (Perbaikan Definitif) ---",
-      );
-      print("Endpoint: ${Endpoints.pengajuanSakit}");
-      print("--- Payload (Fields) ---");
-      payload.forEach((key, value) {
-        print("$key: $value");
-      });
-      print("--- Files (Multipart) ---");
-      for (var file in files) {
-        if (file.filename != null) {
-          print(
-            "File: ${file.field} (name: ${file.filename}, size: ${file.length}, type: ${file.contentType})",
-          );
-        } else {
-          print("File (from string): ${file.field}");
-        }
-      }
+      print("--- [DEBUG] CREATE PENGAJUAN SAKIT (FIXED JSON) ---");
+      payload.forEach((key, value) => print("$key: $value"));
       print("-------------------------------------------------");
     }
-    // --- AKHIR DEBUG PRINT ---
 
     try {
       final response = await _api.postFormDataPrivate(
@@ -293,9 +280,8 @@ class PengajuanSakitProvider extends ChangeNotifier {
       return created;
     } catch (e) {
       if (kDebugMode) {
-        print("--- [DEBUG] ERROR CREATE PENGAJUAN SAKIT ---");
+        print("--- [DEBUG] ERROR CREATE ---");
         print(e.toString());
-        print("---------------------------------------------");
       }
       _finishSaving(error: e.toString());
       return null;
@@ -339,12 +325,15 @@ class PengajuanSakitProvider extends ChangeNotifier {
       payload.addAll(additionalFields);
     }
 
-    final List<Map<String, dynamic>> approvalPayload =
+    // --- [FIX: APPROVALS] ---
+    // Menggunakan JSON Encode
+    final List<Map<String, dynamic>> approvalList =
         approvals ?? _buildApprovalsFromProvider(approversProvider);
 
-    if (approvalPayload.isNotEmpty) {
-      payload['approvals'] = jsonEncode(approvalPayload);
+    if (approvalList.isNotEmpty) {
+      payload['approvals'] = jsonEncode(approvalList);
     }
+    // --- [END FIX] ---
 
     final List<String>? tagUserIds = _resolveTagIdsForUpdate(
       provided: handoverUserIds,
@@ -355,33 +344,13 @@ class PengajuanSakitProvider extends ChangeNotifier {
       if (lampiran != null) lampiran,
       if (tagUserIds != null)
         ..._createMultipartStrings('tag_user_ids', tagUserIds),
-      if (tagUserIds != null)
-        ..._createMultipartStrings('handover_user_ids', tagUserIds),
     ];
 
-    // --- DEBUG PRINT (Masih dipertahankan untuk verifikasi) ---
     if (kDebugMode) {
-      print(
-        "--- [DEBUG] PENGAMATAN UPDATE PENGAJUAN SAKIT (Perbaikan Definitif) ---",
-      );
-      print("Endpoint: ${Endpoints.pengajuanSakit}/$id");
-      print("--- Payload (Fields) ---");
-      payload.forEach((key, value) {
-        print("$key: $value");
-      });
-      print("--- Files (Multipart) ---");
-      for (var file in files) {
-        if (file.filename != null) {
-          print(
-            "File: ${file.field} (name: ${file.filename}, size: ${file.length}, type: ${file.contentType})",
-          );
-        } else {
-          print("File (from string): ${file.field}");
-        }
-      }
+      print("--- [DEBUG] UPDATE PENGAJUAN SAKIT (FIXED JSON) ---");
+      payload.forEach((key, value) => print("$key: $value"));
       print("-------------------------------------------------");
     }
-    // --- AKHIR DEBUG PRINT ---
 
     try {
       final response = await _api.putFormDataPrivate(
@@ -411,9 +380,8 @@ class PengajuanSakitProvider extends ChangeNotifier {
       return updated;
     } catch (e) {
       if (kDebugMode) {
-        print("--- [DEBUG] ERROR UPDATE PENGAJUAN SAKIT ---");
+        print("--- [DEBUG] ERROR UPDATE ---");
         print(e.toString());
-        print("---------------------------------------------");
       }
       _finishSaving(error: e.toString());
       return null;

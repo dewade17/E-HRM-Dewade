@@ -1,14 +1,16 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:math' as math;
-
+import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as dto;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/widget/content_detail_cuti.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/widget/header_detail_cuti.dart';
 import 'package:flutter/material.dart';
 
 class DetailPengajuanCuti extends StatefulWidget {
-  const DetailPengajuanCuti({super.key});
+  const DetailPengajuanCuti({super.key, this.pengajuan});
+
+  final dto.Data? pengajuan;
 
   @override
   State<DetailPengajuanCuti> createState() => _DetailPengajuanCutiState();

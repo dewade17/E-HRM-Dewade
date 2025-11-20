@@ -18,6 +18,7 @@ class RiwayatPengajuanItem {
     required this.type,
     this.tanggalMulai,
     this.tanggalBerakhir,
+    this.originalData,
   });
 
   final String id;
@@ -26,9 +27,20 @@ class RiwayatPengajuanItem {
   final RiwayatPengajuanType type;
   final DateTime? tanggalMulai;
   final DateTime? tanggalBerakhir;
+  final Object? originalData;
 
   String get displayJenis =>
       jenisPengajuan.isNotEmpty ? jenisPengajuan : _defaultJenisLabel(type);
+
+  RiwayatPengajuanType get resolvedType =>
+      _detectTypeFromJenis(jenisPengajuan) ?? type;
+
+  Object? get cutiData => originalData is cuti.Data ? originalData : null;
+  Object? get izinJamData =>
+      originalData is izin_jam.Data ? originalData : null;
+  Object? get tukarHariData =>
+      originalData is tukar_hari.Data ? originalData : null;
+  Object? get sakitData => originalData is sakit.Data ? originalData : null;
 
   static String _defaultJenisLabel(RiwayatPengajuanType type) {
     switch (type) {
@@ -41,6 +53,18 @@ class RiwayatPengajuanItem {
       case RiwayatPengajuanType.sakit:
         return 'Sakit';
     }
+  }
+
+  static RiwayatPengajuanType? _detectTypeFromJenis(String? jenis) {
+    if (jenis == null || jenis.isEmpty) return null;
+    final normalized = jenis.toLowerCase();
+
+    if (normalized.contains('cuti')) return RiwayatPengajuanType.cuti;
+    if (normalized.contains('izin jam')) return RiwayatPengajuanType.izinJam;
+    if (normalized.contains('tukar')) return RiwayatPengajuanType.tukarHari;
+    if (normalized.contains('sakit')) return RiwayatPengajuanType.sakit;
+
+    return null;
   }
 }
 
@@ -239,6 +263,7 @@ class RiwayatPengajuanProvider extends ChangeNotifier {
       type: RiwayatPengajuanType.cuti,
       tanggalMulai: startDate,
       tanggalBerakhir: endDate,
+      originalData: data,
     );
   }
 
@@ -250,6 +275,7 @@ class RiwayatPengajuanProvider extends ChangeNotifier {
       type: RiwayatPengajuanType.izinJam,
       tanggalMulai: data.tanggalIzin,
       tanggalBerakhir: data.tanggalPengganti ?? data.tanggalIzin,
+      originalData: data,
     );
   }
 
@@ -264,6 +290,7 @@ class RiwayatPengajuanProvider extends ChangeNotifier {
       type: RiwayatPengajuanType.tukarHari,
       tanggalMulai: firstPair?.hariIzin,
       tanggalBerakhir: firstPair?.hariPengganti ?? firstPair?.hariIzin,
+      originalData: data,
     );
   }
 
@@ -275,6 +302,7 @@ class RiwayatPengajuanProvider extends ChangeNotifier {
       type: RiwayatPengajuanType.sakit,
       tanggalMulai: data.tanggalPengajuan,
       tanggalBerakhir: data.tanggalPengajuan,
+      originalData: data,
     );
   }
 

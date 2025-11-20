@@ -1,11 +1,20 @@
 // ignore_for_file: deprecated_member_use
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as cuti;
+import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart'
+    as izin_jam;
+import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart' as sakit;
+import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
+    as tukar_hari;
 import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_izin_tukar_hari/detail_pengajuan_izin_tukar_hari.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/detail_pengajuan_cuti.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_izin_jam/detail_pengajuan_izin_jam.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_sakit/detail_pengajuan_sakit.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/widget/calendar_riwayat_pengajuan.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/pengajuan_cuti_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/pengajuan_izin_jam_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/pengajuan_izin_sakit_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +29,16 @@ class ContentRiwayatPengajuan extends StatefulWidget {
 }
 
 class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
+  late final Map<
+    RiwayatPengajuanType,
+    Widget Function(RiwayatPengajuanItem item)
+  >
+  _detailRoutes;
+  late final Map<
+    RiwayatPengajuanType,
+    Widget Function(RiwayatPengajuanItem item)
+  >
+  _editRoutes;
   final List<String> _itemsPengajuan = [
     'Semua',
     'Cuti',
@@ -40,6 +59,26 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   @override
   void initState() {
     super.initState();
+    _detailRoutes = {
+      RiwayatPengajuanType.cuti: (item) =>
+          DetailPengajuanCuti(pengajuan: item.cutiData),
+      RiwayatPengajuanType.izinJam: (item) =>
+          DetailPengajuanIzinJam(pengajuan: item.izinJamData),
+      RiwayatPengajuanType.tukarHari: (item) =>
+          DetailPengajuanIzinTukarHari(pengajuan: item.tukarHariData),
+      RiwayatPengajuanType.sakit: (item) =>
+          DetailPengajuanSakit(pengajuan: item.sakitData),
+    };
+
+    _editRoutes = {
+      RiwayatPengajuanType.cuti: (item) =>
+          PengajuanCutiScreen(initialPengajuan: item.cutiData),
+      RiwayatPengajuanType.izinJam: (item) =>
+          PengajuanIzinJamScreen(initialPengajuan: item.izinJamData),
+      RiwayatPengajuanType.tukarHari: (item) =>
+          const PengajuanIzinTukarHariScreen(),
+      RiwayatPengajuanType.sakit: (item) => const PengajuanIzinSakitScreen(),
+    };
     _selectedValuePengajuan = _itemsPengajuan.first;
     _selectedValueStatus = _itemsStatus.first;
     _loadFuture = _fetchRiwayat();
@@ -89,23 +128,19 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   }
 
   void _openDetail(RiwayatPengajuanItem item) {
-    Widget destination;
-    switch (item.type) {
-      case RiwayatPengajuanType.cuti:
-        destination = const DetailPengajuanCuti();
-        break;
-      case RiwayatPengajuanType.izinJam:
-        destination = const DetailPengajuanIzinJam();
-        break;
-      case RiwayatPengajuanType.tukarHari:
-        destination = const DetailPengajuanIzinTukarHari();
-        break;
-      case RiwayatPengajuanType.sakit:
-        destination = const DetailPengajuanSakit();
-        break;
-    }
+    final type = item.resolvedType;
+    final builder = _detailRoutes[type];
+    if (builder == null) return;
 
-    Navigator.push(context, MaterialPageRoute(builder: (_) => destination));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => builder(item)));
+  }
+
+  void _openEdit(RiwayatPengajuanItem item) {
+    final type = item.resolvedType;
+    final builder = _editRoutes[type];
+    if (builder == null) return;
+
+    Navigator.push(context, MaterialPageRoute(builder: (_) => builder(item)));
   }
 
   @override
@@ -230,7 +265,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                         statusText: _displayStatus(item.status),
                         statusBackgroundColor: statusColor.withOpacity(0.2),
                         borderColor: statusColor,
-                        onEditPressed: () {},
+                        onEditPressed: () => _openEdit(item),
                         onDeletePressed: () {},
                         onDetailPressed: () => _openDetail(item),
                       ),

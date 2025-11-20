@@ -1,12 +1,14 @@
 import 'dart:math' as math;
-
+import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart' as dto;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_sakit/widget/content_detail_sakit.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_sakit/widget/header_detail_sakit.dart';
 import 'package:flutter/material.dart';
 
 class DetailPengajuanSakit extends StatefulWidget {
-  const DetailPengajuanSakit({super.key});
+  const DetailPengajuanSakit({super.key, this.pengajuan});
+
+  final dto.Data? pengajuan;
 
   @override
   State<DetailPengajuanSakit> createState() => _DetailPengajuanSakitState();

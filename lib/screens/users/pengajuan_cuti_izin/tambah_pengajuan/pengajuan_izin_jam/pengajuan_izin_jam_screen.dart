@@ -1,15 +1,16 @@
 // ignore_for_file: deprecated_member_use
-
 import 'dart:math' as math;
-
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart' as dto;
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/widget/form_pengajuan_izin_jam.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/widget/header_pengajuan_izin_jam.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/widget/half_oval_pengajuan_sakit.dart';
 import 'package:flutter/material.dart';
 
 class PengajuanIzinJamScreen extends StatefulWidget {
-  const PengajuanIzinJamScreen({super.key});
+  const PengajuanIzinJamScreen({super.key, this.initialPengajuan});
+
+  final dto.Data? initialPengajuan;
 
   @override
   State<PengajuanIzinJamScreen> createState() => _PengajuanIzinJamScreenState();
@@ -81,7 +82,9 @@ class _PengajuanIzinJamScreenState extends State<PengajuanIzinJamScreen> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: const FormPengajuanIzinJam(),
+                          child: FormPengajuanIzinJam(
+                            initialData: widget.initialPengajuan,
+                          ),
                         ),
                       ],
                     ),

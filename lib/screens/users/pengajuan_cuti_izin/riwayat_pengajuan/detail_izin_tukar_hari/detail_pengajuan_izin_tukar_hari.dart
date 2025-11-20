@@ -1,12 +1,15 @@
 import 'dart:math' as math;
-
+import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
+    as dto;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_izin_tukar_hari/widget/content_detail_izin_tukar_hari.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_izin_tukar_hari/widget/header_detail_cuti_izin_tukar_hari.dart';
 import 'package:flutter/material.dart';
 
 class DetailPengajuanIzinTukarHari extends StatefulWidget {
-  const DetailPengajuanIzinTukarHari({super.key});
+  const DetailPengajuanIzinTukarHari({super.key, this.pengajuan});
+
+  final dto.Data? pengajuan;
 
   @override
   State<DetailPengajuanIzinTukarHari> createState() =>

@@ -1,12 +1,14 @@
 import 'dart:math' as math;
-
+import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart' as dto;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_izin_jam/widget/content_detail_izin_jam.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_izin_jam/widget/header_detail_izin_jam.dart';
 import 'package:flutter/material.dart';
 
 class DetailPengajuanIzinJam extends StatefulWidget {
-  const DetailPengajuanIzinJam({super.key});
+  const DetailPengajuanIzinJam({super.key, this.pengajuan});
+
+  final dto.Data? pengajuan;
 
   @override
   State<DetailPengajuanIzinJam> createState() => _DetailPengajuanIzinJamState();

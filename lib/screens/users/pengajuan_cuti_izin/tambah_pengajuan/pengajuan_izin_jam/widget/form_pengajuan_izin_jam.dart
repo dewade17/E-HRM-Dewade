@@ -8,6 +8,8 @@ import 'package:e_hrm/providers/pengajuan_izin_jam/kategori_izin_jam.dart';
 // Import DTO
 import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart'
     as dto_kategori_izin_jam;
+import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart'
+    as dto_pengajuan_izin;
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
@@ -29,11 +31,12 @@ import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:e_hrm/utils/mention_parser.dart';
 import 'dart:async';
 // --- AKHIR IMPORT BARU ---
+import 'package:intl/intl.dart';
 
 class FormPengajuanIzinJam extends StatefulWidget {
-  // --- PERUBAHAN DI SINI ---
-  const FormPengajuanIzinJam({super.key});
-  // --- AKHIR PERUBAHAN ---
+  const FormPengajuanIzinJam({super.key, this.initialData});
+
+  final dto_pengajuan_izin.Data? initialData;
 
   @override
   State<FormPengajuanIzinJam> createState() => _FormPengajuanIzinJamState();
@@ -77,15 +80,53 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
   dto_kategori_izin_jam.Data? _selectedKategoriIzinJam;
 
   bool _autoValidate = false;
+  dto_pengajuan_izin.Data? _initialData;
 
   @override
   void initState() {
     super.initState();
+    _initialData = widget.initialData;
+    if (_initialData != null) {
+      _applyInitialData(_initialData!);
+    }
     // Tambahkan ini
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _resolveCurrentUserId();
     });
+  }
+
+  void _applyInitialData(dto_pengajuan_izin.Data data) {
+    keperluanController.text = data.keperluan;
+    _handoverPlainText = data.handover;
+    _handoverMarkupText = data.handover;
+    _handoverFieldVersion++;
+
+    _tanggalIjinJam = data.tanggalIzin;
+    tanggalIjinJamController.text = data.tanggalIzin == null
+        ? ''
+        : DateFormat('dd MMMM yyyy', 'id_ID').format(data.tanggalIzin!);
+
+    _tanggalPenggantiJam = data.tanggalPengganti;
+    tanggalPenggantiJamController.text = data.tanggalPengganti == null
+        ? ''
+        : DateFormat('dd MMMM yyyy', 'id_ID').format(data.tanggalPengganti!);
+
+    _startTimeIjin = _toTimeOfDay(data.jamMulai);
+    startTimeIjinController.text = _formatTime(data.jamMulai);
+    _endTimeIjin = _toTimeOfDay(data.jamSelesai);
+    endTimeIjinController.text = _formatTime(data.jamSelesai);
+
+    _startTimePengganti = _toTimeOfDay(data.jamMulaiPengganti);
+    startTimePenggantiController.text = _formatTime(data.jamMulaiPengganti);
+    _endTimePengganti = _toTimeOfDay(data.jamSelesaiPengganti);
+    endTimePenggantiController.text = _formatTime(data.jamSelesaiPengganti);
+
+    if (data.kategori.idKategoriIzinJam.isNotEmpty) {
+      _selectedKategoriIzinJam = dto_kategori_izin_jam.Data.fromJson(
+        data.kategori.toJson(),
+      );
+    }
   }
 
   // --- FUNGSI HELPER BARU ---
@@ -141,6 +182,16 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
   DateTime? _combineDateAndTime(DateTime? date, TimeOfDay? time) {
     if (date == null || time == null) return null;
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  String _formatTime(DateTime? value) {
+    if (value == null) return '';
+    return DateFormat('HH:mm').format(value);
+  }
+
+  TimeOfDay? _toTimeOfDay(DateTime? value) {
+    if (value == null) return null;
+    return TimeOfDay.fromDateTime(value);
   }
 
   void _showSnackBar(String message, {bool isError = false}) {

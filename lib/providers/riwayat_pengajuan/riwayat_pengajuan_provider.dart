@@ -35,12 +35,14 @@ class RiwayatPengajuanItem {
   RiwayatPengajuanType get resolvedType =>
       _detectTypeFromJenis(jenisPengajuan) ?? type;
 
-  Object? get cutiData => originalData is cuti.Data ? originalData : null;
-  Object? get izinJamData =>
-      originalData is izin_jam.Data ? originalData : null;
-  Object? get tukarHariData =>
-      originalData is tukar_hari.Data ? originalData : null;
-  Object? get sakitData => originalData is sakit.Data ? originalData : null;
+  cuti.Data? get cutiData =>
+      originalData is cuti.Data ? originalData as cuti.Data : null;
+  izin_jam.Data? get izinJamData =>
+      originalData is izin_jam.Data ? originalData as izin_jam.Data : null;
+  tukar_hari.Data? get tukarHariData =>
+      originalData is tukar_hari.Data ? originalData as tukar_hari.Data : null;
+  sakit.Data? get sakitData =>
+      originalData is sakit.Data ? originalData as sakit.Data : null;
 
   static String _defaultJenisLabel(RiwayatPengajuanType type) {
     switch (type) {

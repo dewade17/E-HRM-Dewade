@@ -15,6 +15,7 @@ import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/widget
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/pengajuan_cuti_screen.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/pengajuan_izin_jam_screen.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/pengajuan_izin_sakit_screen.dart';
+import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -75,8 +76,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
           PengajuanCutiScreen(initialPengajuan: item.cutiData),
       RiwayatPengajuanType.izinJam: (item) =>
           PengajuanIzinJamScreen(initialPengajuan: item.izinJamData),
-      RiwayatPengajuanType.tukarHari: (item) =>
-          const PengajuanIzinTukarHariScreen(),
+      RiwayatPengajuanType.tukarHari: (item) => const PengajuanIzinTukarHari(),
       RiwayatPengajuanType.sakit: (item) => const PengajuanIzinSakitScreen(),
     };
     _selectedValuePengajuan = _itemsPengajuan.first;

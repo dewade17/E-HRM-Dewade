@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use
-
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_izin_tukar_hari/detail_pengajuan_izin_tukar_hari.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/detail_pengajuan_cuti.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_izin_jam/detail_pengajuan_izin_jam.dart';
@@ -8,6 +8,8 @@ import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/widget/calendar_riwayat_pengajuan.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class ContentRiwayatPengajuan extends StatefulWidget {
   const ContentRiwayatPengajuan({super.key});
@@ -19,19 +21,91 @@ class ContentRiwayatPengajuan extends StatefulWidget {
 
 class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   final List<String> _itemsPengajuan = [
+    'Semua',
     'Cuti',
     'Izin jam',
     'Sakit',
     'Tukar Hari',
   ];
-  final List<String> _itemsStatus = ['Menunggu', 'Disetujui', 'Ditolak'];
+  final List<String> _itemsStatus = [
+    'Semua',
+    'Menunggu',
+    'Disetujui',
+    'Ditolak',
+  ];
   String? _selectedValuePengajuan;
   String? _selectedValueStatus;
+  late Future<void> _loadFuture;
+
   @override
   void initState() {
     super.initState();
     _selectedValuePengajuan = _itemsPengajuan.first;
     _selectedValueStatus = _itemsStatus.first;
+    _loadFuture = _fetchRiwayat();
+  }
+
+  Future<void> _fetchRiwayat() {
+    return context.read<RiwayatPengajuanProvider>().fetch(
+      status: _selectedValueStatus,
+      jenis: _selectedValuePengajuan,
+    );
+  }
+
+  void _onFilterChanged({String? jenis, String? status}) {
+    if (jenis != null) _selectedValuePengajuan = jenis;
+    if (status != null) _selectedValueStatus = status;
+
+    setState(() {
+      _loadFuture = _fetchRiwayat();
+    });
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '-';
+    return DateFormat('dd MMMM yyyy', 'id_ID').format(date);
+  }
+
+  Color _statusColor(String status) {
+    final lower = status.toLowerCase();
+    if (lower.contains('pending') || lower.contains('menunggu')) {
+      return AppColors.primaryColor;
+    }
+    if (lower.contains('disetujui') || lower.contains('approve')) {
+      return AppColors.succesColor;
+    }
+    if (lower.contains('ditolak') || lower.contains('reject')) {
+      return AppColors.errorColor;
+    }
+    return AppColors.hintColor;
+  }
+
+  String _displayStatus(String status) {
+    final lower = status.toLowerCase();
+    if (lower.contains('pending')) return 'Menunggu';
+    if (lower.contains('disetujui')) return 'Disetujui';
+    if (lower.contains('ditolak')) return 'Ditolak';
+    return status;
+  }
+
+  void _openDetail(RiwayatPengajuanItem item) {
+    Widget destination;
+    switch (item.type) {
+      case RiwayatPengajuanType.cuti:
+        destination = const DetailPengajuanCuti();
+        break;
+      case RiwayatPengajuanType.izinJam:
+        destination = const DetailPengajuanIzinJam();
+        break;
+      case RiwayatPengajuanType.tukarHari:
+        destination = const DetailPengajuanIzinTukarHari();
+        break;
+      case RiwayatPengajuanType.sakit:
+        destination = const DetailPengajuanSakit();
+        break;
+    }
+
+    Navigator.push(context, MaterialPageRoute(builder: (_) => destination));
   }
 
   @override
@@ -58,9 +132,9 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                 icon: const Icon(Icons.keyboard_arrow_down),
                 underline: const SizedBox(),
                 onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedValuePengajuan = newValue;
-                  });
+                  if (newValue != null) {
+                    _onFilterChanged(jenis: newValue);
+                  }
                 },
 
                 items: _itemsPengajuan.map<DropdownMenuItem<String>>((
@@ -85,9 +159,9 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                 icon: const Icon(Icons.keyboard_arrow_down),
                 underline: const SizedBox(),
                 onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedValueStatus = newValue;
-                  });
+                  if (newValue != null) {
+                    _onFilterChanged(status: newValue);
+                  }
                 },
 
                 items: _itemsStatus.map<DropdownMenuItem<String>>((
@@ -103,76 +177,67 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
           ],
         ),
         SizedBox(height: 20),
-        RiwayatItemCard(
-          title: "Cuti",
-          tanggalMulai: "Mulai : 10 Oktober 2025",
-          tanggalBerakhir: "Berakhir : 10 Oktober 2025",
-          statusText: "Menunggu",
-          statusBackgroundColor: AppColors.hintColor.withOpacity(0.2),
-          borderColor: AppColors.primaryColor, // Warna border "Menunggu"
-          onEditPressed: () {},
-          onDeletePressed: () {},
-          onDetailPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => DetailPengajuanCuti()),
-            );
-          },
-        ),
-        SizedBox(height: 12),
-        RiwayatItemCard(
-          title: "Izin Tukar Hari",
-          tanggalMulai: "Mulai : 10 Oktober 2025",
-          tanggalBerakhir: "Berakhir : 10 Oktober 2025",
-          statusText: "Menunggu",
-          statusBackgroundColor: AppColors.hintColor.withOpacity(0.2),
-          borderColor: AppColors.primaryColor, // Warna border "Menunggu"
-          onEditPressed: () {},
-          onDeletePressed: () {},
-          onDetailPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DetailPengajuanIzinTukarHari(),
-              ),
-            );
-          },
-        ),
+        FutureBuilder<void>(
+          future: _loadFuture,
+          builder: (context, snapshot) {
+            return Consumer<RiwayatPengajuanProvider>(
+              builder: (context, provider, _) {
+                if (provider.loading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-        SizedBox(height: 12), // Jarak antar kartu
+                if (provider.error != null) {
+                  return Column(
+                    children: [
+                      Text(
+                        provider.error!,
+                        style: GoogleFonts.poppins(color: Colors.red),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _loadFuture = _fetchRiwayat();
+                          });
+                        },
+                        child: const Text('Muat ulang'),
+                      ),
+                    ],
+                  );
+                }
 
-        RiwayatItemCard(
-          title: "Izin Jam",
-          tanggalMulai: "Mulai : 09 Oktober 2025",
-          tanggalBerakhir: "Berakhir : 09 Oktober 2025",
-          statusText: "Disetujui",
-          statusBackgroundColor: AppColors.succesColor.withOpacity(0.2),
-          borderColor: AppColors.succesColor, // Warna border "Disetujui"
-          onEditPressed: () {},
-          onDeletePressed: () {},
-          onDetailPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => DetailPengajuanIzinJam()),
-            );
-          },
-        ),
+                if (provider.items.isEmpty) {
+                  return Text(
+                    'Belum ada riwayat pengajuan.',
+                    style: GoogleFonts.poppins(
+                      color: AppColors.textDefaultColor,
+                    ),
+                  );
+                }
 
-        SizedBox(height: 12), // Jarak antar kartu
-        // 3. Contoh Status "Ditolak"
-        RiwayatItemCard(
-          title: "Sakit",
-          tanggalMulai: "Mulai : 08 Oktober 2025",
-          tanggalBerakhir: "Berakhir : 08 Oktober 2025",
-          statusText: "Ditolak",
-          statusBackgroundColor: AppColors.errorColor.withOpacity(0.2),
-          borderColor: AppColors.errorColor, // Warna border "Ditolak"
-          onEditPressed: () {},
-          onDeletePressed: () {},
-          onDetailPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => DetailPengajuanSakit()),
+                return Column(
+                  children: provider.items.map((item) {
+                    final Color statusColor = _statusColor(item.status);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: RiwayatItemCard(
+                        title: item.displayJenis,
+                        tanggalMulai:
+                            'Mulai : ${_formatDate(item.tanggalMulai)}',
+                        tanggalBerakhir:
+                            'Berakhir : '
+                            '${_formatDate(item.tanggalBerakhir ?? item.tanggalMulai)}',
+                        statusText: _displayStatus(item.status),
+                        statusBackgroundColor: statusColor.withOpacity(0.2),
+                        borderColor: statusColor,
+                        onEditPressed: () {},
+                        onDeletePressed: () {},
+                        onDetailPressed: () => _openDetail(item),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             );
           },
         ),

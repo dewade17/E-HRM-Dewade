@@ -1,11 +1,6 @@
 // ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as cuti;
-import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart'
-    as izin_jam;
-import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart' as sakit;
-import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
-    as tukar_hari;
 import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_izin_tukar_hari/detail_pengajuan_izin_tukar_hari.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/detail_pengajuan_cuti.dart';
@@ -80,8 +75,8 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
       RiwayatPengajuanType.sakit: (item) => const PengajuanIzinSakitScreen(),
     };
     _selectedValuePengajuan = _itemsPengajuan.first;
-    _selectedValueStatus = _itemsStatus.first;
-    _loadFuture = _fetchRiwayat();
+    _loadFuture = Future.value();
+    _scheduleFetch();
   }
 
   Future<void> _fetchRiwayat() {
@@ -91,13 +86,23 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     );
   }
 
-  void _onFilterChanged({String? jenis, String? status}) {
-    if (jenis != null) _selectedValuePengajuan = jenis;
-    if (status != null) _selectedValueStatus = status;
+  void _scheduleFetch() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
 
-    setState(() {
-      _loadFuture = _fetchRiwayat();
+      setState(() {
+        _loadFuture = _fetchRiwayat();
+      });
     });
+  }
+
+  void _onFilterChanged({String? jenis, String? status}) {
+    setState(() {
+      if (jenis != null) _selectedValuePengajuan = jenis;
+      if (status != null) _selectedValueStatus = status;
+    });
+
+    _scheduleFetch();
   }
 
   String _formatDate(DateTime? date) {
@@ -149,67 +154,82 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
       children: [
         CalendarRiwayatPengajuan(),
         SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 4.0,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(30.0),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedValuePengajuan,
+                      icon: const Icon(Icons.keyboard_arrow_down),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _onFilterChanged(jenis: newValue);
+                        }
+                      },
+                      items: _itemsPengajuan.map<DropdownMenuItem<String>>((
+                        String value,
+                      ) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: GoogleFonts.poppins(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-
-                borderRadius: BorderRadius.circular(30.0),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(30.0),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedValueStatus,
+                      icon: const Icon(Icons.keyboard_arrow_down),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _onFilterChanged(status: newValue);
+                        }
+                      },
+                      items: _itemsStatus.map<DropdownMenuItem<String>>((
+                        String value,
+                      ) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: GoogleFonts.poppins(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ),
-              child: DropdownButton<String>(
-                value: _selectedValuePengajuan,
-                icon: const Icon(Icons.keyboard_arrow_down),
-                underline: const SizedBox(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    _onFilterChanged(jenis: newValue);
-                  }
-                },
-
-                items: _itemsPengajuan.map<DropdownMenuItem<String>>((
-                  String value,
-                ) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-
-                borderRadius: BorderRadius.circular(30.0),
-              ),
-              child: DropdownButton<String>(
-                value: _selectedValueStatus,
-                icon: const Icon(Icons.keyboard_arrow_down),
-                underline: const SizedBox(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    _onFilterChanged(status: newValue);
-                  }
-                },
-
-                items: _itemsStatus.map<DropdownMenuItem<String>>((
-                  String value,
-                ) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
         SizedBox(height: 20),
         FutureBuilder<void>(
@@ -254,7 +274,10 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                   children: provider.items.map((item) {
                     final Color statusColor = _statusColor(item.status);
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 6.0,
+                      ),
                       child: RiwayatItemCard(
                         title: item.displayJenis,
                         tanggalMulai:
@@ -281,7 +304,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   }
 }
 
-/// Widget kustom untuk menampilkan satu item kartu pada daftar riwayat pengajuan.
 class RiwayatItemCard extends StatelessWidget {
   final String title;
   final String tanggalMulai;
@@ -308,11 +330,11 @@ class RiwayatItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ini adalah kode Container Anda yang sudah dijadikan reusable
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(15)),
+        color: Colors.white,
+        borderRadius: const BorderRadius.all(Radius.circular(15)),
         border: Border(
           top: BorderSide(color: borderColor, width: 1),
           left: BorderSide(color: borderColor, width: 5),
@@ -322,131 +344,142 @@ class RiwayatItemCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Baris pertama (Judul dan Ikon Edit/Delete)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title, // <-- Menggunakan parameter
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDefaultColor,
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDefaultColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-
-              // === PERUBAHAN DIMULAI DI SINI ===
-              // Tampilkan tombol hanya jika status adalah "Menunggu"
+              const SizedBox(width: 8),
               if (statusText == "Menunggu")
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Membuat ikon bisa diklik
                     InkWell(
-                      onTap: onEditPressed, // <-- Menggunakan parameter
-                      customBorder: CircleBorder(),
-                      child: CircleAvatar(
+                      onTap: onEditPressed,
+                      customBorder: const CircleBorder(),
+                      child: const CircleAvatar(
                         radius: 15,
                         backgroundColor: AppColors.backgroundColor,
                         child: Icon(
                           Icons.edit,
                           color: AppColors.textColor,
-                          size: 18,
+                          size: 16,
                         ),
                       ),
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     InkWell(
-                      onTap: onDeletePressed, // <-- Menggunakan parameter
-                      customBorder: CircleBorder(),
-                      child: CircleAvatar(
+                      onTap: onDeletePressed,
+                      customBorder: const CircleBorder(),
+                      child: const CircleAvatar(
                         backgroundColor: AppColors.backgroundColor,
                         radius: 15,
                         child: Icon(
                           Icons.delete,
                           color: AppColors.textColor,
-                          size: 18,
+                          size: 16,
                         ),
                       ),
                     ),
                   ],
                 )
-              // Jika status BUKAN "Menunggu", tampilkan widget kosong
               else
                 const SizedBox.shrink(),
-              // === PERUBAHAN BERAKHIR DI SINI ===
             ],
           ),
-          SizedBox(height: 20),
-
-          // --- ROW KEDUA (MULAI) ---
+          const SizedBox(height: 15),
           Row(
             children: [
               Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_month),
-                    SizedBox(width: 10),
-                    Text(
-                      tanggalMulai, // <-- Menggunakan parameter
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textDefaultColor,
+                    const Icon(
+                      Icons.calendar_month,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        tanggalMulai,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textDefaultColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                  color: statusBackgroundColor, // <-- Menggunakan parameter
+                  borderRadius: const BorderRadius.all(Radius.circular(10)),
+                  color: statusBackgroundColor,
                 ),
-                child: Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Text(
-                    statusText,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDefaultColor,
-                    ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                child: Text(
+                  statusText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDefaultColor,
                   ),
                 ),
               ),
             ],
           ),
-
-          // --- ROW KETIGA (BERAKHIR) ---
+          const SizedBox(height: 8),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_month),
-                    SizedBox(width: 10),
-                    Text(
-                      tanggalBerakhir, // <-- Menggunakan parameter
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textDefaultColor,
+                    const Icon(
+                      Icons.calendar_month,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        tanggalBerakhir,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textDefaultColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8),
-              // Membuat teks "Detail" bisa diklik
+              const SizedBox(width: 8),
               GestureDetector(
-                onTap: onDetailPressed, // <-- Menggunakan parameter
+                onTap: onDetailPressed,
                 child: Text(
                   "Detail Pengajuan",
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textDefaultColor,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.secondaryColor,
                     decoration: TextDecoration.underline,
                   ),
                 ),

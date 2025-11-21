@@ -62,8 +62,10 @@ class MentionParser {
   static String convertMarkupToDisplay(String markup) {
     if (markup.isEmpty) return '';
     return markup.replaceAllMapped(_mentionMarkupRegex, (match) {
-      final String trigger = match.group(1) ?? ''; // @
-      final String display = match.group(2) ?? ''; // Nama Tampilan
+      final String trigger = match.group(1) ?? ''; // @ atau #
+
+      final String display = match.group(3) ?? '';
+
       return '$trigger$display';
     });
   }

@@ -3,9 +3,7 @@
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
-// Import provider (tetap diperlukan untuk sheet)
 import 'package:e_hrm/providers/pengajuan_izin_jam/kategori_izin_jam.dart';
-// Import DTO
 import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart'
     as dto_kategori_izin_jam;
 import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart'
@@ -13,7 +11,6 @@ import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart'
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
-// Perubahan: Import widget selection field baru
 import 'package:e_hrm/shared_widget/kategori_izin_jam_selection_field.dart';
 import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:e_hrm/shared_widget/time_picker_field_widget.dart';
@@ -22,7 +19,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart';
-// --- IMPORT BARU UNTUK MENTION ---
 import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto;
@@ -30,7 +26,6 @@ import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:e_hrm/utils/mention_parser.dart';
 import 'dart:async';
-// --- AKHIR IMPORT BARU ---
 import 'package:intl/intl.dart';
 
 class FormPengajuanIzinJam extends StatefulWidget {
@@ -46,9 +41,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final TextEditingController keperluanController = TextEditingController();
-
-  // final TextEditingController handoverController = TextEditingController(); // DIGANTI
-
   final TextEditingController tanggalIjinJamController =
       TextEditingController();
   final TextEditingController tanggalPenggantiJamController =
@@ -60,14 +52,12 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
   final TextEditingController endTimePenggantiController =
       TextEditingController();
 
-  // --- STATE BARU UNTUK MENTION ---
   final GlobalKey<FlutterMentionsState> _mentionsKey =
       GlobalKey<FlutterMentionsState>();
   String _handoverPlainText = '';
   String _handoverMarkupText = '';
   int _handoverFieldVersion = 0;
   String? _currentUserId;
-  // --- AKHIR STATE BARU ---
 
   DateTime? _tanggalIjinJam;
   DateTime? _tanggalPenggantiJam;
@@ -81,6 +71,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
 
   bool _autoValidate = false;
   dto_pengajuan_izin.Data? _initialData;
+  bool get _isEditing => widget.initialData != null;
 
   @override
   void initState() {
@@ -89,7 +80,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
     if (_initialData != null) {
       _applyInitialData(_initialData!);
     }
-    // Tambahkan ini
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _resolveCurrentUserId();
@@ -97,28 +87,35 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
   }
 
   void _applyInitialData(dto_pengajuan_izin.Data data) {
-    keperluanController.text = data.keperluan;
-    _handoverPlainText = data.handover;
     _handoverMarkupText = data.handover;
+    _handoverPlainText = MentionParser.convertMarkupToDisplay(data.handover);
     _handoverFieldVersion++;
 
+    keperluanController.text = data.keperluan;
+
+    // Tanggal Izin (Tanpa toLocal)
     _tanggalIjinJam = data.tanggalIzin;
-    tanggalIjinJamController.text = data.tanggalIzin == null
+    tanggalIjinJamController.text = _tanggalIjinJam == null
         ? ''
-        : DateFormat('dd MMMM yyyy', 'id_ID').format(data.tanggalIzin!);
+        : DateFormat('dd MMMM yyyy', 'id_ID').format(_tanggalIjinJam!);
 
+    // Tanggal Pengganti (Tanpa toLocal)
     _tanggalPenggantiJam = data.tanggalPengganti;
-    tanggalPenggantiJamController.text = data.tanggalPengganti == null
+    tanggalPenggantiJamController.text = _tanggalPenggantiJam == null
         ? ''
-        : DateFormat('dd MMMM yyyy', 'id_ID').format(data.tanggalPengganti!);
+        : DateFormat('dd MMMM yyyy', 'id_ID').format(_tanggalPenggantiJam!);
 
+    // Jam Mulai & Selesai (Izin)
     _startTimeIjin = _toTimeOfDay(data.jamMulai);
     startTimeIjinController.text = _formatTime(data.jamMulai);
+
     _endTimeIjin = _toTimeOfDay(data.jamSelesai);
     endTimeIjinController.text = _formatTime(data.jamSelesai);
 
+    // Jam Mulai & Selesai (Pengganti)
     _startTimePengganti = _toTimeOfDay(data.jamMulaiPengganti);
     startTimePenggantiController.text = _formatTime(data.jamMulaiPengganti);
+
     _endTimePengganti = _toTimeOfDay(data.jamSelesaiPengganti);
     endTimePenggantiController.text = _formatTime(data.jamSelesaiPengganti);
 
@@ -127,9 +124,24 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
         data.kategori.toJson(),
       );
     }
+
+    final approversProvider = context.read<ApproversPengajuanProvider>();
+    final List<String> supervisorIds = data.approvals
+        .map((approval) => approval.approverUserId)
+        .whereType<String>()
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (supervisorIds.isNotEmpty) {
+        approversProvider.replaceSelection(supervisorIds);
+      } else {
+        approversProvider.clearSelection();
+      }
+    });
   }
 
-  // --- FUNGSI HELPER BARU ---
   Future<void> _resolveCurrentUserId() async {
     final auth = context.read<AuthProvider>();
     final current = auth.currentUser?.user.idUser;
@@ -177,7 +189,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
     }
     return _handoverMarkupText;
   }
-  // --- AKHIR FUNGSI HELPER BARU ---
 
   DateTime? _combineDateAndTime(DateTime? date, TimeOfDay? time) {
     if (date == null || time == null) return null;
@@ -186,11 +197,13 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
 
   String _formatTime(DateTime? value) {
     if (value == null) return '';
+    // Hapus .toLocal() sesuai permintaan
     return DateFormat('HH:mm').format(value);
   }
 
   TimeOfDay? _toTimeOfDay(DateTime? value) {
     if (value == null) return null;
+    // Hapus .toLocal() sesuai permintaan
     return TimeOfDay.fromDateTime(value);
   }
 
@@ -256,6 +269,11 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
       return;
     }
 
+    if (!_isEditing && _buktiFile == null) {
+      _showSnackBar('Bukti wajib diunggah.', isError: true);
+      return;
+    }
+
     final DateTime? jamMulai = _combineDateAndTime(
       _tanggalIjinJam,
       _startTimeIjin,
@@ -302,74 +320,77 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
       handoverMarkup,
     );
 
-    final result = await pengajuanProvider.createPengajuan(
-      idKategoriIzinJam: _selectedKategoriIzinJam!.idKategoriIzinJam,
-      keperluan: keperluanController.text.trim(),
-      tanggalIzin: _tanggalIjinJam!,
-      jamMulai: jamMulai,
-      jamSelesai: jamSelesai,
-      tanggalPengganti: _tanggalPenggantiJam!,
-      jamMulaiPengganti: jamMulaiPengganti,
-      jamSelesaiPengganti: jamSelesaiPengganti,
-      handover: handoverMarkup,
-      handoverUserIds: handoverUserIds,
-      approversProvider: approversProvider,
-      lampiran: lampiran,
-    );
+    dto_pengajuan_izin.Data? result;
+
+    if (_isEditing) {
+      // Fallback karena fungsi update belum ada di provider sesuai diskusi sebelumnya
+      _showSnackBar(
+        "Fitur update belum diimplementasikan di Provider.",
+        isError: true,
+      );
+      return;
+    } else {
+      result = await pengajuanProvider.createPengajuan(
+        idKategoriIzinJam: _selectedKategoriIzinJam!.idKategoriIzinJam,
+        keperluan: keperluanController.text.trim(),
+        tanggalIzin: _tanggalIjinJam!,
+        jamMulai: jamMulai,
+        jamSelesai: jamSelesai,
+        tanggalPengganti: _tanggalPenggantiJam!,
+        jamMulaiPengganti: jamMulaiPengganti,
+        jamSelesaiPengganti: jamSelesaiPengganti,
+        handover: handoverMarkup,
+        handoverUserIds: handoverUserIds,
+        approversProvider: approversProvider,
+        lampiran: lampiran,
+      );
+    }
 
     if (!mounted) return;
 
     final String? errorMessage = pengajuanProvider.saveError;
     final String? successMessage = pengajuanProvider.saveMessage;
 
-    // --- PERBAIKAN DIMULAI DI SINI ---
-
     if (errorMessage != null && errorMessage.isNotEmpty) {
       _showSnackBar(errorMessage, isError: true);
-      return; // Hentikan jika ada error
+      return;
     }
 
     if (result != null) {
-      // 1. Tampilkan pesan sukses terlebih dahulu
       final messageToShow =
-          successMessage ?? 'Pengajuan izin jam berhasil dibuat.';
+          successMessage ?? 'Pengajuan izin jam berhasil disimpan.';
       _showSnackBar(messageToShow, isError: false);
 
-      // 2. Reset form
-      formState.reset();
-      approversProvider.clearSelection();
-      setState(() {
-        _selectedKategoriIzinJam = null;
-        keperluanController.clear();
-        tanggalIjinJamController.clear();
-        tanggalPenggantiJamController.clear();
-        startTimeIjinController.clear();
-        endTimeIjinController.clear();
-        startTimePenggantiController.clear();
-        endTimePenggantiController.clear();
-        _tanggalIjinJam = null;
-        _tanggalPenggantiJam = null;
-        _startTimeIjin = null;
-        _endTimeIjin = null;
-        _startTimePengganti = null;
-        _endTimePengganti = null;
-        _buktiFile = null;
-        _handoverPlainText = '';
-        _handoverMarkupText = '';
-        _handoverFieldVersion++;
-        _autoValidate = false;
-      });
-
-      if (!mounted) return;
-
-      // 3. Baru tutup halaman (pop)
-      Navigator.of(context).pop(messageToShow);
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop(result);
+      } else {
+        formState.reset();
+        approversProvider.clearSelection();
+        setState(() {
+          _selectedKategoriIzinJam = null;
+          keperluanController.clear();
+          tanggalIjinJamController.clear();
+          tanggalPenggantiJamController.clear();
+          startTimeIjinController.clear();
+          endTimeIjinController.clear();
+          startTimePenggantiController.clear();
+          endTimePenggantiController.clear();
+          _tanggalIjinJam = null;
+          _tanggalPenggantiJam = null;
+          _startTimeIjin = null;
+          _endTimeIjin = null;
+          _startTimePengganti = null;
+          _endTimePengganti = null;
+          _buktiFile = null;
+          _handoverPlainText = '';
+          _handoverMarkupText = '';
+          _handoverFieldVersion++;
+          _autoValidate = false;
+        });
+      }
     } else {
-      // Kasus jika result null tapi tidak ada error (sebagai fallback)
-      _showSnackBar('Gagal membuat pengajuan.', isError: true);
-      Navigator.of(context).pop();
+      _showSnackBar('Gagal menyimpan pengajuan.', isError: true);
     }
-    // --- AKHIR PERBAIKAN ---
   }
 
   @override
@@ -380,7 +401,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
 
     final kategoriProvider = context.watch<KategoriIzinJamProvider>();
 
-    // --- Ambil provider untuk mentions ---
     final tagProvider = context.watch<TagHandOverProvider>();
     final authProvider = context.watch<AuthProvider>();
     final String? providerUserId = _sanitizeUserId(
@@ -446,7 +466,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
             ),
             SizedBox(height: 20),
 
-            // --- MULAI BLOK PENGGANTI HANDOVER ---
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -490,7 +509,6 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     }
 
                     final int wordCount = _getWordCount(text);
-                    // Validasi 50 kata, sesuai file asli
                     if (wordCount < 10) {
                       return 'Minimal 10 kata. (Sekarang: $wordCount kata)';
                     }
@@ -638,6 +656,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Mulai",
                     controller: startTimeIjinController,
+                    initialTime: _startTimeIjin, // <--- Penting!
                     onChanged: (time) => setState(() => _startTimeIjin = time),
                     isRequired: true,
                     validator: (value) {
@@ -653,6 +672,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Selesai",
                     controller: endTimeIjinController,
+                    initialTime: _endTimeIjin, // <--- Penting!
                     onChanged: (time) => setState(() => _endTimeIjin = time),
                     isRequired: true,
                     validator: (value) {
@@ -693,6 +713,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Mulai Pengganti",
                     controller: startTimePenggantiController,
+                    initialTime: _startTimePengganti, // <--- Penting!
                     onChanged: (time) =>
                         setState(() => _startTimePengganti = time),
                     isRequired: true,
@@ -709,6 +730,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Selesai Pengganti",
                     controller: endTimePenggantiController,
+                    initialTime: _endTimePengganti, // <--- Penting!
                     onChanged: (time) =>
                         setState(() => _endTimePengganti = time),
                     isRequired: true,
@@ -778,6 +800,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
             ),
 
             SizedBox(height: 20),
+
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -785,6 +808,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
               buttonText: 'Unggah Bukti',
               prefixIcon: Icons.camera_alt_outlined,
               file: _buktiFile,
+              fileUrl: widget.initialData?.lampiranIzinJamUrl,
               onFileChanged: (newFile) {
                 setState(() {
                   _buktiFile = newFile;
@@ -793,12 +817,16 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                   formKey.currentState?.validate();
                 }
               },
-              isRequired: false,
+              isRequired: !_isEditing,
               autovalidateMode: autovalidateMode,
               validator: (file) {
+                if (!_isEditing && file == null) {
+                  return 'Bukti wajib diunggah.';
+                }
                 return null;
               },
             ),
+
             SizedBox(height: 20),
             Consumer<PengajuanIzinJamProvider>(
               builder: (context, provider, _) {
@@ -822,7 +850,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                             ),
                           )
                         : Text(
-                            "Kirim",
+                            _isEditing ? "Simpan" : "Kirim",
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,

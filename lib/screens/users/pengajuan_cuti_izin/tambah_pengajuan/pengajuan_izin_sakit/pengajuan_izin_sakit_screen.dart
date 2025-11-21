@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-
+import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart' as sakit;
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/widget/form_pengajuan_sakit.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/widget/half_oval_pengajuan_sakit.dart';
@@ -7,7 +7,9 @@ import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengaju
 import 'package:flutter/material.dart';
 
 class PengajuanIzinSakitScreen extends StatefulWidget {
-  const PengajuanIzinSakitScreen({super.key});
+  const PengajuanIzinSakitScreen({super.key, this.initialPengajuan});
+
+  final sakit.Data? initialPengajuan;
 
   @override
   State<PengajuanIzinSakitScreen> createState() =>
@@ -80,7 +82,9 @@ class _PengajuanIzinSakitScreenState extends State<PengajuanIzinSakitScreen> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: const FormPengajuanSakit(),
+                          child: FormPengajuanSakit(
+                            initialPengajuan: widget.initialPengajuan,
+                          ),
                         ),
                       ],
                     ),

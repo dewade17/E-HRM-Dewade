@@ -27,7 +27,7 @@ import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto;
-import 'package:e_hrm/utils/mention_parser.dart'; // <-- IMPORT BARU
+import 'package:e_hrm/utils/mention_parser.dart';
 
 class FormPengajuanCuti extends StatefulWidget {
   const FormPengajuanCuti({super.key, this.initialData});
@@ -54,17 +54,15 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
 
   List<DateTime> _selectedDates = [];
   DateTime? _tanggalMasukKerja;
+
   File? _buktiFile;
+
   kategori_dto.Data? _selectedKategoriCuti;
   bool _autoValidate = false;
 
   final DateFormat _dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
 
   bool get _isEditing => widget.initialData != null;
-
-  // --- REGEX DAN FUNGSI PARSING MENTION DIHAPUS DARI SINI ---
-  // static final RegExp _mentionMarkupRegex = ... (DIHAPUS)
-  // static final RegExp _uuidRegex = ... (DIHAPUS)
 
   @override
   void initState() {
@@ -138,11 +136,9 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     KonfigurasiCutiProvider konfigurasiProvider,
   ) {
     final bool requiresQuota = selected?.penguranganKouta ?? false;
-    // --- DIUBAH: Gunakan getter dari provider ---
     final int? rawQuota = requiresQuota
         ? konfigurasiProvider.availableQuota
         : null;
-    // --- AKHIR PERUBAHAN ---
     final int? sanitizedQuota = rawQuota == null
         ? null
         : (rawQuota < 0 ? 0 : rawQuota);
@@ -213,6 +209,11 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       return;
     }
 
+    if (!_isEditing && _buktiFile == null) {
+      _showSnackBar('Bukti wajib diunggah.', isError: true);
+      return;
+    }
+
     FocusScope.of(context).unfocus();
 
     http.MultipartFile? lampiran;
@@ -232,11 +233,9 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final String idKategori = _selectedKategoriCuti!.idKategoriCuti;
     final String keperluan = keperluanController.text.trim();
     final String handover = _getCurrentHandoverMarkup().trim();
-    // --- DIUBAH: Panggil parser utilitas ---
     final List<String> handoverUserIds = MentionParser.extractMentionedUserIds(
       handover,
     );
-    // --- AKHIR PERUBAHAN ---
 
     _selectedDates.sort();
 
@@ -282,7 +281,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     }
 
     if (result != null) {
-      if (_isEditing) {
+      if (Navigator.canPop(context)) {
         Navigator.of(context).pop(result);
       } else {
         formState.reset();
@@ -296,12 +295,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       }
     }
   }
-
-  // --- FUNGSI _calculateAvailableQuota DIHAPUS DARI SINI ---
-  // int? _calculateAvailableQuota(KonfigurasiCutiProvider provider) { ... }
-
-  // --- FUNGSI _calculateRemainingQuota DIHAPUS DARI SINI ---
-  // int? _calculateRemainingQuota(int? availableQuota, { ... }) { ... }
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
@@ -366,7 +359,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       } else {
         apply();
       }
-      _scheduleHandoverControllerSync('');
+      // _scheduleHandoverControllerSync(''); // <-- HAPUS INI
       return;
     }
 
@@ -397,11 +390,9 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       }
     });
 
-    // --- DIUBAH: Panggil parser utilitas ---
     final String plainHandover = MentionParser.convertMarkupToDisplay(
       data.handover,
     );
-    // --- AKHIR PERUBAHAN ---
 
     void apply() {
       updateState(
@@ -418,7 +409,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     } else {
       apply();
     }
-    _scheduleHandoverControllerSync(plainHandover);
+    // _scheduleHandoverControllerSync(plainHandover); // <-- HAPUS INI
   }
 
   kategori_dto.Data? _resolveInitialKategori(pengajuan_dto.Data data) {
@@ -454,15 +445,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     return v.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
   }
 
-  // --- FUNGSI _extractMentionedUserIds DIHAPUS DARI SINI ---
-  // List<String> _extractMentionedUserIds(String markup) { ... }
-
-  // --- FUNGSI _pickBestMentionId DIHAPUS DARI SINI ---
-  // String _pickBestMentionId(String first, String second) { ... }
-
-  // --- FUNGSI _convertMarkupToDisplay DIHAPUS DARI SINI ---
-  // String _convertMarkupToDisplay(String markup) { ... }
-
+  // FUNGSI INI DIHAPUS KARENA MENYEBABKAN MASALAH STYLING
+  /*
   void _scheduleHandoverControllerSync(String text) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final controller = _mentionsKey.currentState?.controller;
@@ -473,6 +457,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
         ..selection = TextSelection.collapsed(offset: text.length);
     });
   }
+  */
 
   String _getCurrentHandoverText() {
     final controller = _mentionsKey.currentState?.controller;
@@ -502,14 +487,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     final kategoriCutiProvider = context.watch<KategoriCutiProvider>();
     final konfigurasiProvider = context.watch<KonfigurasiCutiProvider>();
 
-    // --- DIUBAH: Gunakan getter dari provider ---
     final int? availableQuota = konfigurasiProvider.availableQuota;
     final bool reducesQuota = _selectedKategoriCuti?.penguranganKouta ?? true;
     final int? remainingQuota = konfigurasiProvider.getRemainingQuota(
       selectedDaysCount: _selectedDates.length,
       reducesQuota: reducesQuota,
     );
-    // --- AKHIR PERUBAHAN ---
 
     final bool canSelectMore =
         !reducesQuota || remainingQuota == null || remainingQuota > 0;
@@ -838,6 +821,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
               buttonText: 'Unggah Bukti',
               prefixIcon: Icons.camera_alt_outlined,
               file: _buktiFile,
+              fileUrl: widget.initialData?.lampiranCutiUrl,
               onFileChanged: (newFile) {
                 setState(() {
                   _buktiFile = newFile;
@@ -846,9 +830,12 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                   formKey.currentState?.validate();
                 }
               },
-              isRequired: false,
+              isRequired: !_isEditing,
               autovalidateMode: autovalidateMode,
               validator: (file) {
+                if (!_isEditing && file == null) {
+                  return 'Bukti wajib diunggah.';
+                }
                 return null;
               },
             ),

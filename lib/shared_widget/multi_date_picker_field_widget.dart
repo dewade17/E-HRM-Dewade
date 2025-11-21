@@ -151,6 +151,11 @@ class _MultiDatePickerFieldWidgetState
                 foregroundColor: AppColors.secondaryColor,
               ),
             ),
+            textTheme: const TextTheme(
+              headlineLarge: TextStyle(fontSize: 20),
+              titleLarge: TextStyle(fontSize: 16),
+              bodyLarge: TextStyle(fontSize: 14),
+            ),
           ),
           child: child!,
         );

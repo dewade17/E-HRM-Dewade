@@ -71,8 +71,10 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
           PengajuanCutiScreen(initialPengajuan: item.cutiData),
       RiwayatPengajuanType.izinJam: (item) =>
           PengajuanIzinJamScreen(initialPengajuan: item.izinJamData),
-      RiwayatPengajuanType.tukarHari: (item) => const PengajuanIzinTukarHari(),
-      RiwayatPengajuanType.sakit: (item) => const PengajuanIzinSakitScreen(),
+      RiwayatPengajuanType.tukarHari: (item) =>
+          PengajuanIzinTukarHari(initialPengajuan: item.tukarHariData),
+      RiwayatPengajuanType.sakit: (item) =>
+          PengajuanIzinSakitScreen(initialPengajuan: item.sakitData),
     };
     _selectedValuePengajuan = _itemsPengajuan.first;
     _loadFuture = Future.value();
@@ -279,7 +281,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                         vertical: 6.0,
                       ),
                       child: RiwayatItemCard(
-                        title: item.displayJenis,
+                        title: item.jenisPengajuan,
                         tanggalMulai:
                             'Mulai : ${_formatDate(item.tanggalMulai)}',
                         tanggalBerakhir:

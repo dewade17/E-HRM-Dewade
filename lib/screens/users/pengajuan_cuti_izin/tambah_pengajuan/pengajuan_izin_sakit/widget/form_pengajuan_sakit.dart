@@ -15,6 +15,8 @@ import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/kategori_pengajuan_sakit_provider.dart';
 import 'package:e_hrm/dto/pengajuan_sakit/kategori_pengajuan_sakit.dart'
     as dto_sakit;
+import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart'
+    as pengajuan_sakit;
 import 'package:e_hrm/shared_widget/kategori_sakit_selection_field.dart';
 import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
@@ -22,10 +24,12 @@ import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto_tag;
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'dart:async';
-// --- AKHIR IMPORT BARU ---
+import 'package:intl/intl.dart';
 
 class FormPengajuanSakit extends StatefulWidget {
-  const FormPengajuanSakit({super.key});
+  const FormPengajuanSakit({super.key, this.initialPengajuan});
+
+  final pengajuan_sakit.Data? initialPengajuan;
 
   @override
   State<FormPengajuanSakit> createState() => _FormPengajuanSakitState();
@@ -37,7 +41,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
   final TextEditingController tanggalPengajuanSakitController =
       TextEditingController();
 
-  // --- STATE BARU ---
   final GlobalKey<FlutterMentionsState> _mentionsKey =
       GlobalKey<FlutterMentionsState>();
   String _handoverPlainText = '';
@@ -45,27 +48,27 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
   int _handoverFieldVersion = 0;
   String? _currentUserId;
   dto_sakit.Data? _selectedKategoriSakit;
-  // --- AKHIR STATE BARU ---
 
   DateTime? _tanggalPengajuanSakit;
   File? _buktiFile;
   bool _autoValidate = false;
+  String? _initialKategoriId;
+  bool _kategoriPrefilledFromProvider = false;
+
+  bool get _isEditing => widget.initialPengajuan != null;
 
   @override
   void initState() {
     super.initState();
-    // Dihapus: jenisCutiController.text = "Pengajuan Sakit";
+    _prefillInitialPengajuan(widget.initialPengajuan);
 
-    // Tambahkan ini
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _resolveCurrentUserId();
-      // Muat kategori sakit saat form dibuka
       context.read<KategoriPengajuanSakitProvider>().fetch();
     });
   }
 
-  // --- FUNGSI HELPER BARU ---
   Future<void> _resolveCurrentUserId() async {
     final auth = context.read<AuthProvider>();
     final current = auth.currentUser?.user.idUser;
@@ -113,7 +116,69 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
     }
     return _handoverMarkupText;
   }
-  // --- AKHIR FUNGSI HELPER BARU ---
+
+  void _prefillInitialPengajuan(pengajuan_sakit.Data? data) {
+    if (data == null) return;
+
+    _initialKategoriId = data.idKategoriSakit.isNotEmpty
+        ? data.idKategoriSakit
+        : null;
+
+    if (data.kategori != null && data.kategori!.idKategoriSakit.isNotEmpty) {
+      _selectedKategoriSakit = dto_sakit.Data(
+        idKategoriSakit: data.kategori!.idKategoriSakit,
+        namaKategori: data.kategori!.namaKategori,
+        createdAt: data.updatedAt ?? DateTime.now(),
+        updatedAt: data.updatedAt ?? DateTime.now(),
+        deletedAt: null,
+      );
+    }
+
+    _tanggalPengajuanSakit = data.tanggalPengajuan;
+    if (data.tanggalPengajuan != null) {
+      tanggalPengajuanSakitController.text = DateFormat(
+        'dd MMMM yyyy',
+        'id_ID',
+      ).format(data.tanggalPengajuan!);
+    }
+
+    _handoverMarkupText = data.handover;
+    _handoverPlainText = MentionParser.convertMarkupToDisplay(data.handover);
+
+    // Tidak perlu download manual lagi, URL akan dikirim ke widget FilePicker
+  }
+
+  void _tryPrefillKategoriFromProvider(
+    KategoriPengajuanSakitProvider kategoriProvider,
+  ) {
+    if (_kategoriPrefilledFromProvider ||
+        _initialKategoriId == null ||
+        kategoriProvider.items.isEmpty) {
+      return;
+    }
+
+    if (_selectedKategoriSakit != null &&
+        _selectedKategoriSakit!.idKategoriSakit == _initialKategoriId) {
+      _kategoriPrefilledFromProvider = true;
+      return;
+    }
+
+    try {
+      final match = kategoriProvider.items.firstWhere(
+        (item) => item.idKategoriSakit == _initialKategoriId,
+      );
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _selectedKategoriSakit = match;
+          _kategoriPrefilledFromProvider = true;
+        });
+      });
+    } catch (_) {
+      _kategoriPrefilledFromProvider = true;
+    }
+  }
 
   void _resetFormFields(ApproversPengajuanProvider approversProvider) {
     formKey.currentState?.reset();
@@ -128,6 +193,8 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
       _handoverMarkupText = '';
       _handoverFieldVersion++;
       _autoValidate = false;
+      _initialKategoriId = null;
+      _kategoriPrefilledFromProvider = false;
     });
   }
 
@@ -146,7 +213,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
 
     if (!(formKey.currentState?.validate() ?? false)) {
       messenger.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Harap periksa kembali semua isian form.'),
           backgroundColor: AppColors.errorColor,
         ),
@@ -156,7 +223,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
 
     if (_selectedKategoriSakit == null) {
       messenger.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Kategori sakit wajib dipilih.'),
           backgroundColor: AppColors.errorColor,
         ),
@@ -164,9 +231,10 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
       return;
     }
 
-    if (_buktiFile == null) {
+    // Validasi Bukti: Wajib jika Create, Opsional jika Edit
+    if (!_isEditing && _buktiFile == null) {
       messenger.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Bukti wajib diunggah.'),
           backgroundColor: AppColors.errorColor,
         ),
@@ -182,24 +250,42 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
       handoverMarkup,
     );
 
-    final http.MultipartFile lampiran = await http.MultipartFile.fromPath(
-      'lampiran_izin_sakit',
-      _buktiFile!.path,
-    );
+    // Siapkan lampiran jika ada file baru
+    http.MultipartFile? lampiran;
+    if (_buktiFile != null) {
+      lampiran = await http.MultipartFile.fromPath(
+        'lampiran_izin_sakit',
+        _buktiFile!.path,
+      );
+    }
 
-    final created = await pengajuanSakitProvider.createPengajuan(
-      idKategoriSakit: _selectedKategoriSakit!.idKategoriSakit,
-      tanggalPengajuan: _tanggalPengajuanSakit,
-      handover: handoverMarkup,
-      handoverUserIds: handoverUserIds,
-      approversProvider: approversProvider,
-      lampiran: lampiran,
-    );
+    pengajuan_sakit.Data? result;
+
+    if (_isEditing) {
+      result = await pengajuanSakitProvider.updatePengajuan(
+        widget.initialPengajuan!.idPengajuanIzinSakit,
+        idKategoriSakit: _selectedKategoriSakit!.idKategoriSakit,
+        tanggalPengajuan: _tanggalPengajuanSakit,
+        handover: handoverMarkup,
+        handoverUserIds: handoverUserIds,
+        approversProvider: approversProvider,
+        lampiran: lampiran,
+      );
+    } else {
+      result = await pengajuanSakitProvider.createPengajuan(
+        idKategoriSakit: _selectedKategoriSakit!.idKategoriSakit,
+        tanggalPengajuan: _tanggalPengajuanSakit,
+        handover: handoverMarkup,
+        handoverUserIds: handoverUserIds,
+        approversProvider: approversProvider,
+        lampiran: lampiran,
+      );
+    }
 
     final String? saveError = pengajuanSakitProvider.saveError;
     final String? saveMessage = pengajuanSakitProvider.saveMessage;
 
-    if (created != null && saveError == null) {
+    if (saveError == null) {
       if (saveMessage != null && saveMessage.isNotEmpty) {
         messenger.showSnackBar(
           SnackBar(
@@ -209,15 +295,17 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
         );
       }
 
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop(true);
-      } else {
-        _resetFormFields(approversProvider);
+      if (result != null) {
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop(result);
+        } else {
+          _resetFormFields(approversProvider);
+        }
       }
     } else {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(saveError ?? 'Gagal mengirim pengajuan sakit.'),
+          content: Text(saveError),
           backgroundColor: AppColors.errorColor,
         ),
       );
@@ -230,7 +318,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
         ? AutovalidateMode.onUserInteraction
         : AutovalidateMode.disabled;
 
-    // Provider untuk Kategori Sakit dan Mention
     final kategoriProvider = context.watch<KategoriPengajuanSakitProvider>();
     final tagProvider = context.watch<TagHandOverProvider>();
     final authProvider = context.watch<AuthProvider>();
@@ -239,6 +326,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
     );
     final String? effectiveCurrentUserId =
         providerUserId ?? _sanitizeUserId(_currentUserId);
+    _tryPrefillKategoriFromProvider(kategoriProvider);
 
     return Form(
       key: formKey,
@@ -247,7 +335,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           children: [
-            // --- FIELD JENIS CUTI DIGANTI ---
             KategoriSakitSelectionField(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -277,7 +364,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                 child: LinearProgressIndicator(),
               ),
 
-            // --- AKHIR PENGGANTIAN ---
             SizedBox(height: 20),
 
             DatePickerFieldWidget(
@@ -292,7 +378,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
             ),
             SizedBox(height: 20),
 
-            // --- FIELD HANDOVER DIGANTI ---
+            // --- FIELD HANDOVER ---
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -335,7 +421,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                       return 'Handover Pekerjaan tidak boleh kosong';
                     }
 
-                    // Validasi 15 kata, sesuai file asli
                     final int wordCount = _getWordCount(text);
                     if (wordCount < 15) {
                       return 'Minimal 15 kata. (Sekarang: $wordCount kata)';
@@ -390,7 +475,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                           ),
                           mentions: [
                             Mention(
-                              trigger: '@',
+                              trigger: '@', 
                               style: TextStyle(
                                 color: AppColors.primaryColor,
                                 fontWeight: FontWeight.bold,
@@ -463,7 +548,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
               ],
             ),
 
-            // --- AKHIR PENGGANTIAN HANDOVER ---
             SizedBox(height: 20),
 
             Padding(
@@ -512,14 +596,16 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
 
             SizedBox(height: 20),
 
-            // --- PERUBAHAN PADA FILE PICKER ---
+            // --- FILE PICKER UPDATED ---
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
-              label: 'Unggah Bukti', // Label diubah
+              label: 'Unggah Bukti',
               buttonText: 'Unggah Bukti',
               prefixIcon: Icons.camera_alt_outlined,
               file: _buktiFile,
+              // Tampilkan gambar lama (URL) jika sedang edit dan belum ada file baru
+              fileUrl: widget.initialPengajuan?.lampiranIzinSakitUrl,
               onFileChanged: (newFile) {
                 setState(() {
                   _buktiFile = newFile;
@@ -528,40 +614,55 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                   formKey.currentState?.validate();
                 }
               },
-              isRequired: true, // Diubah ke true
+              // Wajib hanya jika mode Create (bukan edit)
+              isRequired: !_isEditing,
               autovalidateMode: autovalidateMode,
               validator: (file) {
-                // Validator ditambahkan
-                if (file == null) {
+                // Jika mode Create dan file kosong => Error
+                if (!_isEditing && file == null) {
                   return 'Bukti wajib diunggah';
                 }
                 return null;
               },
             ),
 
-            // --- AKHIR PERUBAHAN ---
+            // --- AKHIR FILE PICKER UPDATED ---
             SizedBox(height: 20),
-            SizedBox(
-              width: 150,
-              child: ElevatedButton(
-                onPressed: () {
-                  _submitForm();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+            Consumer<PengajuanSakitProvider>(
+              builder: (context, provider, _) {
+                final bool saving = provider.saving;
+                return SizedBox(
+                  width: 150,
+                  child: ElevatedButton(
+                    onPressed: saving ? null : () => _submitForm(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
+                    child: saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.textColor,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            _isEditing ? "Simpan" : "Kirim",
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textColor,
+                            ),
+                          ),
                   ),
-                ),
-                child: Text(
-                  "Kirim",
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textColor,
-                  ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

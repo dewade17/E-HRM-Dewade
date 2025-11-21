@@ -1,5 +1,9 @@
+// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/widget/form_pengajuan_izin_tukar_hari.dart
+
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
+    as tukar_hari;
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
@@ -18,6 +22,8 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
 import 'package:e_hrm/utils/mention_parser.dart';
+import 'package:intl/intl.dart';
+// import 'package:path/path.dart' as p; // Tidak diperlukan lagi
 
 class _TanggalTukarPair {
   DateTime? tanggalIzin;
@@ -32,8 +38,9 @@ class _TanggalTukarPair {
 }
 
 class FormPengajuanIzinTukarHari extends StatefulWidget {
-  const FormPengajuanIzinTukarHari({super.key});
+  const FormPengajuanIzinTukarHari({super.key, this.initialPengajuan});
 
+  final tukar_hari.Data? initialPengajuan;
   @override
   State<FormPengajuanIzinTukarHari> createState() =>
       _FormPengajuanIzinTukarHariState();
@@ -60,10 +67,15 @@ class _FormPengajuanIzinTukarHariState
   String? _selectedKategori;
   final List<String> _kategoriItems = ['Personal Impact', 'Company Impact'];
 
+  bool get _isEditing => widget.initialPengajuan != null;
+
   @override
   void initState() {
     super.initState();
-    _addPair();
+    _prefillInitialPengajuan(widget.initialPengajuan);
+    if (_daftarTanggal.isEmpty) {
+      _addPair();
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -100,6 +112,25 @@ class _FormPengajuanIzinTukarHariState
     return v.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
   }
 
+  String _getCurrentHandoverText() {
+    final controller = _mentionsKey.currentState?.controller;
+    if (controller != null) {
+      _handoverPlainText = controller.text;
+      return controller.text;
+    }
+    return _handoverPlainText;
+  }
+
+  String _getCurrentHandoverMarkup() {
+    final controller = _mentionsKey.currentState?.controller;
+    if (controller != null) {
+      _handoverPlainText = controller.text;
+      _handoverMarkupText = controller.markupText;
+      return controller.markupText;
+    }
+    return _handoverMarkupText;
+  }
+
   @override
   void dispose() {
     keperluanController.dispose();
@@ -110,10 +141,67 @@ class _FormPengajuanIzinTukarHariState
     super.dispose();
   }
 
-  void _addPair() {
-    setState(() {
-      _daftarTanggal.add(_TanggalTukarPair());
-    });
+  void _prefillInitialPengajuan(tukar_hari.Data? data) {
+    if (data == null) {
+      // Tidak perlu _addPair di sini jika sudah ada di initState
+      return;
+    }
+
+    keperluanController.text = data.keperluan;
+    _selectedKategori = _kategoriItems.contains(data.kategori)
+        ? data.kategori
+        : null;
+
+    _handoverMarkupText = data.handover;
+    _handoverPlainText = MentionParser.convertMarkupToDisplay(data.handover);
+    _handoverFieldVersion++;
+
+    _daftarTanggal.clear();
+    if (data.pairs.isNotEmpty) {
+      for (final pairData in data.pairs) {
+        _addPair(
+          tanggalIzin: pairData.hariIzin,
+          tanggalPengganti: pairData.hariPengganti,
+          useSetState: false,
+        );
+      }
+    } else {
+      _addPair(useSetState: false);
+    }
+
+    // Lampiran ditangani oleh FilePickerFieldWidget via fileUrl, tidak perlu download manual
+  }
+
+  void _addPair({
+    DateTime? tanggalIzin,
+    DateTime? tanggalPengganti,
+    bool useSetState = true,
+  }) {
+    final pair = _TanggalTukarPair()
+      ..tanggalIzin = tanggalIzin
+      ..tanggalPengganti = tanggalPengganti;
+
+    if (tanggalIzin != null) {
+      pair.izinController.text = DateFormat(
+        'dd MMMM yyyy',
+        'id_ID',
+      ).format(tanggalIzin);
+    }
+
+    if (tanggalPengganti != null) {
+      pair.penggantiController.text = DateFormat(
+        'dd MMMM yyyy',
+        'id_ID',
+      ).format(tanggalPengganti);
+    }
+
+    if (useSetState) {
+      setState(() {
+        _daftarTanggal.add(pair);
+      });
+    } else {
+      _daftarTanggal.add(pair);
+    }
   }
 
   void _removePair(int index) {
@@ -179,6 +267,12 @@ class _FormPengajuanIzinTukarHariState
       return;
     }
 
+    // Validasi Bukti: Wajib jika Create, Opsional jika Edit
+    if (!_isEditing && _buktiFile == null) {
+      _showSnackBar('Bukti wajib diunggah.', isError: true);
+      return;
+    }
+
     FocusScope.of(context).unfocus();
 
     http.MultipartFile? lampiran;
@@ -196,10 +290,7 @@ class _FormPengajuanIzinTukarHariState
 
     final String rawKeperluan = keperluanController.text.trim();
     final String kategori = _selectedKategori!;
-    final String handoverMarkup =
-        (_mentionsKey.currentState?.controller?.markupText ??
-                _handoverMarkupText)
-            .trim();
+    final String handoverMarkup = _getCurrentHandoverMarkup().trim();
 
     final List<String> handoverUserIds = MentionParser.extractMentionedUserIds(
       handoverMarkup,
@@ -208,16 +299,34 @@ class _FormPengajuanIzinTukarHariState
     final approvers = context.read<ApproversPengajuanProvider>();
     final pengajuanProvider = context.read<PengajuanIzinTukarHariProvider>();
 
-    final result = await pengajuanProvider.createPengajuan(
-      kategori: kategori,
-      keperluan: rawKeperluan,
-      handover: handoverMarkup,
-      handoverTagUserIds: handoverUserIds,
-      approversProvider: approvers,
-      hariIzinList: hariIzinList,
-      hariPenggantiList: hariPenggantiList,
-      lampiran: lampiran,
-    );
+    tukar_hari.Data? result;
+
+    if (_isEditing) {
+      // Mode UPDATE
+      result = await pengajuanProvider.updatePengajuan(
+        widget.initialPengajuan!.idIzinTukarHari,
+        kategori: kategori,
+        keperluan: rawKeperluan,
+        handover: handoverMarkup,
+        handoverTagUserIds: handoverUserIds,
+        approversProvider: approvers,
+        hariIzinList: hariIzinList,
+        hariPenggantiList: hariPenggantiList,
+        lampiran: lampiran,
+      );
+    } else {
+      // Mode CREATE
+      result = await pengajuanProvider.createPengajuan(
+        kategori: kategori,
+        keperluan: rawKeperluan,
+        handover: handoverMarkup,
+        handoverTagUserIds: handoverUserIds,
+        approversProvider: approvers,
+        hariIzinList: hariIzinList,
+        hariPenggantiList: hariPenggantiList,
+        lampiran: lampiran,
+      );
+    }
 
     if (!mounted) return;
 
@@ -234,9 +343,9 @@ class _FormPengajuanIzinTukarHariState
     }
 
     if (result != null) {
-      final navigator = Navigator.of(context);
-      if (navigator.canPop()) {
-        navigator.pop(result);
+      // Navigasi kembali jika sukses
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop(result);
       } else {
         _resetFormState(resetApprovers: true);
       }
@@ -365,10 +474,8 @@ class _FormPengajuanIzinTukarHariState
                   initialValue: _handoverPlainText,
                   autovalidateMode: autovalidateMode,
                   validator: (value) {
-                    final String text =
-                        (_mentionsKey.currentState?.controller?.text ??
-                                _handoverPlainText)
-                            .trim();
+                    final String text = (value ?? _getCurrentHandoverText())
+                        .trim();
 
                     if (text.isEmpty) {
                       return 'Handover Pekerjaan tidak boleh kosong';
@@ -566,13 +673,17 @@ class _FormPengajuanIzinTukarHariState
               ),
             ),
             SizedBox(height: 20),
+
+            // --- FILE PICKER UPDATED ---
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
-              label: 'Unggah Bukti (Opsional)',
+              label: 'Unggah Bukti',
               buttonText: 'Unggah Bukti',
               prefixIcon: Icons.camera_alt_outlined,
               file: _buktiFile,
+              // Kirim URL jika ada di mode edit
+              fileUrl: widget.initialPengajuan?.lampiranIzinTukarHariUrl,
               onFileChanged: (newFile) {
                 setState(() {
                   _buktiFile = newFile;
@@ -581,12 +692,18 @@ class _FormPengajuanIzinTukarHariState
                   formKey.currentState?.validate();
                 }
               },
-              isRequired: false,
+              // Wajib hanya jika buat baru (bukan edit)
+              isRequired: !_isEditing,
               autovalidateMode: autovalidateMode,
               validator: (file) {
+                if (!_isEditing && file == null) {
+                  return 'Bukti wajib diunggah';
+                }
                 return null;
               },
             ),
+
+            // --- AKHIR FILE PICKER UPDATED ---
             SizedBox(height: 20),
             Consumer<PengajuanIzinTukarHariProvider>(
               builder: (context, provider, _) {
@@ -613,7 +730,7 @@ class _FormPengajuanIzinTukarHariState
                             ),
                           )
                         : Text(
-                            "Kirim",
+                            _isEditing ? "Simpan" : "Kirim",
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,

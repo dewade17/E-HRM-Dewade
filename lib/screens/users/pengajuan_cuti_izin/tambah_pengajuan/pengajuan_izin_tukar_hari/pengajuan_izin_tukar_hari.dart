@@ -1,15 +1,16 @@
 import 'dart:math' as math;
-
+import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
+    as tukar_hari;
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/widget/form_pengajuan_izin_jam.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/widget/form_pengajuan_izin_tukar_hari.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/widget/half_oval_pengajuan_izin_tukar_hari.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/widget/header_pengajuan_izin_tukar_hari.dart';
 import 'package:flutter/material.dart';
 
 class PengajuanIzinTukarHari extends StatefulWidget {
-  const PengajuanIzinTukarHari({super.key});
+  const PengajuanIzinTukarHari({super.key, this.initialPengajuan});
 
+  final tukar_hari.Data? initialPengajuan;
   @override
   State<PengajuanIzinTukarHari> createState() => _PengajuanIzinTukarHariState();
 }
@@ -80,7 +81,9 @@ class _PengajuanIzinTukarHariState extends State<PengajuanIzinTukarHari> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: const FormPengajuanIzinTukarHari(),
+                          child: FormPengajuanIzinTukarHari(
+                            initialPengajuan: widget.initialPengajuan,
+                          ),
                         ),
                       ],
                     ),

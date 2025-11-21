@@ -3,21 +3,19 @@ import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:file_picker/file_picker.dart'; // <-- Pakai file_picker
-import 'package:image_picker/image_picker.dart'; // <-- Pakai image_picker
-import 'package:path/path.dart' as p; // Untuk cek ekstensi & nama file
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 
-// Enum untuk membedakan sumber pilihan
 enum _PickSource { camera, gallery, document }
 
-/// Widget input yang dapat digunakan kembali untuk memilih file (gambar atau dokumen).
-/// Tampil sebagai tombol "Unggah" dan menunjukkan preview file di bawahnya.
 class FilePickerFieldWidget extends StatelessWidget {
   const FilePickerFieldWidget({
     super.key,
     required this.label,
-    this.file, // Menerima File?
-    required this.onFileChanged, // Mengembalikan File?
+    this.file,
+    this.fileUrl, // <--- PARAMETER BARU: URL dari server
+    required this.onFileChanged,
     this.prefixIcon = Icons.camera_alt_outlined,
     this.buttonText = 'Unggah Bukti',
     this.isRequired = false,
@@ -30,43 +28,26 @@ class FilePickerFieldWidget extends StatelessWidget {
     this.borderWidth = 1.0,
   });
 
-  /// Teks label di atas field.
   final String label;
-
-  /// File yang sedang dipilih (dikelola oleh state parent).
-  final File? file; // <-- Tipe file diubah ke File
-
-  /// Callback yang dipanggil saat file berubah (mengirim File asli atau null).
+  final File? file;
+  final String? fileUrl; // <--- Simpan URL di sini
   final ValueChanged<File?> onFileChanged;
-
-  /// Ikon di sebelah kiri teks tombol.
   final IconData? prefixIcon;
-
-  /// Teks pada tombol.
   final String buttonText;
-
-  /// Menandakan apakah field ini wajib diisi.
   final bool isRequired;
-
-  /// Validator untuk File.
   final String? Function(File?)? validator;
-
-  /// Mode autovalidasi untuk FormField.
   final AutovalidateMode? autovalidateMode;
-
-  /// Properti UI
   final double? width;
   final double borderRadius;
   final Color? backgroundColor;
   final Color? borderColor;
   final double borderWidth;
 
-  // --- Logika untuk memilih file ---
   Future<void> _pickFile(
     BuildContext context,
     FormFieldState<File> state,
   ) async {
-    // 1. Tampilkan modal untuk memilih sumber
+    // ... (Kode _pickFile SAMA SEPERTI SEBELUMNYA, tidak berubah) ...
     final _PickSource? source = await showModalBottomSheet<_PickSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -92,23 +73,19 @@ class FilePickerFieldWidget extends StatelessWidget {
       ),
     );
 
-    if (source == null) return; // Batal memilih
+    if (source == null) return;
 
     String? path;
     try {
       if (source == _PickSource.camera || source == _PickSource.gallery) {
-        // 2. Gunakan IMAGE_PICKER
         final XFile? xFile = await ImagePicker().pickImage(
           source: source == _PickSource.camera
               ? ImageSource.camera
               : ImageSource.gallery,
           imageQuality: 85,
         );
-        if (xFile != null) {
-          path = xFile.path;
-        }
+        if (xFile != null) path = xFile.path;
       } else {
-        // 3. Gunakan FILE_PICKER
         FilePickerResult? result = await FilePicker.platform.pickFiles(
           type: FileType.custom,
           allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
@@ -118,11 +95,11 @@ class FilePickerFieldWidget extends StatelessWidget {
         }
       }
 
-      if (path == null) return; // Batal memilih file
+      if (path == null) return;
 
       final File file = File(path);
-      onFileChanged(file); // Kirim file ke parent
-      state.didChange(file); // Update state FormField
+      onFileChanged(file);
+      state.didChange(file);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -133,13 +110,11 @@ class FilePickerFieldWidget extends StatelessWidget {
     }
   }
 
-  // --- Logika untuk menghapus file ---
   void _clearFile(FormFieldState<File> state) {
-    onFileChanged(null); // Kirim null ke parent
-    state.didChange(null); // Update state FormField
+    onFileChanged(null);
+    state.didChange(null);
   }
 
-  // --- Helper untuk cek apakah file gambar ---
   bool _isImageFile(String? path) {
     if (path == null) return false;
     final ext = p.extension(path).toLowerCase();
@@ -148,6 +123,16 @@ class FilePickerFieldWidget extends StatelessWidget {
         ext == '.jpeg' ||
         ext == '.heic' ||
         ext == '.webp';
+  }
+
+  // Helper cek apakah URL adalah gambar (sederhana)
+  bool _isImageUrl(String? url) {
+    if (url == null) return false;
+    final lower = url.toLowerCase();
+    return lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.webp');
   }
 
   @override
@@ -163,11 +148,13 @@ class FilePickerFieldWidget extends StatelessWidget {
     return SizedBox(
       width: width,
       child: FormField<File>(
-        // Validasi kini berdasarkan objek File
         validator:
             validator ??
             (value) {
-              if (isRequired && value == null) {
+              // Validasi: Wajib jika file lokal kosong DAN URL server juga kosong
+              if (isRequired &&
+                  value == null &&
+                  (fileUrl == null || fileUrl!.isEmpty)) {
                 return '$label tidak boleh kosong';
               }
               return null;
@@ -175,9 +162,17 @@ class FilePickerFieldWidget extends StatelessWidget {
         autovalidateMode: autovalidateMode,
         initialValue: file,
         builder: (FormFieldState<File> state) {
-          final bool hasFile = state.value != null;
-          final file = state.value;
-          final bool isImage = _isImageFile(file?.path);
+          final localFile = state.value;
+
+          // --- LOGIKA TAMPILAN BARU ---
+          // Tampilkan preview jika ada file lokal ATAU ada URL dari server
+          final bool hasContent =
+              localFile != null || (fileUrl != null && fileUrl!.isNotEmpty);
+
+          // Cek tipe konten untuk preview (Image vs Doc)
+          final bool showImagePreview = localFile != null
+              ? _isImageFile(localFile.path)
+              : _isImageUrl(fileUrl);
 
           final Color effectiveBorderColor = state.hasError
               ? AppColors.errorColor
@@ -188,7 +183,6 @@ class FilePickerFieldWidget extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Label
               Text.rich(
                 TextSpan(
                   children: [
@@ -205,7 +199,6 @@ class FilePickerFieldWidget extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // 2. Teks Error (jika ada, tampil di bawah label)
               if (state.hasError)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -218,8 +211,8 @@ class FilePickerFieldWidget extends StatelessWidget {
                   ),
                 ),
 
-              // 3. Tombol "Unggah Bukti" (HANYA tampil jika *tidak ada* file)
-              if (!hasFile)
+              // Tampilkan tombol JIKA kosong, ATAU tampilkan Preview JIKA ada isi
+              if (!hasContent)
                 InkWell(
                   onTap: () => _pickFile(context, state),
                   borderRadius: BorderRadius.circular(borderRadius),
@@ -258,41 +251,62 @@ class FilePickerFieldWidget extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-
-              // 4. Preview File (HANYA tampil jika *ada* file)
-              if (hasFile && file != null)
+                )
+              else
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    // Kotak Preview (Gambar atau Dokumen)
                     Container(
                       width: double.infinity,
-                      // Tentukan tinggi atau rasio aspek
                       height: 180,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(borderRadius),
                         border: Border.all(color: Colors.grey.shade300),
+                        color: Colors.grey.shade100,
                       ),
-                      clipBehavior: Clip.antiAlias, // Penting untuk Image
-                      child: isImage
-                          // --- PREVIEW GAMBAR ---
-                          ? Image.file(
-                              file,
-                              fit: BoxFit.cover,
-                              errorBuilder: (ctx, err, stack) =>
-                                  _buildDocPlaceholder(
-                                    'Error: Gambar rusak',
-                                    Icons.broken_image,
-                                  ),
-                            )
-                          // --- PREVIEW DOKUMEN ---
-                          : _buildDocPlaceholder(
-                              p.basename(file.path), // Tampilkan nama file
-                              Icons.description_outlined,
-                            ),
+                      clipBehavior: Clip.antiAlias,
+                      child: localFile != null
+                          // 1. File Lokal (Prioritas Utama)
+                          ? (showImagePreview
+                                ? Image.file(
+                                    localFile,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (ctx, err, stack) =>
+                                        _buildDocPlaceholder(
+                                          'Gambar Rusak',
+                                          Icons.broken_image,
+                                        ),
+                                  )
+                                : _buildDocPlaceholder(
+                                    p.basename(localFile.path),
+                                    Icons.insert_drive_file,
+                                  ))
+                          // 2. File dari URL (Fallback jika lokal kosong)
+                          : (showImagePreview
+                                ? Image.network(
+                                    fileUrl!,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return const Center(
+                                            child: CircularProgressIndicator(),
+                                          );
+                                        },
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            _buildDocPlaceholder(
+                                              'Gagal memuat gambar',
+                                              Icons.broken_image,
+                                            ),
+                                  )
+                                : _buildDocPlaceholder(
+                                    'Dokumen Terlampir',
+                                    Icons.description,
+                                  )),
                     ),
-                    // Tombol Hapus (X)
+                    // Tombol Hapus / Ganti
                     Positioned(
                       top: -10,
                       right: -10,
@@ -302,16 +316,27 @@ class FilePickerFieldWidget extends StatelessWidget {
                         elevation: 2,
                         child: InkWell(
                           customBorder: const CircleBorder(),
-                          onTap: () => _clearFile(state),
+                          // Jika ada file lokal -> Hapus file lokal (kembali ke URL atau kosong)
+                          // Jika hanya URL -> Hapus tampilan (anggap user mau ganti baru) -> trigger pick
+                          onTap: () {
+                            if (localFile != null) {
+                              _clearFile(state);
+                            } else {
+                              // Jika user klik X pada gambar URL, kita buka picker untuk ganti
+                              _pickFile(context, state);
+                            }
+                          },
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
                             ),
-                            child: const Icon(
-                              Icons.close,
-                              color: AppColors.errorColor,
+                            child: Icon(
+                              localFile != null
+                                  ? Icons.close
+                                  : Icons.edit, // Icon beda dikit biar UX enak
+                              color: AppColors.secondaryColor,
                               size: 20,
                             ),
                           ),
@@ -327,7 +352,6 @@ class FilePickerFieldWidget extends StatelessWidget {
     );
   }
 
-  /// Helper untuk placeholder file non-gambar (PDF, DOCX, dll.)
   Widget _buildDocPlaceholder(String fileName, IconData icon) {
     return Container(
       color: Colors.grey.shade100,

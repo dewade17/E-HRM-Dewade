@@ -76,7 +76,13 @@ class _DetailPengajuanIzinTukarHariState
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: ContentDetailIzinTukarHari(),
+                          child: (widget.pengajuan != null)
+                              ? ContentDetailIzinTukarHari(
+                                  data: widget.pengajuan!,
+                                )
+                              : const Center(
+                                  child: Text("Data tidak ditemukan"),
+                                ),
                         ),
                       ],
                     ),

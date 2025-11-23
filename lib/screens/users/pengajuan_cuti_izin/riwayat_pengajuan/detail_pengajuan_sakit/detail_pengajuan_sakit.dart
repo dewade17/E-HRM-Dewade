@@ -73,7 +73,13 @@ class _DetailPengajuanSakitState extends State<DetailPengajuanSakit> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: ContentDetailSakit(),
+                          child: (widget.pengajuan != null)
+                              ? ContentDetailSakit(
+                                  data: widget.pengajuan!,
+                                ) // <-- KIRIM DATA REAL
+                              : const Center(
+                                  child: Text("Data tidak ditemukan"),
+                                ),
                         ),
                       ],
                     ),

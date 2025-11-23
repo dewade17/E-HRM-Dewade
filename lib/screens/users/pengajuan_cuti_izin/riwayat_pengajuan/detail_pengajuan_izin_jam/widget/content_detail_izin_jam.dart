@@ -1,39 +1,38 @@
+// lib/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_izin_jam/widget/content_detail_izin_jam.dart
+
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart' as dto;
+import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:easy_stepper/easy_stepper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class ContentDetailIzinJam extends StatefulWidget {
-  const ContentDetailIzinJam({super.key});
+  final dto.Data data;
+
+  const ContentDetailIzinJam({super.key, required this.data});
 
   @override
   State<ContentDetailIzinJam> createState() => _ContentDetailIzinJamState();
 }
 
 class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
-  // Key untuk mengukur tinggi blok konten step "MULAI"
   final GlobalKey _mulaiKey = GlobalKey();
-  double _mulaiBlockHeight = 40; // default fallback
+  double _mulaiBlockHeight = 40;
 
   @override
   void initState() {
     super.initState();
-    // Hitung tinggi konten setelah first frame dirender
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // TAMBAHKAN DELAY SINGKAT:
-      // Beri waktu 50ms agar semua child widget (Wrap, RichText)
-      // di dalam _mulaiKey selesai di-layout dengan stabil.
       Future.delayed(const Duration(milliseconds: 50), () {
-        // Cek 'mounted' LAGI setelah delay, karena widget bisa saja
-        // sudah di-dispose selagi menunggu.
         if (!mounted) return;
-
         final ctx = _mulaiKey.currentContext;
         if (ctx != null) {
           final size = ctx.size;
           if (size != null && size.height > 0) {
-            // Cek apakah tingginya benar-benar berubah sebelum setState
-            // untuk menghindari build loop yang tidak perlu.
             if ((_mulaiBlockHeight - size.height).abs() > 0.1) {
               setState(() {
                 _mulaiBlockHeight = size.height;
@@ -45,22 +44,45 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
     });
   }
 
+  String _fmtDate(DateTime? d, {String pattern = 'dd MMMM yyyy'}) {
+    if (d == null) return '-';
+    return DateFormat(pattern, 'id_ID').format(d);
+  }
+
+  String _fmtTime(DateTime? d) {
+    if (d == null) return '--:--';
+    return DateFormat('HH:mm', 'id_ID').format(d);
+  }
+
+  String _calculateDuration(DateTime? start, DateTime? end) {
+    if (start == null || end == null) return '-';
+    final diff = end.difference(start);
+    final hours = diff.inHours;
+    final minutes = diff.inMinutes % 60;
+    if (hours > 0 && minutes > 0) return '$hours Jam $minutes Menit';
+    if (hours > 0) return '$hours Jam';
+    return '$minutes Menit';
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Styles lokal yang dipakai berulang
+    final data = widget.data;
+
+    // Styles
     final dateStyle = GoogleFonts.poppins(
       fontSize: 13,
       fontWeight: FontWeight.w600,
       color: AppColors.textDefaultColor,
     );
+    final timeStyle = GoogleFonts.poppins(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: AppColors.secondTextColor,
+    );
     final labelStyle = GoogleFonts.poppins(
       fontSize: 11,
       fontWeight: FontWeight.w500,
       color: Colors.grey.shade600,
-    );
-    final mentionStyle = GoogleFonts.poppins(
-      color: AppColors.primaryColor,
-      fontWeight: FontWeight.w600,
     );
     final normalStyle = GoogleFonts.poppins(
       fontSize: 13,
@@ -68,10 +90,23 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
       height: 1.5,
     );
 
-    // Spasi kecil antar konten step dan garis
-    const double _gapAfterMulaiContent = 16;
-    final double _lineHeightBetweenSteps =
-        _mulaiBlockHeight + _gapAfterMulaiContent;
+    const double gapAfterMulaiContent = 16;
+    final double lineHeightBetweenSteps =
+        _mulaiBlockHeight + gapAfterMulaiContent;
+
+    final String durationStr = _calculateDuration(
+      data.jamMulai,
+      data.jamSelesai,
+    );
+    final String handoverDesc = MentionParser.convertMarkupToDisplay(
+      data.handover,
+    );
+
+    // Format Jam Izin & Pengganti
+    final String jamIzinRange =
+        "${_fmtTime(data.jamMulai)} - ${_fmtTime(data.jamSelesai)}";
+    final String jamPenggantiRange =
+        "${_fmtTime(data.jamMulaiPengganti)} - ${_fmtTime(data.jamSelesaiPengganti)}";
 
     return Column(
       children: [
@@ -90,7 +125,7 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Kategori: Demam",
+                "Kategori: ${data.kategori.namaKategori}",
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -109,7 +144,7 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Text(
-                  "Total : 1 Hari",
+                  "Durasi : $durationStr",
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -121,13 +156,14 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
           ),
         ),
         const SizedBox(height: 10),
+
         // Tanggal Pengajuan
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              "07 September 2025, 09:00",
+              _fmtDate(data.createdAt, pattern: 'dd MMMM yyyy, HH:mm'),
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -137,38 +173,10 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
           ),
         ),
         const SizedBox(height: 10),
-        // Tanggal Pengajuan
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.calendar_today, size: 15, color: AppColors.hintColor),
-              SizedBox(width: 5),
-              Text(
-                "Jadwal Pengganti :",
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.hintColor,
-                ),
-              ),
-              SizedBox(width: 5),
-              Text(
-                "07 September 2025, 09:00",
-                style: GoogleFonts.poppins(
-                  fontSize: 12.3,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.hintColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
 
+        // Keperluan
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -181,7 +189,7 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                 ),
               ),
               Text(
-                "Saya bermaksud mengajukan cuti dalam rangka pelaksanaan acara pernikahan. Cuti ini diajukan sesuai dengan ketentuan perusahaan yang berlaku. Atas perhatian dan izinnya, saya ucapkan terima kasih.",
+                data.keperluan,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -192,7 +200,7 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
           ),
         ),
 
-        // === KOTAK DETAIL PUTIH (Timeline, Bukti, Approver) ===
+        // === KOTAK DETAIL PUTIH ===
         Container(
           width: 350,
           decoration: const BoxDecoration(
@@ -204,47 +212,41 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // === TIMELINE: EasyStepper (VERTIKAL) + Konten di kanan ===
+                // === TIMELINE ===
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Wajib dalam Row saat vertical (sesuai dokumentasi)
-                    // Stepper hanya menampilkan icon & garis; label+konten kita letakkan di sisi kanan.
+                    // Stepper
                     SizedBox(
-                      width: 36, // lebar kolom untuk stepper
+                      width: 36,
                       child: EasyStepper(
-                        activeStep: 1, // step "SELESAI" dianggap aktif
+                        activeStep: 1,
                         direction: Axis.vertical,
                         showTitle: false,
                         internalPadding: 0,
                         stepRadius: 10,
                         borderThickness: 0.8,
-                        // Warna & ukuran garis antar step
                         lineStyle: LineStyle(
                           lineType: LineType.normal,
                           lineThickness: 2,
                           defaultLineColor: AppColors.errorColor,
                           finishedLineColor: AppColors.errorColor,
                           activeLineColor: AppColors.errorColor,
-                          lineLength:
-                              _lineHeightBetweenSteps, // disamakan dengan tinggi konten "MULAI"
+                          lineLength: lineHeightBetweenSteps,
                         ),
                         steps: [
-                          // Step 0 - MULAI
                           EasyStep(
                             icon: const Icon(
                               Icons.check_circle,
                               color: AppColors.errorColor,
                               size: 20,
                             ),
-                            // Untuk memastikan garis match tinggi konten "MULAI", override dengan customLineWidget
                             customLineWidget: Container(
                               width: 2,
-                              height: _lineHeightBetweenSteps,
+                              height: lineHeightBetweenSteps,
                               color: AppColors.errorColor,
                             ),
                           ),
-                          // Step 1 - SELESAI
                           const EasyStep(
                             icon: Icon(
                               Icons.check_circle,
@@ -262,19 +264,22 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // --- Konten untuk "MULAI" ---
+                          // --- Konten untuk "Jadwal Izin" (Start) ---
                           Container(
                             key: _mulaiKey,
-                            // top label "MULAI" dan tanggal + box handover
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("MULAI", style: labelStyle),
-                                const SizedBox(height: 6),
-                                Text("07 September 2025", style: dateStyle),
+                                Text("Jadwal Izin", style: labelStyle),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _fmtDate(data.tanggalIzin),
+                                  style: dateStyle,
+                                ),
+                                Text(jamIzinRange, style: timeStyle),
                                 const SizedBox(height: 8),
 
-                                // Handover Box (biru)
+                                // Handover Box
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(12),
@@ -300,163 +305,114 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                                       const SizedBox(height: 8),
 
                                       // Chip Mention
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          // Chip 1
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              border: Border.all(
-                                                color: Colors.grey.shade300,
+                                      if (data.handoverUsers.isNotEmpty)
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: data.handoverUsers.map((
+                                            ho,
+                                          ) {
+                                            final user = ho.user;
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                border: Border.all(
+                                                  color: Colors.grey.shade300,
+                                                ),
                                               ),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 12,
-                                                  backgroundColor:
-                                                      Colors.grey.shade200,
-                                                  child: Text(
-                                                    "M",
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 12,
+                                                    backgroundColor:
+                                                        Colors.grey.shade200,
+                                                    backgroundImage:
+                                                        user
+                                                            .fotoProfilUser
+                                                            .isNotEmpty
+                                                        ? NetworkImage(
+                                                            user.fotoProfilUser,
+                                                          )
+                                                        : null,
+                                                    child:
+                                                        user
+                                                            .fotoProfilUser
+                                                            .isEmpty
+                                                        ? Text(
+                                                            user
+                                                                    .namaPengguna
+                                                                    .isNotEmpty
+                                                                ? user.namaPengguna[0]
+                                                                      .toUpperCase()
+                                                                : '?',
+                                                            style:
+                                                                GoogleFonts.poppins(
+                                                                  fontSize: 10,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                ),
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  // === PERBAIKAN: Gunakan Flexible + Ellipsis ===
+                                                  Flexible(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          user.namaPengguna,
+                                                          maxLines:
+                                                              1, // Batasi 1 baris
+                                                          overflow: TextOverflow
+                                                              .ellipsis, // Titik-titik
+                                                          style:
+                                                              GoogleFonts.poppins(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                color: Colors
+                                                                    .black87,
+                                                              ),
+                                                        ),
+                                                        Text(
+                                                          user.role,
+                                                          maxLines:
+                                                              1, // Batasi 1 baris
+                                                          overflow: TextOverflow
+                                                              .ellipsis, // Titik-titik
+                                                          style:
+                                                              GoogleFonts.poppins(
+                                                                fontSize: 10,
+                                                                color: Colors
+                                                                    .black54,
+                                                              ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      "Manik Mahardika",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                            fontSize: 11,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color:
-                                                                Colors.black87,
-                                                          ),
-                                                    ),
-                                                    Text(
-                                                      "Content 1",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                            fontSize: 10,
-                                                            color:
-                                                                Colors.black54,
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          // Chip 2
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              border: Border.all(
-                                                color: Colors.grey.shade300,
+                                                ],
                                               ),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 12,
-                                                  backgroundColor:
-                                                      Colors.grey.shade200,
-                                                  child: Text(
-                                                    "P",
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      "Putri Indah",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                            fontSize: 11,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color:
-                                                                Colors.black87,
-                                                          ),
-                                                    ),
-                                                    Text(
-                                                      "Direktur",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                            fontSize: 10,
-                                                            color:
-                                                                Colors.black54,
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-
-                                      const SizedBox(height: 8),
-
-                                      // Deskripsi Handover
-                                      RichText(
-                                        text: TextSpan(
-                                          style: normalStyle,
-                                          children: [
-                                            const TextSpan(
-                                              text: "handover piket ke ",
-                                            ),
-                                            TextSpan(
-                                              text: "@Ngurah Manik Mahardika",
-                                              style: mentionStyle,
-                                            ),
-                                            const TextSpan(text: " mebantos "),
-                                            const TextSpan(
-                                              text:
-                                                  "titen, handover tim checking ke ",
-                                            ),
-                                            TextSpan(
-                                              text: "@PutriIndah",
-                                              style: mentionStyle,
-                                            ),
-                                            const TextSpan(
-                                              text:
-                                                  " kemudian di pass ke tim rekrutmen ya, sisa pekerjaan seperti email akan di respon hari berikutnya dan recruitment sudah selesai sehari sebelum tanggal due date",
-                                            ),
-                                          ],
+                                            );
+                                          }).toList(),
                                         ),
-                                      ),
+
+                                      if (data.handoverUsers.isNotEmpty)
+                                        const SizedBox(height: 8),
+
+                                      Text(handoverDesc, style: normalStyle),
                                     ],
                                   ),
                                 ),
@@ -464,21 +420,19 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                             ),
                           ),
 
-                          const SizedBox(height: _gapAfterMulaiContent),
+                          const SizedBox(height: gapAfterMulaiContent),
 
-                          // --- Konten untuk "SELESAI" ---
+                          // --- Konten untuk "Jadwal Pengganti" (End) ---
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("SELESAI", style: labelStyle),
-                              const SizedBox(height: 6),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2.0),
-                                child: Text(
-                                  "08 September 2025",
-                                  style: dateStyle,
-                                ),
+                              Text("Jadwal Pengganti", style: labelStyle),
+                              const SizedBox(height: 4),
+                              Text(
+                                _fmtDate(data.tanggalPengganti),
+                                style: dateStyle,
                               ),
+                              Text(jamPenggantiRange, style: timeStyle),
                             ],
                           ),
                         ],
@@ -501,12 +455,32 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                 const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    'lib/assets/image/menu_home/kunjungan.png',
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 180,
-                  ),
+                  child: (data.lampiranIzinJamUrl.isNotEmpty)
+                      ? Image.network(
+                          data.lampiranIzinJamUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 180,
+                          errorBuilder: (ctx, err, stack) => Container(
+                            height: 180,
+                            color: Colors.grey.shade200,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          height: 100,
+                          width: double.infinity,
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: Text(
+                            "Tidak ada lampiran",
+                            style: GoogleFonts.poppins(color: Colors.grey),
+                          ),
+                        ),
                 ),
 
                 const SizedBox(height: 20),
@@ -522,137 +496,93 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                 ),
                 const SizedBox(height: 10),
 
-                // Chip Approver 1 (disetujui)
-                Builder(
-                  builder: (context) {
-                    final isApproved = true; // "disetujui"
-                    final Color backgroundColor = isApproved
-                        ? AppColors.succesColor
-                        : Colors.grey.shade200;
-                    final Color textColor = isApproved
-                        ? Colors.white
-                        : AppColors.textDefaultColor;
+                // List Approval Dinamis
+                if (data.approvals.isEmpty)
+                  Text(
+                    "Belum ada data persetujuan",
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  )
+                else
+                  Column(
+                    children: data.approvals.map((approval) {
+                      final decision = approval.decision.toLowerCase();
+                      bool isApproved =
+                          decision == 'approved' || decision == 'disetujui';
+                      bool isRejected =
+                          decision == 'rejected' || decision == 'ditolak';
 
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 12,
+                      final Color backgroundColor = isApproved
+                          ? AppColors.succesColor
+                          : isRejected
+                          ? AppColors.errorColor
+                          : Colors.grey.shade200;
+                      final Color textColor = (isApproved || isRejected)
+                          ? Colors.white
+                          : AppColors.textDefaultColor;
+
+                      final roleName = approval.approverRole;
+
+                      return Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: backgroundColor,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.person, color: textColor, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                "Ayu HR",
-                                style: GoogleFonts.poppins(
-                                  color: textColor,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.person, color: textColor, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      roleName,
+                                      style: GoogleFonts.poppins(
+                                        color: textColor,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    if (approval.note != null &&
+                                        approval.note!.isNotEmpty)
+                                      Text(
+                                        "Note: ${approval.note}",
+                                        style: GoogleFonts.poppins(
+                                          color: textColor.withOpacity(0.9),
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-                // Chip Approver 2 (menunggu)
-                Builder(
-                  builder: (context) {
-                    final isApproved = false; // "menunggu"
-                    final Color backgroundColor = isApproved
-                        ? AppColors.succesColor
-                        : Colors.grey.shade200;
-                    final Color textColor = isApproved
-                        ? Colors.white
-                        : AppColors.textDefaultColor;
-
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.person, color: textColor, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                "Mesy",
-                                style: GoogleFonts.poppins(
-                                  color: textColor,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
+                              if (approval.decidedAt != null)
+                                Text(
+                                  _fmtDate(
+                                    approval.decidedAt,
+                                    pattern: 'dd/MM',
+                                  ),
+                                  style: GoogleFonts.poppins(
+                                    color: textColor,
+                                    fontSize: 11,
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-
-                // Chip Approver 3 (menunggu)
-                Builder(
-                  builder: (context) {
-                    final isApproved = false; // "menunggu"
-                    final Color backgroundColor = isApproved
-                        ? AppColors.succesColor
-                        : Colors.grey.shade200;
-                    final Color textColor = isApproved
-                        ? Colors.white
-                        : AppColors.textDefaultColor;
-
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.person, color: textColor, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                "Putu Astina",
-                                style: GoogleFonts.poppins(
-                                  color: textColor,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    }).toList(),
+                  ),
               ],
             ),
           ),

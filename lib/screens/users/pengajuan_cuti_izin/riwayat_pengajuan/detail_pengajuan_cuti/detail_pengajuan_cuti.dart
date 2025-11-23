@@ -75,7 +75,11 @@ class _DetailPengajuanCutiState extends State<DetailPengajuanCuti> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: ContentDetailCuti(),
+                          child: (widget.pengajuan != null)
+                              ? ContentDetailCuti(data: widget.pengajuan!)
+                              : const Center(
+                                  child: Text("Data tidak ditemukan"),
+                                ),
                         ),
                       ],
                     ),

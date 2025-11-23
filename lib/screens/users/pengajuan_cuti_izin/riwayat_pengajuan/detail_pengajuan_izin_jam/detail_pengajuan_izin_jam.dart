@@ -73,7 +73,13 @@ class _DetailPengajuanIzinJamState extends State<DetailPengajuanIzinJam> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.secondaryColor),
                           ),
-                          child: ContentDetailIzinJam(),
+                          child: (widget.pengajuan != null)
+                              ? ContentDetailIzinJam(
+                                  data: widget.pengajuan!,
+                                ) // <-- KIRIM DATA DI SINI
+                              : const Center(
+                                  child: Text("Data tidak ditemukan"),
+                                ),
                         ),
                       ],
                     ),

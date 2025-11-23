@@ -1,7 +1,15 @@
-// ignore_for_file: deprecated_member_use
+// lib/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/widget/content_riwayat_pengajuan.dart
+
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
+// Import Provider untuk akses fungsi delete
+import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
+import 'package:e_hrm/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart';
+import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
+import 'package:e_hrm/providers/pengajuan_sakit/pengajuan_sakit_provider.dart';
+
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_izin_tukar_hari/detail_pengajuan_izin_tukar_hari.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/detail_pengajuan_cuti.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_izin_jam/detail_pengajuan_izin_jam.dart';
@@ -35,6 +43,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     Widget Function(RiwayatPengajuanItem item)
   >
   _editRoutes;
+
   final List<String> _itemsPengajuan = [
     'Semua',
     'Cuti',
@@ -42,12 +51,14 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     'Sakit',
     'Tukar Hari',
   ];
+
   final List<String> _itemsStatus = [
     'Semua',
     'Menunggu',
     'Disetujui',
     'Ditolak',
   ];
+
   String? _selectedValuePengajuan;
   String? _selectedValueStatus;
   late Future<void> _loadFuture;
@@ -76,7 +87,10 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
       RiwayatPengajuanType.sakit: (item) =>
           PengajuanIzinSakitScreen(initialPengajuan: item.sakitData),
     };
+
     _selectedValuePengajuan = _itemsPengajuan.first;
+    _selectedValueStatus = _itemsStatus.first;
+
     _loadFuture = Future.value();
     _scheduleFetch();
   }
@@ -91,7 +105,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   void _scheduleFetch() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-
       setState(() {
         _loadFuture = _fetchRiwayat();
       });
@@ -103,7 +116,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
       if (jenis != null) _selectedValuePengajuan = jenis;
       if (status != null) _selectedValueStatus = status;
     });
-
     _scheduleFetch();
   }
 
@@ -134,11 +146,24 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     return status;
   }
 
+  String _resolveTitle(String jenisPengajuan) {
+    final lower = jenisPengajuan.toLowerCase();
+    if (lower.contains('tukar') || lower.contains('hari')) {
+      return 'Izin Tukar Hari';
+    } else if (lower.contains('cuti')) {
+      return 'Cuti';
+    } else if (lower.contains('jam')) {
+      return 'Izin Jam';
+    } else if (lower.contains('sakit')) {
+      return 'Izin Sakit';
+    }
+    return jenisPengajuan;
+  }
+
   void _openDetail(RiwayatPengajuanItem item) {
     final type = item.resolvedType;
     final builder = _detailRoutes[type];
     if (builder == null) return;
-
     Navigator.push(context, MaterialPageRoute(builder: (_) => builder(item)));
   }
 
@@ -146,16 +171,111 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     final type = item.resolvedType;
     final builder = _editRoutes[type];
     if (builder == null) return;
-
     Navigator.push(context, MaterialPageRoute(builder: (_) => builder(item)));
+  }
+
+  // --- FUNGSI HAPUS ---
+  Future<void> _handleDelete(RiwayatPengajuanItem item) async {
+    // 1. Tampilkan Dialog Konfirmasi
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi Hapus'),
+        content: const Text('Apakah Anda yakin ingin menghapus pengajuan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    bool success = false;
+    final ctx = context; // Simpan context
+
+    // Tampilkan loading sementara
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      const SnackBar(
+        content: Text('Sedang menghapus...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    try {
+      // 2. Panggil fungsi delete provider sesuai tipe
+      switch (item.resolvedType) {
+        case RiwayatPengajuanType.cuti:
+          success = await ctx.read<PengajuanCutiProvider>().deletePengajuan(
+            item.id,
+          );
+          break;
+        case RiwayatPengajuanType.izinJam:
+          success = await ctx.read<PengajuanIzinJamProvider>().deletePengajuan(
+            item.id,
+          );
+          break;
+        case RiwayatPengajuanType.tukarHari:
+          success = await ctx
+              .read<PengajuanIzinTukarHariProvider>()
+              .deletePengajuan(item.id);
+          break;
+        case RiwayatPengajuanType.sakit:
+          success = await ctx.read<PengajuanSakitProvider>().deletePengajuan(
+            item.id,
+          );
+          break;
+      }
+
+      if (!mounted) return;
+
+      // 3. Refresh Data jika Berhasil
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengajuan berhasil dihapus'),
+            backgroundColor: AppColors.succesColor,
+          ),
+        );
+        // Panggil ulang data agar list terupdate
+        _scheduleFetch();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal menghapus pengajuan'),
+            backgroundColor: AppColors.errorColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+          backgroundColor: AppColors.errorColor,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        CalendarRiwayatPengajuan(),
-        SizedBox(height: 20),
+        Consumer<RiwayatPengajuanProvider>(
+          builder: (context, provider, _) {
+            return CalendarRiwayatPengajuan(items: provider.items);
+          },
+        ),
+        const SizedBox(height: 20),
+
+        // Filter Dropdowns
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
@@ -196,6 +316,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                 ),
               ),
               const SizedBox(width: 10),
+
               Expanded(
                 flex: 2,
                 child: Container(
@@ -233,22 +354,30 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
             ],
           ),
         ),
-        SizedBox(height: 20),
+
+        const SizedBox(height: 20),
+
+        // List Riwayat
         FutureBuilder<void>(
           future: _loadFuture,
           builder: (context, snapshot) {
             return Consumer<RiwayatPengajuanProvider>(
               builder: (context, provider, _) {
-                if (provider.loading) {
-                  return const Center(child: CircularProgressIndicator());
+                // Hanya tampilkan spinner jika list kosong (initial load)
+                if (provider.loading && provider.items.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 50),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
                 }
 
-                if (provider.error != null) {
+                if (provider.error != null && provider.items.isEmpty) {
                   return Column(
                     children: [
                       Text(
                         provider.error!,
                         style: GoogleFonts.poppins(color: Colors.red),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton(
@@ -264,10 +393,13 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                 }
 
                 if (provider.items.isEmpty) {
-                  return Text(
-                    'Belum ada riwayat pengajuan.',
-                    style: GoogleFonts.poppins(
-                      color: AppColors.textDefaultColor,
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 50),
+                    child: Text(
+                      'Belum ada riwayat pengajuan.',
+                      style: GoogleFonts.poppins(
+                        color: AppColors.textDefaultColor,
+                      ),
                     ),
                   );
                 }
@@ -281,7 +413,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                         vertical: 6.0,
                       ),
                       child: RiwayatItemCard(
-                        title: item.jenisPengajuan,
+                        title: _resolveTitle(item.jenisPengajuan),
                         tanggalMulai:
                             'Mulai : ${_formatDate(item.tanggalMulai)}',
                         tanggalBerakhir:
@@ -291,7 +423,8 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                         statusBackgroundColor: statusColor.withOpacity(0.2),
                         borderColor: statusColor,
                         onEditPressed: () => _openEdit(item),
-                        onDeletePressed: () {},
+                        onDeletePressed: () =>
+                            _handleDelete(item), // <-- PASANG FUNGSI DELETE
                         onDetailPressed: () => _openDetail(item),
                       ),
                     );
@@ -362,6 +495,7 @@ class RiwayatItemCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              // Tombol Edit/Delete hanya muncul jika Status == "Menunggu"
               if (statusText == "Menunggu")
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -381,7 +515,7 @@ class RiwayatItemCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     InkWell(
-                      onTap: onDeletePressed,
+                      onTap: onDeletePressed, // <-- Panggil callback
                       customBorder: const CircleBorder(),
                       child: const CircleAvatar(
                         backgroundColor: AppColors.backgroundColor,

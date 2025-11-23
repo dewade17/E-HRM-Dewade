@@ -710,4 +710,24 @@ class PengajuanCutiProvider extends ChangeNotifier {
     final dynamic message = response['message'] ?? response['msg'];
     return message is String ? message : null;
   }
+
+  Future<bool> deletePengajuan(String id) async {
+    _startSaving(); // Set saving = true
+    try {
+      final uri = '${Endpoints.pengajuanCuti}/$id';
+      await _api.deleteDataPrivate(uri);
+
+      _removeItem(id); // Hapus dari list lokal
+      _finishSaving(message: 'Pengajuan cuti berhasil dihapus.');
+      return true;
+    } catch (e) {
+      _finishSaving(error: e.toString());
+      return false;
+    }
+  }
+
+  // Pastikan _removeItem ada atau tambahkan ini:
+  void _removeItem(String id) {
+    items.removeWhere((item) => item.idPengajuanCuti == id);
+  }
 }

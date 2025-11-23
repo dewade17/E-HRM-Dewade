@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -9,11 +10,13 @@ import 'package:table_calendar/table_calendar.dart';
 class CalendarRiwayatPengajuan extends StatefulWidget {
   final DateTime? selectedDay;
   final ValueChanged<DateTime?>? onDaySelected;
+  final List<RiwayatPengajuanItem> items; // Data pengajuan masuk di sini
 
   const CalendarRiwayatPengajuan({
     super.key,
     this.selectedDay,
     this.onDaySelected,
+    this.items = const [], // Default kosong
   });
 
   @override
@@ -35,6 +38,7 @@ class _CalendarRiwayatPengajuanState extends State<CalendarRiwayatPengajuan>
   void initState() {
     super.initState();
     _focused = DateTime.now();
+    _selected = widget.selectedDay;
   }
 
   @override
@@ -56,8 +60,34 @@ class _CalendarRiwayatPengajuanState extends State<CalendarRiwayatPengajuan>
   }
 
   String get _bulanTahun => DateFormat.yMMMM('id_ID').format(_focused);
+
+  // Helper untuk membersihkan jam (hanya tanggal)
   DateTime _normalize(DateTime date) =>
       DateTime(date.year, date.month, date.day);
+
+  // Logika untuk menentukan event/marker pada tanggal tertentu
+  List<RiwayatPengajuanItem> _getEventsForDay(DateTime day) {
+    final normalizedDay = _normalize(day);
+    final events = <RiwayatPengajuanItem>[];
+
+    for (final item in widget.items) {
+      if (item.tanggalMulai == null) continue;
+
+      final start = _normalize(item.tanggalMulai!);
+      final end = item.tanggalBerakhir != null
+          ? _normalize(item.tanggalBerakhir!)
+          : start;
+
+      // Cek apakah hari ini berada dalam rentang pengajuan
+      if ((normalizedDay.isAtSameMomentAs(start) ||
+              normalizedDay.isAfter(start)) &&
+          (normalizedDay.isAtSameMomentAs(end) ||
+              normalizedDay.isBefore(end))) {
+        events.add(item);
+      }
+    }
+    return events;
+  }
 
   void _goPrev() {
     final previousMonth = DateTime(_focused.year, _focused.month - 1, 1);
@@ -103,13 +133,12 @@ class _CalendarRiwayatPengajuanState extends State<CalendarRiwayatPengajuan>
                   ),
                   Expanded(
                     child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center, // Ini kuncinya!
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.calendar_month),
                         const SizedBox(width: 8),
                         Text(
-                          _bulanTahun, // contoh: "September 2025"
+                          _bulanTahun,
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -148,13 +177,17 @@ class _CalendarRiwayatPengajuanState extends State<CalendarRiwayatPengajuan>
                     ),
                     child: Material(
                       color: Colors.transparent,
-                      child: TableCalendar<void>(
+                      child: TableCalendar<RiwayatPengajuanItem>(
                         firstDay: _firstDay,
                         lastDay: _lastDay,
                         focusedDay: _focused,
                         selectedDayPredicate: (day) =>
                             isSameDay(_selected, day),
                         locale: 'id_ID',
+
+                        // [PENTING] Ini yang memunculkan marker
+                        eventLoader: _getEventsForDay,
+
                         calendarFormat: CalendarFormat.month,
                         availableCalendarFormats: const {
                           CalendarFormat.month: 'Bulan',
@@ -179,6 +212,13 @@ class _CalendarRiwayatPengajuanState extends State<CalendarRiwayatPengajuan>
                             color: AppColors.secondaryColor,
                             shape: BoxShape.circle,
                           ),
+                          // Kustomisasi tampilan marker (titik)
+                          markerDecoration: BoxDecoration(
+                            color: AppColors.primaryColor, // Warna titik
+                            shape: BoxShape.circle,
+                          ),
+                          markersMaxCount:
+                              1, // Maksimal 1 titik per hari agar rapi
                         ),
                         onCalendarCreated: (controller) {
                           _pageController = controller;

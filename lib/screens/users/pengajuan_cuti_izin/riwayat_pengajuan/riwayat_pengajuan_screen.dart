@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/widget/content_riwayat_pengajuan.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class RiwayatPengajuanScreen extends StatefulWidget {
   const RiwayatPengajuanScreen({super.key});
@@ -11,6 +13,13 @@ class RiwayatPengajuanScreen extends StatefulWidget {
 }
 
 class _RiwayatPengajuanScreenState extends State<RiwayatPengajuanScreen> {
+  // Fungsi ini dipanggil saat user menarik layar (pull-to-refresh)
+  Future<void> _onRefresh() async {
+    // Memanggil fetch ulang dari provider.
+    // Parameter kosong artinya menggunakan filter yang terakhir aktif di provider.
+    await context.read<RiwayatPengajuanProvider>().fetch();
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -23,7 +32,7 @@ class _RiwayatPengajuanScreenState extends State<RiwayatPengajuanScreen> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // BG ikon samar di tengah
+          // --- Background Image ---
           Positioned.fill(
             child: IgnorePointer(
               ignoring: true,
@@ -49,25 +58,31 @@ class _RiwayatPengajuanScreenState extends State<RiwayatPengajuanScreen> {
             ),
           ),
 
+          // --- Konten Utama ---
           Positioned.fill(
             child: SafeArea(
               // top/bottom tetap aman, kiri/kanan edge-to-edge
               left: false,
               right: false,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(15, 20, 15, 24),
-                child: Stack(
-                  //saya ingin
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [ContentRiwayatPengajuan()],
-                    ),
-                  ],
+              // RefreshIndicator ditempatkan di sini sebagai parent dari ScrollView
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: SingleChildScrollView(
+                  // AlwaysScrollableScrollPhysics PENTING agar bisa di-refresh
+                  // meskipun kontennya sedikit (tidak memenuhi layar)
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  // full width secara horizontal
+                  padding: const EdgeInsets.fromLTRB(15, 20, 15, 24),
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [ContentRiwayatPengajuan()],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

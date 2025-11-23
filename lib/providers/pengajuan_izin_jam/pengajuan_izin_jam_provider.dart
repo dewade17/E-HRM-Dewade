@@ -572,4 +572,19 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
     final dynamic message = response['message'] ?? response['msg'];
     return message is String ? message : null;
   }
+
+  Future<bool> deletePengajuan(String id) async {
+    _startSaving();
+    try {
+      // Menggunakan endpoint detail yang sudah ada
+      await _api.deleteDataPrivate(Endpoints.pengajuanIzinJamDetail(id));
+
+      items.removeWhere((item) => item.idPengajuanIzinJam == id);
+      _finishSaving(message: 'Pengajuan izin jam berhasil dihapus.');
+      return true;
+    } catch (e) {
+      _finishSaving(error: e.toString());
+      return false;
+    }
+  }
 }

@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart'; // Import Provider Konfigurasi
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/content_tambah_pengajuan.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Import Package Provider
 
 class TambahPengajuanScreen extends StatefulWidget {
   const TambahPengajuanScreen({super.key});
@@ -10,6 +12,12 @@ class TambahPengajuanScreen extends StatefulWidget {
 }
 
 class _TambahPengajuanScreenState extends State<TambahPengajuanScreen> {
+  // Fungsi untuk refresh data (misal: sisa kuota cuti)
+  Future<void> _onRefresh() async {
+    // Menggunakan method refresh() yang sudah ada di provider untuk memuat ulang data terakhir
+    await context.read<KonfigurasiCutiProvider>().refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -53,20 +61,24 @@ class _TambahPengajuanScreenState extends State<TambahPengajuanScreen> {
               // top/bottom tetap aman, kiri/kanan edge-to-edge
               left: false,
               right: false,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
-                child: Stack(
-                  //saya ingin
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [ContentTambahPengajuan()],
-                    ),
-                  ],
+              // Bungkus SingleChildScrollView dengan RefreshIndicator
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  // full width secara horizontal
+                  padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
+                  child: Stack(
+                    //saya ingin
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [ContentTambahPengajuan()],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

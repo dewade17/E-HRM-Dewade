@@ -14,10 +14,10 @@ import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/providers/location/location_provider.dart';
 import 'package:e_hrm/providers/notifications/notifications_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
+import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/kategori_pengajuan_sakit_provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_jam/kategori_izin_jam.dart';
 import 'package:e_hrm/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart';
-
 import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/pengajuan_sakit_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
@@ -48,17 +48,13 @@ import 'firebase_options.dart';
 import 'package:flutter_portal/flutter_portal.dart';
 
 Future<void> main() async {
-  // Pastikan binding Flutter siap
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inisialisasi Firebase sebagai langkah pertama
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Inisialisasi data locale (Indonesia)
   await initializeDateFormatting('id_ID', null);
   Intl.defaultLocale = 'id_ID';
 
-  // Setelah Firebase siap, baru inisialisasi handler notifikasi
   await NotificationHandler().init();
 
   runApp(const MyApp());
@@ -96,6 +92,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => KategoriPengajuanSakitProvider()),
         ChangeNotifierProvider(create: (_) => PengajuanSakitProvider()),
         ChangeNotifierProvider(create: (_) => RiwayatPengajuanProvider()),
+        ChangeNotifierProvider(create: (_) => PengajuanCutiProvider()),
       ],
       child: Portal(
         child: MaterialApp(
@@ -116,10 +113,8 @@ class MyApp extends StatelessWidget {
             '/home-screen': (context) => AuthWrapper(child: const HomeScreen()),
             '/profile-screen': (context) =>
                 AuthWrapper(child: const ProfileScreen()),
-            // Route for face enrollment. Pass the userId via RouteSettings arguments.
             '/face-enroll': (context) {
               final args = ModalRoute.of(context)?.settings.arguments;
-              // Expecting a String userId; if missing, fallback to empty string to avoid crash.
               final userId = (args is String) ? args : '';
               return AuthWrapper(child: FaceEnrollScreen(userId: userId));
             },

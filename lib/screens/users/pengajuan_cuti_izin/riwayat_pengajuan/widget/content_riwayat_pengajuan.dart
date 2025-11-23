@@ -146,6 +146,34 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     return status;
   }
 
+  Widget Function(RiwayatPengajuanItem item)? _resolveDetailBuilder(
+    RiwayatPengajuanItem item,
+  ) {
+    final resolvedBuilder = _detailRoutes[item.resolvedType];
+    if (resolvedBuilder != null) return resolvedBuilder;
+
+    final jenisLower = item.jenisPengajuan.toLowerCase();
+
+    if (jenisLower.contains('hari')) {
+      return (currentItem) =>
+          DetailPengajuanIzinTukarHari(pengajuan: currentItem.tukarHariData);
+    }
+    if (jenisLower.contains('jam')) {
+      return (currentItem) =>
+          DetailPengajuanIzinJam(pengajuan: currentItem.izinJamData);
+    }
+    if (jenisLower.contains('cuti')) {
+      return (currentItem) =>
+          DetailPengajuanCuti(pengajuan: currentItem.cutiData);
+    }
+    if (jenisLower.contains('sakit')) {
+      return (currentItem) =>
+          DetailPengajuanSakit(pengajuan: currentItem.sakitData);
+    }
+
+    return null;
+  }
+
   String _resolveTitle(String jenisPengajuan) {
     final lower = jenisPengajuan.toLowerCase();
     if (lower.contains('tukar') || lower.contains('hari')) {
@@ -168,8 +196,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   }
 
   void _openEdit(RiwayatPengajuanItem item) {
-    final type = item.resolvedType;
-    final builder = _editRoutes[type];
+    final builder = _resolveDetailBuilder(item);
     if (builder == null) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => builder(item)));
   }

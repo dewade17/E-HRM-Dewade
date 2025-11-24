@@ -1,4 +1,5 @@
 // lib/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart
+
 import 'package:flutter/foundation.dart';
 
 import 'package:e_hrm/contraints/endpoints.dart';
@@ -63,21 +64,60 @@ class KonfigurasiCutiProvider extends ChangeNotifier {
   bool isValidMonth(String value) =>
       _validMonths.contains(value.trim().toUpperCase());
 
-  // --- LOGIKA BARU PINDAHAN DARI FORM (SARAN #2) ---
+  // --- PERBAIKAN LOGIKA availableQuota DENGAN DEBUG ---
 
-  /// Menghitung total kuota yang tersedia (cuti + tabung jika aktif)
+  /// Menghitung total kuota yang tersedia (cuti + tabung jika aktif) untuk BULAN INI.
   /// Mengembalikan null jika data belum dimuat.
   int? get availableQuota {
-    if (items.isEmpty) return null;
+    if (items.isEmpty) {
+      if (kDebugMode) print('[DEBUG QUOTA] Items list is EMPTY.');
+      return null;
+    }
 
-    final latestData = items.last;
+    // 1. Dapatkan nama bulan saat ini dalam Bahasa Indonesia (Uppercase) sesuai format backend
+    final now = DateTime.now();
+    // month is 1-12, array index is 0-11
+    final String currentMonthName = availableMonths[now.month - 1];
+
+    if (kDebugMode) {
+      print('[DEBUG QUOTA] Current Month Name: $currentMonthName');
+      print('[DEBUG QUOTA] Total items loaded: ${items.length}');
+    }
+
+    // 2. Cari data konfigurasi yang cocok dengan bulan ini
+    //    items.firstWhere akan mencari item dengan nama bulan yang sama.
+    //    orElse: () => items.last digunakan sebagai fallback aman jika data bulan ini belum ada.
+    final konfigurasi.Data currentMonthData = items.firstWhere(
+      (item) => item.bulan.trim().toUpperCase() == currentMonthName,
+      orElse: () {
+        if (kDebugMode)
+          print(
+            '[DEBUG QUOTA] Data for $currentMonthName NOT FOUND. Using items.last.',
+          );
+        return items.last;
+      },
+    );
+
     final String rawStatus = statusCuti?.trim().toLowerCase() ?? '';
     final bool statusActive = rawStatus == 'aktif';
 
-    int available = latestData.koutaCuti;
-    if (statusActive) {
-      available += latestData.cutiTabung;
+    int available = currentMonthData.koutaCuti;
+
+    if (kDebugMode) {
+      print('[DEBUG QUOTA] Found Data for Month: ${currentMonthData.bulan}');
+      print('[DEBUG QUOTA] Kouta Cuti (Raw): ${currentMonthData.koutaCuti}');
+      print('[DEBUG QUOTA] Cuti Tabung: ${currentMonthData.cutiTabung}');
+      print('[DEBUG QUOTA] Status Cuti: $rawStatus (Active: $statusActive)');
     }
+
+    if (statusActive) {
+      available += currentMonthData.cutiTabung;
+    }
+
+    if (kDebugMode) {
+      print('[DEBUG QUOTA] FINAL AVAILABLE: $available');
+    }
+
     return available;
   }
 
@@ -96,8 +136,7 @@ class KonfigurasiCutiProvider extends ChangeNotifier {
     final int remaining = currentAvailable - selectedDaysCount;
     return remaining > 0 ? remaining : 0;
   }
-
-  // --- AKHIR LOGIKA BARU ---
+  // --- AKHIR PERBAIKAN ---
 
   Future<bool> fetch({String? idUser, Iterable<String>? months}) async {
     final resolvedUserId = await _resolveUserId(idUser);
@@ -148,6 +187,8 @@ class KonfigurasiCutiProvider extends ChangeNotifier {
         final List<konfigurasi.Data> sortedData = List<konfigurasi.Data>.from(
           parsed.data,
         );
+
+        // Sorting bulan dari Januari -> Desember
         sortedData.sort((konfigurasi.Data a, konfigurasi.Data b) {
           final int indexA =
               _monthOrder[a.bulan.trim().toUpperCase()] ??

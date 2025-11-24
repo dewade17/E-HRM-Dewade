@@ -1,4 +1,6 @@
 // lib/shared_widget/file_picker_field_widget.dart
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
@@ -288,8 +290,9 @@ class FilePickerFieldWidget extends StatelessWidget {
                                     fit: BoxFit.cover,
                                     loadingBuilder:
                                         (context, child, loadingProgress) {
-                                          if (loadingProgress == null)
+                                          if (loadingProgress == null) {
                                             return child;
+                                          }
                                           return const Center(
                                             child: CircularProgressIndicator(),
                                           );

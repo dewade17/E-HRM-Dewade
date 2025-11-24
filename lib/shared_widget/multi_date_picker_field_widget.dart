@@ -1,4 +1,6 @@
 // lib/shared_widget/multi_date_picker_field_widget.dart
+// ignore_for_file: unintended_html_in_doc_comment
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';

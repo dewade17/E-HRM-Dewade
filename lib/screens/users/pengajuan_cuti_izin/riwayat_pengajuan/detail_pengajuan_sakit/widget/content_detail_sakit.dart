@@ -1,6 +1,4 @@
-// lib/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_sakit/widget/content_detail_sakit.dart
-
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart' as dto;
@@ -53,7 +51,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
   Widget build(BuildContext context) {
     final data = widget.data;
 
-    // Styles
     final dateStyle = GoogleFonts.poppins(
       fontSize: 13,
       fontWeight: FontWeight.w600,
@@ -63,11 +60,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
       fontSize: 11,
       fontWeight: FontWeight.w500,
       color: Colors.grey.shade600,
-    );
-    // ignore: unused_local_variable
-    final mentionStyle = GoogleFonts.poppins(
-      color: AppColors.primaryColor,
-      fontWeight: FontWeight.w600,
     );
     final normalStyle = GoogleFonts.poppins(
       fontSize: 13,
@@ -83,14 +75,12 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
       data.handover,
     );
 
-    // Data Sakit biasanya 1 hari per pengajuan berdasarkan tanggal pengajuan
     final DateTime? tglSakit = data.tanggalPengajuan;
 
     return Column(
       children: [
         const SizedBox(height: 20),
 
-        // === KOTAK INFO BIRU (Kategori & Durasi) ===
         Container(
           width: 350,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -122,7 +112,7 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Text(
-                  "Total : 1 Hari", // Asumsi sakit per pengajuan = 1 hari (sesuai form)
+                  "Total : 1 Hari",
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -135,7 +125,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
         ),
         const SizedBox(height: 10),
 
-        // Tanggal Pengajuan (Created At)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Align(
@@ -150,35 +139,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-
-        // Kategori Sakit
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Kategori :",
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
-                ),
-              ),
-              Text(
-                data.kategori?.namaKategori ?? '-',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // === KOTAK DETAIL PUTIH ===
         Container(
           width: 350,
           decoration: const BoxDecoration(
@@ -190,11 +150,9 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // === TIMELINE ===
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Stepper
                     SizedBox(
                       width: 36,
                       child: EasyStepper(
@@ -237,12 +195,10 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                     ),
                     const SizedBox(width: 12),
 
-                    // Konten tiap step
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // --- Konten untuk "MULAI" (Handover) ---
                           Container(
                             key: _mulaiKey,
                             child: Column(
@@ -253,7 +209,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                                 Text(_fmtDate(tglSakit), style: dateStyle),
                                 const SizedBox(height: 8),
 
-                                // Handover Box
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(12),
@@ -278,7 +233,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                                       ),
                                       const SizedBox(height: 8),
 
-                                      // Chip Mention
                                       if (data.handoverUsers.isNotEmpty)
                                         Wrap(
                                           spacing: 8,
@@ -287,7 +241,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                                             ho,
                                           ) {
                                             final user = ho.user;
-                                            // Handle null user safely
                                             if (user == null) {
                                               return const SizedBox.shrink();
                                             }
@@ -343,7 +296,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                                                         : null,
                                                   ),
                                                   const SizedBox(width: 6),
-                                                  // === FIX: Gunakan Flexible dan TextOverflow ===
                                                   Flexible(
                                                     child: Column(
                                                       crossAxisAlignment:
@@ -366,7 +318,10 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                                                               ),
                                                         ),
                                                         Text(
-                                                          user.role,
+                                                          user
+                                                                  .departement
+                                                                  ?.namaDepartement ??
+                                                              '-',
                                                           maxLines: 1,
                                                           overflow: TextOverflow
                                                               .ellipsis,
@@ -399,7 +354,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
 
                           const SizedBox(height: gapAfterMulaiContent),
 
-                          // --- Konten untuk "SELESAI" ---
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -408,9 +362,7 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                               Padding(
                                 padding: const EdgeInsets.only(top: 2.0),
                                 child: Text(
-                                  _fmtDate(
-                                    tglSakit,
-                                  ), // Tanggal selesai sama dengan mulai
+                                  _fmtDate(tglSakit),
                                   style: dateStyle,
                                 ),
                               ),
@@ -424,7 +376,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
 
                 const SizedBox(height: 20),
 
-                // === Bukti Pengajuan ===
                 Text(
                   "Bukti Pengajuan",
                   style: GoogleFonts.poppins(
@@ -466,7 +417,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
 
                 const SizedBox(height: 20),
 
-                // === Status Persetujuan ===
                 Text(
                   "Status Persetujuan",
                   style: GoogleFonts.poppins(
@@ -477,7 +427,6 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                 ),
                 const SizedBox(height: 10),
 
-                // List Approval Dinamis
                 if (data.approvals.isEmpty)
                   Text(
                     "Belum ada data persetujuan",
@@ -504,7 +453,11 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                           ? Colors.white
                           : AppColors.textDefaultColor;
 
-                      final roleName = approval.approverRole ?? 'Approver';
+                      final String displayLabel = (approval.approver != null)
+                          ? approval.approver!.namaPengguna
+                          : (approval.approverRole.isNotEmpty)
+                          ? approval.approverRole
+                          : "Approver";
 
                       return Container(
                         width: double.infinity,
@@ -527,7 +480,7 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      roleName,
+                                      displayLabel,
                                       style: GoogleFonts.poppins(
                                         color: textColor,
                                         fontWeight: FontWeight.w500,

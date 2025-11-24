@@ -1,13 +1,5 @@
-// lib/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart
 import 'dart:convert';
 
-PengajuanIzinJam pengajuanIzinJamFromJson(String str) =>
-    PengajuanIzinJam.fromJson(json.decode(str));
-
-String pengajuanIzinJamToJson(PengajuanIzinJam data) =>
-    json.encode(data.toJson());
-
-// --- FUNGSI HELPER BARU ---
 DateTime? _parseDateTime(dynamic value) {
   if (value == null) return null;
   if (value is DateTime) return value;
@@ -25,38 +17,11 @@ int? _parseInt(dynamic value) {
   return null;
 }
 
-List<HandoverUser> _parseHandoverUsers(dynamic raw) {
-  if (raw is List) {
-    return raw
-        .map((x) {
-          try {
-            return HandoverUser.fromJson(x as Map<String, dynamic>);
-          } catch (e) {
-            return null;
-          }
-        })
-        .whereType<HandoverUser>()
-        .toList();
-  }
-  return <HandoverUser>[]; // Selalu kembalikan list, bukan null
-}
+PengajuanIzinJam pengajuanIzinJamFromJson(String str) =>
+    PengajuanIzinJam.fromJson(json.decode(str));
 
-List<Approval> _parseApprovals(dynamic raw) {
-  if (raw is List) {
-    return raw
-        .map((x) {
-          try {
-            return Approval.fromJson(x as Map<String, dynamic>);
-          } catch (e) {
-            return null;
-          }
-        })
-        .whereType<Approval>()
-        .toList();
-  }
-  return <Approval>[]; // Selalu kembalikan list, bukan null
-}
-// --- AKHIR FUNGSI HELPER ---
+String pengajuanIzinJamToJson(PengajuanIzinJam data) =>
+    json.encode(data.toJson());
 
 class PengajuanIzinJam {
   bool ok;
@@ -67,10 +32,11 @@ class PengajuanIzinJam {
 
   factory PengajuanIzinJam.fromJson(Map<String, dynamic> json) =>
       PengajuanIzinJam(
-        ok: json["ok"] ?? false, // Tambahkan fallback
+        ok: json["ok"] ?? false,
         data: List<Data>.from(
-          (json["data"] as List? ?? []) // Jaga dari list null
-              .map((x) => Data.fromJson(x as Map<String, dynamic>)),
+          (json["data"] as List? ?? []).map(
+            (x) => Data.fromJson(x as Map<String, dynamic>),
+          ),
         ),
         meta: Meta.fromJson(json["meta"] as Map<String, dynamic>? ?? {}),
       );
@@ -86,22 +52,22 @@ class Data {
   String idPengajuanIzinJam;
   String idUser;
   String idKategoriIzinJam;
-  DateTime? tanggalIzin; // <-- DIUBAH JADI NULLABLE
-  DateTime? jamMulai; // <-- DIUBAH JADI NULLABLE
-  DateTime? jamSelesai; // <-- DIUBAH JADI NULLABLE
-  DateTime? tanggalPengganti; // <-- DIUBAH JADI NULLABLE
-  DateTime? jamMulaiPengganti; // <-- DIUBAH JADI NULLABLE
-  DateTime? jamSelesaiPengganti; // <-- DIUBAH JADI NULLABLE
+  DateTime? tanggalIzin;
+  DateTime? jamMulai;
+  DateTime? jamSelesai;
+  DateTime? tanggalPengganti;
+  DateTime? jamMulaiPengganti;
+  DateTime? jamSelesaiPengganti;
   String keperluan;
   String handover;
   String lampiranIzinJamUrl;
   String status;
-  int? currentLevel; // <-- DIUBAH JADI NULLABLE
+  int? currentLevel;
   String jenisPengajuan;
-  DateTime? createdAt; // <-- DIUBAH JADI NULLABLE
-  DateTime? updatedAt; // <-- DIUBAH JADI NULLABLE
+  DateTime? createdAt;
+  DateTime? updatedAt;
   dynamic deletedAt;
-  DataUser user;
+  User user;
   Kategori kategori;
   List<HandoverUser> handoverUsers;
   List<Approval> approvals;
@@ -145,17 +111,21 @@ class Data {
     handover: json["handover"] ?? '',
     lampiranIzinJamUrl: json["lampiran_izin_jam_url"] ?? '',
     status: json["status"] ?? 'pending',
-    currentLevel: _parseInt(json["current_level"]), // <-- PERBAIKAN
+    currentLevel: _parseInt(json["current_level"]),
     jenisPengajuan: json["jenis_pengajuan"] ?? '',
-    createdAt: _parseDateTime(json["created_at"]), // <-- PERBAIKAN
-    updatedAt: _parseDateTime(json["updated_at"]), // <-- PERBAIKAN
+    createdAt: _parseDateTime(json["created_at"]),
+    updatedAt: _parseDateTime(json["updated_at"]),
     deletedAt: json["deleted_at"],
-    user: DataUser.fromJson(json["user"] as Map<String, dynamic>? ?? {}),
+    user: User.fromJson(json["user"] as Map<String, dynamic>? ?? {}),
     kategori: Kategori.fromJson(
       json["kategori"] as Map<String, dynamic>? ?? {},
     ),
-    handoverUsers: _parseHandoverUsers(json["handover_users"]), // <-- PERBAIKAN
-    approvals: _parseApprovals(json["approvals"]), // <-- PERBAIKAN
+    handoverUsers: (json["handover_users"] as List? ?? [])
+        .map((x) => HandoverUser.fromJson(x as Map<String, dynamic>))
+        .toList(),
+    approvals: (json["approvals"] as List? ?? [])
+        .map((x) => Approval.fromJson(x as Map<String, dynamic>))
+        .toList(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -190,8 +160,9 @@ class Approval {
   dynamic approverUserId;
   String approverRole;
   String decision;
-  DateTime? decidedAt; // <-- DIUBAH JADI NULLABLE
-  String? note; // <-- DIUBAH JADI STRING NULLABLE
+  DateTime? decidedAt;
+  String? note;
+  User? approver;
 
   Approval({
     required this.idApprovalPengajuanIzinJam,
@@ -201,16 +172,18 @@ class Approval {
     required this.decision,
     this.decidedAt,
     this.note,
+    this.approver,
   });
 
   factory Approval.fromJson(Map<String, dynamic> json) => Approval(
     idApprovalPengajuanIzinJam: json["id_approval_pengajuan_izin_jam"] ?? '',
-    level: _parseInt(json["level"]) ?? 0, // <-- PERBAIKAN
+    level: _parseInt(json["level"]) ?? 0,
     approverUserId: json["approver_user_id"],
     approverRole: json["approver_role"] ?? '',
     decision: json["decision"] ?? 'pending',
-    decidedAt: _parseDateTime(json["decided_at"]), // <-- PERBAIKAN
-    note: json["note"]?.toString(), // <-- PERBAIKAN
+    decidedAt: _parseDateTime(json["decided_at"]),
+    note: json["note"]?.toString(),
+    approver: json["approver"] == null ? null : User.fromJson(json["approver"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -221,19 +194,16 @@ class Approval {
     "decision": decision,
     "decided_at": decidedAt?.toIso8601String(),
     "note": note,
+    if (approver != null) "approver": approver!.toJson(),
   };
 }
-
-// ... Sisa kelas (HandoverUser, HandoverUserUser, Kategori, DataUser, Departement, Jabatan, Meta) ...
-// (Saya asumsikan kelas-kelas di bawah ini sudah benar, namun jika Anda mengalami error serupa,
-//  Anda mungkin perlu menerapkan parsing aman _parseDateTime dan _parseInt juga di sana)
 
 class HandoverUser {
   String idHandoverJam;
   String idPengajuanIzinJam;
   String idUserTagged;
-  DateTime? createdAt; // <-- DIUBAH JADI NULLABLE
-  HandoverUserUser user;
+  DateTime? createdAt;
+  User user;
 
   HandoverUser({
     required this.idHandoverJam,
@@ -247,10 +217,8 @@ class HandoverUser {
     idHandoverJam: json["id_handover_jam"] ?? '',
     idPengajuanIzinJam: json["id_pengajuan_izin_jam"] ?? '',
     idUserTagged: json["id_user_tagged"] ?? '',
-    createdAt: _parseDateTime(json["created_at"]), // <-- PERBAIKAN
-    user: HandoverUserUser.fromJson(
-      json["user"] as Map<String, dynamic>? ?? {},
-    ),
+    createdAt: _parseDateTime(json["created_at"]),
+    user: User.fromJson(json["user"] as Map<String, dynamic>? ?? {}),
   );
 
   Map<String, dynamic> toJson() => {
@@ -262,29 +230,43 @@ class HandoverUser {
   };
 }
 
-class HandoverUserUser {
+class User {
   String idUser;
   String namaPengguna;
   String email;
   String role;
   String fotoProfilUser;
+  String? idDepartement;
+  Departement? departement;
+  Jabatan? jabatan;
 
-  HandoverUserUser({
+  User({
     required this.idUser,
     required this.namaPengguna,
     required this.email,
     required this.role,
     required this.fotoProfilUser,
+    this.idDepartement,
+    this.departement,
+    this.jabatan,
   });
 
-  factory HandoverUserUser.fromJson(Map<String, dynamic> json) =>
-      HandoverUserUser(
-        idUser: json["id_user"] ?? '',
-        namaPengguna: json["nama_pengguna"] ?? '',
-        email: json["email"] ?? '',
-        role: json["role"] ?? '',
-        fotoProfilUser: json["foto_profil_user"] ?? '',
-      );
+  factory User.fromJson(Map<String, dynamic> json) => User(
+    idUser: json["id_user"] ?? '',
+    namaPengguna: json["nama_pengguna"] ?? '',
+    email: json["email"] ?? '',
+    role: json["role"] ?? '',
+    fotoProfilUser: json["foto_profil_user"] ?? '',
+    idDepartement: json["id_departement"],
+    departement: json["departement"] == null
+        ? null
+        : Departement.fromJson(
+            json["departement"] as Map<String, dynamic>? ?? {},
+          ),
+    jabatan: json["jabatan"] == null
+        ? null
+        : Jabatan.fromJson(json["jabatan"] as Map<String, dynamic>? ?? {}),
+  );
 
   Map<String, dynamic> toJson() => {
     "id_user": idUser,
@@ -292,6 +274,9 @@ class HandoverUserUser {
     "email": email,
     "role": role,
     "foto_profil_user": fotoProfilUser,
+    if (idDepartement != null) "id_departement": idDepartement,
+    if (departement != null) "departement": departement!.toJson(),
+    if (jabatan != null) "jabatan": jabatan!.toJson(),
   };
 }
 
@@ -309,52 +294,6 @@ class Kategori {
   Map<String, dynamic> toJson() => {
     "id_kategori_izin_jam": idKategoriIzinJam,
     "nama_kategori": namaKategori,
-  };
-}
-
-class DataUser {
-  String idUser;
-  String namaPengguna;
-  String email;
-  String role;
-  String fotoProfilUser;
-  String idDepartement;
-  Departement departement;
-  Jabatan jabatan;
-
-  DataUser({
-    required this.idUser,
-    required this.namaPengguna,
-    required this.email,
-    required this.role,
-    required this.fotoProfilUser,
-    required this.idDepartement,
-    required this.departement,
-    required this.jabatan,
-  });
-
-  factory DataUser.fromJson(Map<String, dynamic> json) => DataUser(
-    idUser: json["id_user"] ?? '',
-    namaPengguna: json["nama_pengguna"] ?? '',
-    email: json["email"] ?? '',
-    role: json["role"] ?? '',
-    fotoProfilUser: json["foto_profil_user"] ?? '',
-    idDepartement: json["id_departement"] ?? '',
-    departement: Departement.fromJson(
-      json["departement"] as Map<String, dynamic>? ?? {},
-    ),
-    jabatan: Jabatan.fromJson(json["jabatan"] as Map<String, dynamic>? ?? {}),
-  );
-
-  Map<String, dynamic> toJson() => {
-    "id_user": idUser,
-    "nama_pengguna": namaPengguna,
-    "email": email,
-    "role": role,
-    "foto_profil_user": fotoProfilUser,
-    "id_departement": idDepartement,
-    "departement": departement.toJson(),
-    "jabatan": jabatan.toJson(),
   };
 }
 

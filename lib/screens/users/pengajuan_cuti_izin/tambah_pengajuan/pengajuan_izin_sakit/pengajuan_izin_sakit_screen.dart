@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:math' as math;
 import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart' as sakit;
 import 'package:e_hrm/contraints/colors.dart';

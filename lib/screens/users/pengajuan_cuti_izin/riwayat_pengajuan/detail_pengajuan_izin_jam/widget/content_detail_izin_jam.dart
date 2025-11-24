@@ -1,5 +1,3 @@
-// lib/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_izin_jam/widget/content_detail_izin_jam.dart
-
 // ignore_for_file: deprecated_member_use
 
 import 'package:e_hrm/contraints/colors.dart';
@@ -68,7 +66,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
   Widget build(BuildContext context) {
     final data = widget.data;
 
-    // Styles
     final dateStyle = GoogleFonts.poppins(
       fontSize: 13,
       fontWeight: FontWeight.w600,
@@ -102,7 +99,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
       data.handover,
     );
 
-    // Format Jam Izin & Pengganti
     final String jamIzinRange =
         "${_fmtTime(data.jamMulai)} - ${_fmtTime(data.jamSelesai)}";
     final String jamPenggantiRange =
@@ -112,7 +108,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
       children: [
         const SizedBox(height: 20),
 
-        // === KOTAK INFO BIRU (Kategori & Durasi) ===
         Container(
           width: 350,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -157,7 +152,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
         ),
         const SizedBox(height: 10),
 
-        // Tanggal Pengajuan
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Align(
@@ -174,33 +168,34 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
         ),
         const SizedBox(height: 10),
 
-        // Keperluan
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Keperluan :",
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Keperluan :",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDefaultColor,
+                  ),
                 ),
-              ),
-              Text(
-                data.keperluan,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
+                Text(
+                  data.keperluan,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDefaultColor,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
-        // === KOTAK DETAIL PUTIH ===
         Container(
           width: 350,
           decoration: const BoxDecoration(
@@ -212,11 +207,9 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // === TIMELINE ===
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Stepper
                     SizedBox(
                       width: 36,
                       child: EasyStepper(
@@ -259,12 +252,10 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                     ),
                     const SizedBox(width: 12),
 
-                    // Konten tiap step
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // --- Konten untuk "Jadwal Izin" (Start) ---
                           Container(
                             key: _mulaiKey,
                             child: Column(
@@ -279,7 +270,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                                 Text(jamIzinRange, style: timeStyle),
                                 const SizedBox(height: 8),
 
-                                // Handover Box
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(12),
@@ -304,7 +294,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                                       ),
                                       const SizedBox(height: 8),
 
-                                      // Chip Mention
                                       if (data.handoverUsers.isNotEmpty)
                                         Wrap(
                                           spacing: 8,
@@ -364,7 +353,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                                                         : null,
                                                   ),
                                                   const SizedBox(width: 6),
-                                                  // === PERBAIKAN: Gunakan Flexible + Ellipsis ===
                                                   Flexible(
                                                     child: Column(
                                                       crossAxisAlignment:
@@ -373,10 +361,9 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                                                       children: [
                                                         Text(
                                                           user.namaPengguna,
-                                                          maxLines:
-                                                              1, // Batasi 1 baris
+                                                          maxLines: 1,
                                                           overflow: TextOverflow
-                                                              .ellipsis, // Titik-titik
+                                                              .ellipsis,
                                                           style:
                                                               GoogleFonts.poppins(
                                                                 fontSize: 11,
@@ -388,11 +375,13 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                                                               ),
                                                         ),
                                                         Text(
-                                                          user.role,
-                                                          maxLines:
-                                                              1, // Batasi 1 baris
+                                                          user
+                                                                  .departement
+                                                                  ?.namaDepartement ??
+                                                              '-',
+                                                          maxLines: 1,
                                                           overflow: TextOverflow
-                                                              .ellipsis, // Titik-titik
+                                                              .ellipsis,
                                                           style:
                                                               GoogleFonts.poppins(
                                                                 fontSize: 10,
@@ -422,7 +411,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
 
                           const SizedBox(height: gapAfterMulaiContent),
 
-                          // --- Konten untuk "Jadwal Pengganti" (End) ---
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -443,7 +431,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
 
                 const SizedBox(height: 20),
 
-                // === Bukti Pengajuan ===
                 Text(
                   "Bukti Pengajuan",
                   style: GoogleFonts.poppins(
@@ -485,7 +472,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
 
                 const SizedBox(height: 20),
 
-                // === Status Persetujuan ===
                 Text(
                   "Status Persetujuan",
                   style: GoogleFonts.poppins(
@@ -496,7 +482,6 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                 ),
                 const SizedBox(height: 10),
 
-                // List Approval Dinamis
                 if (data.approvals.isEmpty)
                   Text(
                     "Belum ada data persetujuan",
@@ -523,7 +508,11 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                           ? Colors.white
                           : AppColors.textDefaultColor;
 
-                      final roleName = approval.approverRole;
+                      final String displayLabel = (approval.approver != null)
+                          ? approval.approver!.namaPengguna
+                          : (approval.approverRole.isNotEmpty)
+                          ? approval.approverRole
+                          : "Approver";
 
                       return Container(
                         width: double.infinity,
@@ -546,7 +535,7 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      roleName,
+                                      displayLabel,
                                       style: GoogleFonts.poppins(
                                         color: textColor,
                                         fontWeight: FontWeight.w500,

@@ -1,5 +1,22 @@
 import 'dart:convert';
 
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is String && value.isNotEmpty) {
+    return DateTime.tryParse(value);
+  }
+  return null;
+}
+
+int _parseInt(dynamic value, {int fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 IzinTukarHari izinTukarHariFromJson(String str) =>
     IzinTukarHari.fromJson(json.decode(str));
 
@@ -13,9 +30,13 @@ class IzinTukarHari {
   IzinTukarHari({required this.ok, required this.data, required this.meta});
 
   factory IzinTukarHari.fromJson(Map<String, dynamic> json) => IzinTukarHari(
-    ok: json["ok"],
-    data: List<Data>.from(json["data"].map((x) => Data.fromJson(x))),
-    meta: Meta.fromJson(json["meta"]),
+    ok: json["ok"] ?? false,
+    data: List<Data>.from(
+      (json["data"] as List? ?? []).map(
+        (x) => Data.fromJson(x as Map<String, dynamic>),
+      ),
+    ),
+    meta: Meta.fromJson(json["meta"] as Map<String, dynamic>? ?? {}),
   );
 
   Map<String, dynamic> toJson() => {
@@ -33,10 +54,10 @@ class Data {
   String handover;
   String lampiranIzinTukarHariUrl;
   String status;
-  dynamic currentLevel;
+  int currentLevel;
   String jenisPengajuan;
-  DateTime createdAt;
-  DateTime updatedAt;
+  DateTime? createdAt;
+  DateTime? updatedAt;
   dynamic deletedAt;
   DataUser user;
   List<HandoverUser> handoverUsers;
@@ -53,9 +74,9 @@ class Data {
     required this.status,
     required this.currentLevel,
     required this.jenisPengajuan,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.deletedAt,
+    this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
     required this.user,
     required this.handoverUsers,
     required this.approvals,
@@ -63,26 +84,28 @@ class Data {
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
-    idIzinTukarHari: json["id_izin_tukar_hari"],
-    idUser: json["id_user"],
-    kategori: json["kategori"],
-    keperluan: json["keperluan"],
-    handover: json["handover"],
-    lampiranIzinTukarHariUrl: json["lampiran_izin_tukar_hari_url"],
-    status: json["status"],
-    currentLevel: json["current_level"],
-    jenisPengajuan: json["jenis_pengajuan"],
-    createdAt: DateTime.parse(json["created_at"]),
-    updatedAt: DateTime.parse(json["updated_at"]),
+    idIzinTukarHari: json["id_izin_tukar_hari"] ?? '',
+    idUser: json["id_user"] ?? '',
+    kategori: json["kategori"] ?? '',
+    keperluan: json["keperluan"] ?? '',
+    handover: json["handover"] ?? '',
+    lampiranIzinTukarHariUrl: json["lampiran_izin_tukar_hari_url"] ?? '',
+    status: json["status"] ?? 'pending',
+    currentLevel: _parseInt(json["current_level"]),
+    jenisPengajuan: json["jenis_pengajuan"] ?? '',
+    createdAt: _parseDateTime(json["created_at"]),
+    updatedAt: _parseDateTime(json["updated_at"]),
     deletedAt: json["deleted_at"],
-    user: DataUser.fromJson(json["user"]),
-    handoverUsers: List<HandoverUser>.from(
-      json["handover_users"].map((x) => HandoverUser.fromJson(x)),
-    ),
-    approvals: List<Approval>.from(
-      json["approvals"].map((x) => Approval.fromJson(x)),
-    ),
-    pairs: List<Pair>.from(json["pairs"].map((x) => Pair.fromJson(x))),
+    user: DataUser.fromJson(json["user"] as Map<String, dynamic>? ?? {}),
+    handoverUsers: (json["handover_users"] as List? ?? [])
+        .map((x) => HandoverUser.fromJson(x as Map<String, dynamic>))
+        .toList(),
+    approvals: (json["approvals"] as List? ?? [])
+        .map((x) => Approval.fromJson(x as Map<String, dynamic>))
+        .toList(),
+    pairs: (json["pairs"] as List? ?? [])
+        .map((x) => Pair.fromJson(x as Map<String, dynamic>))
+        .toList(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -95,8 +118,8 @@ class Data {
     "status": status,
     "current_level": currentLevel,
     "jenis_pengajuan": jenisPengajuan,
-    "created_at": createdAt.toIso8601String(),
-    "updated_at": updatedAt.toIso8601String(),
+    "created_at": createdAt?.toIso8601String(),
+    "updated_at": updatedAt?.toIso8601String(),
     "deleted_at": deletedAt,
     "user": user.toJson(),
     "handover_users": List<dynamic>.from(handoverUsers.map((x) => x.toJson())),
@@ -109,32 +132,34 @@ class Approval {
   String idApprovalIzinTukarHari;
   int level;
   dynamic approverUserId;
-  String? approverRole; // <-- DIUBAH
+  String? approverRole;
   String decision;
-  DateTime? decidedAt; // <-- DIUBAH
-  String? note; // <-- DIUBAH
+  DateTime? decidedAt;
+  String? note;
+  DataUser? approver;
 
   Approval({
     required this.idApprovalIzinTukarHari,
     required this.level,
     required this.approverUserId,
-    this.approverRole, // <-- DIUBAH
+    this.approverRole,
     required this.decision,
-    this.decidedAt, // <-- DIUBAH
-    this.note, // <-- DIUBAH
+    this.decidedAt,
+    this.note,
+    this.approver,
   });
 
   factory Approval.fromJson(Map<String, dynamic> json) => Approval(
-    idApprovalIzinTukarHari: json["id_approval_izin_tukar_hari"],
-    level: json["level"],
+    idApprovalIzinTukarHari: json["id_approval_izin_tukar_hari"] ?? '',
+    level: _parseInt(json["level"]),
     approverUserId: json["approver_user_id"],
-    approverRole: json["approver_role"], // <-- AMAN (menerima null)
-    decision: json["decision"],
-    // <-- DIUBAH (parsing aman)
-    decidedAt: json["decided_at"] == null
+    approverRole: json["approver_role"],
+    decision: json["decision"] ?? 'pending',
+    decidedAt: _parseDateTime(json["decided_at"]),
+    note: json["note"],
+    approver: json["approver"] == null
         ? null
-        : DateTime.tryParse(json["decided_at"]),
-    note: json["note"], // <-- AMAN (menerima null)
+        : DataUser.fromJson(json["approver"] as Map<String, dynamic>),
   );
 
   Map<String, dynamic> toJson() => {
@@ -143,8 +168,9 @@ class Approval {
     "approver_user_id": approverUserId,
     "approver_role": approverRole,
     "decision": decision,
-    "decided_at": decidedAt?.toIso8601String(), // <-- DIUBAH (handle null)
+    "decided_at": decidedAt?.toIso8601String(),
     "note": note,
+    if (approver != null) "approver": approver!.toJson(),
   };
 }
 
@@ -152,91 +178,58 @@ class HandoverUser {
   String idHandoverTukarHari;
   String idIzinTukarHari;
   String idUserTagged;
-  DateTime createdAt;
-  HandoverUserUser user;
+  DateTime? createdAt;
+  DataUser user;
 
   HandoverUser({
     required this.idHandoverTukarHari,
     required this.idIzinTukarHari,
     required this.idUserTagged,
-    required this.createdAt,
+    this.createdAt,
     required this.user,
   });
 
   factory HandoverUser.fromJson(Map<String, dynamic> json) => HandoverUser(
-    idHandoverTukarHari: json["id_handover_tukar_hari"],
-    idIzinTukarHari: json["id_izin_tukar_hari"],
-    idUserTagged: json["id_user_tagged"],
-    createdAt: DateTime.parse(json["created_at"]),
-    user: HandoverUserUser.fromJson(json["user"]),
+    idHandoverTukarHari: json["id_handover_tukar_hari"] ?? '',
+    idIzinTukarHari: json["id_izin_tukar_hari"] ?? '',
+    idUserTagged: json["id_user_tagged"] ?? '',
+    createdAt: _parseDateTime(json["created_at"]),
+    user: DataUser.fromJson(json["user"] as Map<String, dynamic>? ?? {}),
   );
 
   Map<String, dynamic> toJson() => {
     "id_handover_tukar_hari": idHandoverTukarHari,
     "id_izin_tukar_hari": idIzinTukarHari,
     "id_user_tagged": idUserTagged,
-    "created_at": createdAt.toIso8601String(),
+    "created_at": createdAt?.toIso8601String(),
     "user": user.toJson(),
-  };
-}
-
-class HandoverUserUser {
-  String idUser;
-  String namaPengguna;
-  String email;
-  String role;
-  String fotoProfilUser;
-
-  HandoverUserUser({
-    required this.idUser,
-    required this.namaPengguna,
-    required this.email,
-    required this.role,
-    required this.fotoProfilUser,
-  });
-
-  factory HandoverUserUser.fromJson(Map<String, dynamic> json) =>
-      HandoverUserUser(
-        idUser: json["id_user"],
-        namaPengguna: json["nama_pengguna"],
-        email: json["email"],
-        role: json["role"],
-        fotoProfilUser: json["foto_profil_user"],
-      );
-
-  Map<String, dynamic> toJson() => {
-    "id_user": idUser,
-    "nama_pengguna": namaPengguna,
-    "email": email,
-    "role": role,
-    "foto_profil_user": fotoProfilUser,
   };
 }
 
 class Pair {
   String idIzinTukarHariPair;
-  DateTime hariIzin;
-  DateTime hariPengganti;
+  DateTime? hariIzin;
+  DateTime? hariPengganti;
   dynamic catatanPair;
 
   Pair({
     required this.idIzinTukarHariPair,
-    required this.hariIzin,
-    required this.hariPengganti,
+    this.hariIzin,
+    this.hariPengganti,
     required this.catatanPair,
   });
 
   factory Pair.fromJson(Map<String, dynamic> json) => Pair(
-    idIzinTukarHariPair: json["id_izin_tukar_hari_pair"],
-    hariIzin: DateTime.parse(json["hari_izin"]),
-    hariPengganti: DateTime.parse(json["hari_pengganti"]),
+    idIzinTukarHariPair: json["id_izin_tukar_hari_pair"] ?? '',
+    hariIzin: _parseDateTime(json["hari_izin"]),
+    hariPengganti: _parseDateTime(json["hari_pengganti"]),
     catatanPair: json["catatan_pair"],
   );
 
   Map<String, dynamic> toJson() => {
     "id_izin_tukar_hari_pair": idIzinTukarHariPair,
-    "hari_izin": hariIzin.toIso8601String(),
-    "hari_pengganti": hariPengganti.toIso8601String(),
+    "hari_izin": hariIzin?.toIso8601String(),
+    "hari_pengganti": hariPengganti?.toIso8601String(),
     "catatan_pair": catatanPair,
   };
 }
@@ -248,8 +241,8 @@ class DataUser {
   String role;
   String fotoProfilUser;
   String idDepartement;
-  Departement departement;
-  Jabatan jabatan;
+  Departement? departement;
+  Jabatan? jabatan;
 
   DataUser({
     required this.idUser,
@@ -258,19 +251,21 @@ class DataUser {
     required this.role,
     required this.fotoProfilUser,
     required this.idDepartement,
-    required this.departement,
-    required this.jabatan,
+    this.departement,
+    this.jabatan,
   });
 
   factory DataUser.fromJson(Map<String, dynamic> json) => DataUser(
-    idUser: json["id_user"],
-    namaPengguna: json["nama_pengguna"],
-    email: json["email"],
-    role: json["role"],
-    fotoProfilUser: json["foto_profil_user"],
-    idDepartement: json["id_departement"],
-    departement: Departement.fromJson(json["departement"]),
-    jabatan: Jabatan.fromJson(json["jabatan"]),
+    idUser: json["id_user"] ?? '',
+    namaPengguna: json["nama_pengguna"] ?? '',
+    email: json["email"] ?? '',
+    role: json["role"] ?? '',
+    fotoProfilUser: json["foto_profil_user"] ?? '',
+    idDepartement: json["id_departement"] ?? '',
+    departement: json["departement"] == null
+        ? null
+        : Departement.fromJson(json["departement"]),
+    jabatan: json["jabatan"] == null ? null : Jabatan.fromJson(json["jabatan"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -280,8 +275,8 @@ class DataUser {
     "role": role,
     "foto_profil_user": fotoProfilUser,
     "id_departement": idDepartement,
-    "departement": departement.toJson(),
-    "jabatan": jabatan.toJson(),
+    "departement": departement?.toJson(),
+    "jabatan": jabatan?.toJson(),
   };
 }
 
@@ -292,8 +287,8 @@ class Departement {
   Departement({required this.idDepartement, required this.namaDepartement});
 
   factory Departement.fromJson(Map<String, dynamic> json) => Departement(
-    idDepartement: json["id_departement"],
-    namaDepartement: json["nama_departement"],
+    idDepartement: json["id_departement"] ?? '',
+    namaDepartement: json["nama_departement"] ?? '',
   );
 
   Map<String, dynamic> toJson() => {
@@ -308,8 +303,10 @@ class Jabatan {
 
   Jabatan({required this.idJabatan, required this.namaJabatan});
 
-  factory Jabatan.fromJson(Map<String, dynamic> json) =>
-      Jabatan(idJabatan: json["id_jabatan"], namaJabatan: json["nama_jabatan"]);
+  factory Jabatan.fromJson(Map<String, dynamic> json) => Jabatan(
+    idJabatan: json["id_jabatan"] ?? '',
+    namaJabatan: json["nama_jabatan"] ?? '',
+  );
 
   Map<String, dynamic> toJson() => {
     "id_jabatan": idJabatan,
@@ -331,10 +328,10 @@ class Meta {
   });
 
   factory Meta.fromJson(Map<String, dynamic> json) => Meta(
-    page: json["page"],
-    perPage: json["perPage"],
-    total: json["total"],
-    totalPages: json["totalPages"],
+    page: _parseInt(json["page"], fallback: 1),
+    perPage: _parseInt(json["perPage"], fallback: 20),
+    total: _parseInt(json["total"]),
+    totalPages: _parseInt(json["totalPages"], fallback: 1),
   );
 
   Map<String, dynamic> toJson() => {

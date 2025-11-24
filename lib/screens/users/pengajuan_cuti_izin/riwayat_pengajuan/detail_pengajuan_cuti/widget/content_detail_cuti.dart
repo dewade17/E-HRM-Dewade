@@ -1,17 +1,12 @@
-// lib/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/detail_pengajuan_cuti/widget/content_detail_cuti.dart
-
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
-
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as dto;
-import 'package:e_hrm/utils/mention_parser.dart'; // Pastikan import ini ada untuk parse text handover
+import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_stepper/easy_stepper.dart';
 import 'package:intl/intl.dart';
 
 class ContentDetailCuti extends StatefulWidget {
-  // Terima data dari parent
   final dto.Data data;
 
   const ContentDetailCuti({super.key, required this.data});
@@ -27,7 +22,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
   @override
   void initState() {
     super.initState();
-    // Logika pengukuran tinggi tetap dipertahankan agar UI konsisten
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 50), () {
         if (!mounted) return;
@@ -46,14 +40,11 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
     });
   }
 
-  // Helper format tanggal
   String _fmtDate(DateTime? d, {String pattern = 'dd MMMM yyyy'}) {
     if (d == null) return '-';
     return DateFormat(pattern, 'id_ID').format(d);
   }
 
-  // Helper format jam
-  // ignore: unused_element
   String _fmtTime(DateTime? d) {
     if (d == null) return '';
     return DateFormat('HH:mm', 'id_ID').format(d);
@@ -63,12 +54,10 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
   Widget build(BuildContext context) {
     final data = widget.data;
 
-    // Hitung durasi hari
     final int totalHari = data.tanggalList.isNotEmpty
         ? data.tanggalList.length
         : 1;
 
-    // Styles lokal
     final dateStyle = GoogleFonts.poppins(
       fontSize: 13,
       fontWeight: FontWeight.w600,
@@ -78,11 +67,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
       fontSize: 11,
       fontWeight: FontWeight.w500,
       color: Colors.grey.shade600,
-    );
-    // ignore: unused_local_variable
-    final mentionStyle = GoogleFonts.poppins(
-      color: AppColors.primaryColor,
-      fontWeight: FontWeight.w600,
     );
     final normalStyle = GoogleFonts.poppins(
       fontSize: 13,
@@ -94,7 +78,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
     final double lineHeightBetweenSteps =
         _mulaiBlockHeight + gapAfterMulaiContent;
 
-    // Ambil tanggal mulai dan selesai
     final DateTime? tglMulai =
         data.tanggalCuti ??
         (data.tanggalList.isNotEmpty ? data.tanggalList.first : null);
@@ -102,7 +85,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
         data.tanggalSelesai ??
         (data.tanggalList.isNotEmpty ? data.tanggalList.last : null);
 
-    // Bersihkan markup handover untuk ditampilkan sebagai teks biasa di deskripsi
     final String handoverDescription = MentionParser.convertMarkupToDisplay(
       data.handover,
     );
@@ -110,8 +92,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
     return Column(
       children: [
         const SizedBox(height: 20),
-
-        // === KOTAK INFO BIRU (Kategori & Durasi) ===
         Container(
           width: 350,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -155,8 +135,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
           ),
         ),
         const SizedBox(height: 10),
-
-        // Tanggal Pengajuan (Created At)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Align(
@@ -172,34 +150,34 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
           ),
         ),
         const SizedBox(height: 10),
-
-        // Keperluan
         Padding(
+          // UBAH DARI 0 MENJADI 20 AGAR SEJAJAR
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Keperluan :",
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Keperluan :",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDefaultColor,
+                  ),
                 ),
-              ),
-              Text(
-                data.keperluan,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDefaultColor,
+                Text(
+                  data.keperluan,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDefaultColor,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-
-        // === KOTAK DETAIL PUTIH (Timeline, Bukti, Approver) ===
         Container(
           width: 350,
           decoration: const BoxDecoration(
@@ -211,7 +189,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // === TIMELINE: EasyStepper (VERTIKAL) ===
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -256,13 +233,10 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                       ),
                     ),
                     const SizedBox(width: 12),
-
-                    // Konten tiap step
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // --- Konten untuk "MULAI" ---
                           Container(
                             key: _mulaiKey,
                             child: Column(
@@ -272,8 +246,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                                 const SizedBox(height: 6),
                                 Text(_fmtDate(tglMulai), style: dateStyle),
                                 const SizedBox(height: 8),
-
-                                // Handover Box (biru)
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(12),
@@ -297,8 +269,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-
-                                      // Chip Mention (Tag Users)
                                       if (data.handoverUsers.isNotEmpty)
                                         Wrap(
                                           spacing: 8,
@@ -321,7 +291,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                                                   color: Colors.grey.shade300,
                                                 ),
                                               ),
-                                              // PERBAIKAN: Menambahkan constraints dan Flexible agar tidak overflow
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
@@ -359,7 +328,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                                                         : null,
                                                   ),
                                                   const SizedBox(width: 6),
-                                                  // Gunakan Flexible agar text menyesuaikan ruang yang ada
                                                   Flexible(
                                                     child: Column(
                                                       crossAxisAlignment:
@@ -371,10 +339,9 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                                                       children: [
                                                         Text(
                                                           user.namaPengguna,
-                                                          maxLines:
-                                                              1, // Batasi 1 baris
+                                                          maxLines: 1,
                                                           overflow: TextOverflow
-                                                              .ellipsis, // Potong dengan ...
+                                                              .ellipsis,
                                                           style:
                                                               GoogleFonts.poppins(
                                                                 fontSize: 11,
@@ -386,7 +353,10 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                                                               ),
                                                         ),
                                                         Text(
-                                                          user.namaPengguna, // Asumsi ini Role/Posisi (jika ada data lain, ganti ini)
+                                                          user
+                                                                  .departement
+                                                                  ?.namaDepartement ??
+                                                              '-',
                                                           maxLines: 1,
                                                           overflow: TextOverflow
                                                               .ellipsis,
@@ -405,11 +375,8 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                                             );
                                           }).toList(),
                                         ),
-
                                       if (data.handoverUsers.isNotEmpty)
                                         const SizedBox(height: 8),
-
-                                      // Deskripsi Handover
                                       Text(
                                         handoverDescription,
                                         style: normalStyle,
@@ -420,10 +387,7 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                               ],
                             ),
                           ),
-
                           const SizedBox(height: gapAfterMulaiContent),
-
-                          // --- Konten untuk "SELESAI" ---
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -443,10 +407,7 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
-                // === Bukti Pengajuan ===
                 Text(
                   "Bukti Pengajuan",
                   style: GoogleFonts.poppins(
@@ -494,10 +455,7 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                           ),
                         ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // === Status Persetujuan ===
                 Text(
                   "Status Persetujuan",
                   style: GoogleFonts.poppins(
@@ -507,8 +465,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // List Approval (Dinamis)
                 if (data.approvals.isEmpty)
                   Text(
                     "Belum ada data persetujuan",
@@ -521,7 +477,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                 else
                   Column(
                     children: data.approvals.map((approval) {
-                      // Tentukan warna berdasarkan status approval
                       final decision = approval.decision.toLowerCase();
                       bool isApproved =
                           decision == 'approved' || decision == 'disetujui';
@@ -538,9 +493,9 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                           ? Colors.white
                           : AppColors.textDefaultColor;
 
-                      // Nama Role/User
-                      final String displayLabel =
-                          (approval.approverRole != null)
+                      final String displayLabel = (approval.approver != null)
+                          ? approval.approver!.namaPengguna
+                          : (approval.approverRole != null)
                           ? approval.approverRole!.name
                           : "Approver";
 
@@ -606,7 +561,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
             ),
           ),
         ),
-
         const SizedBox(height: 20),
       ],
     );

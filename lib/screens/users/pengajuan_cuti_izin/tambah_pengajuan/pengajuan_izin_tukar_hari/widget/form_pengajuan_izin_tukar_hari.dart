@@ -8,6 +8,7 @@ import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
     as tukar_hari;
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
+import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/dropdown_field_widget.dart';
@@ -345,7 +346,9 @@ class _FormPengajuanIzinTukarHariState
     }
 
     if (result != null) {
-      // Navigasi kembali jika sukses
+      if (mounted) {
+        await context.read<RiwayatPengajuanProvider>().fetch();
+      }
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop(result);
       } else {

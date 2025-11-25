@@ -6,6 +6,7 @@ import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart'
     as dto_kategori_izin_jam;
 import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart'
     as dto_pengajuan_izin;
+import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
@@ -358,6 +359,10 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
     }
 
     if (result != null) {
+      if (mounted) {
+        await context.read<RiwayatPengajuanProvider>().fetch();
+      }
+
       final messageToShow =
           successMessage ?? 'Pengajuan izin jam berhasil disimpan.';
       _showSnackBar(messageToShow, isError: false);

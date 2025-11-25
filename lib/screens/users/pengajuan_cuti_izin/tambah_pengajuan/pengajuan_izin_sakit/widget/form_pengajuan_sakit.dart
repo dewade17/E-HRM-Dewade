@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -323,6 +324,10 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
       }
 
       if (result != null) {
+        if (mounted) {
+          await context.read<RiwayatPengajuanProvider>().fetch();
+        }
+
         if (Navigator.canPop(context)) {
           Navigator.of(context).pop(result);
         } else {
@@ -698,4 +703,3 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
     );
   }
 }
-  

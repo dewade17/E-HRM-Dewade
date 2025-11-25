@@ -350,6 +350,8 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
           _extractMessage(response) ??
           'Pengajuan izin tukar hari berhasil dibuat.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return created;
     } catch (e) {
       _finishSaving(error: e.toString());
@@ -496,6 +498,8 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
           _extractMessage(response) ??
           'Pengajuan izin tukar hari berhasil diperbarui.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return updated;
     } catch (e) {
       _finishSaving(error: e.toString());
@@ -530,6 +534,8 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
           _extractMessage(response) ??
           'Pengajuan izin tukar hari berhasil dihapus.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return true;
     } catch (e) {
       _finishSaving(error: e.toString());

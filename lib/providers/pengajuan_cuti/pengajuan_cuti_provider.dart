@@ -330,6 +330,8 @@ class PengajuanCutiProvider extends ChangeNotifier {
       final message =
           _extractMessage(response) ?? 'Pengajuan cuti berhasil dibuat.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return created;
     } catch (e) {
       _finishSaving(error: e.toString());
@@ -451,6 +453,8 @@ class PengajuanCutiProvider extends ChangeNotifier {
       final message =
           _extractMessage(response) ?? 'Pengajuan cuti berhasil diperbarui.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return updated;
     } catch (e) {
       _finishSaving(error: e.toString());
@@ -719,6 +723,8 @@ class PengajuanCutiProvider extends ChangeNotifier {
 
       _removeItem(id); // Hapus dari list lokal
       _finishSaving(message: 'Pengajuan cuti berhasil dihapus.');
+      await refresh();
+      notifyListeners();
       return true;
     } catch (e) {
       _finishSaving(error: e.toString());

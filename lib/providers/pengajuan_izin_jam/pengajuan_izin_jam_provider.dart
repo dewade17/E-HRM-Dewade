@@ -247,6 +247,8 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
       final message =
           _extractMessage(response) ?? 'Pengajuan izin jam berhasil dibuat.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return created;
     } catch (e) {
       _finishSaving(error: e.toString());
@@ -387,6 +389,8 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
           _extractMessage(response) ??
           'Pengajuan izin jam berhasil diperbarui.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return updated;
     } catch (e) {
       _finishSaving(error: e.toString());
@@ -721,6 +725,8 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
 
       items.removeWhere((item) => item.idPengajuanIzinJam == id);
       _finishSaving(message: 'Pengajuan izin jam berhasil dihapus.');
+      await refresh();
+      notifyListeners();
       return true;
     } catch (e) {
       _finishSaving(error: e.toString());

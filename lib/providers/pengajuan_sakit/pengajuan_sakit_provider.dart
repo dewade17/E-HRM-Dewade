@@ -298,6 +298,8 @@ class PengajuanSakitProvider extends ChangeNotifier {
       final message =
           _extractMessage(response) ?? 'Pengajuan izin sakit berhasil dibuat.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return created;
     } catch (e) {
       if (kDebugMode) {
@@ -399,6 +401,8 @@ class PengajuanSakitProvider extends ChangeNotifier {
           _extractMessage(response) ??
           'Pengajuan izin sakit berhasil diperbarui.';
       _finishSaving(message: message);
+      await refresh();
+      notifyListeners();
       return updated;
     } catch (e) {
       _finishSaving(error: e.toString());
@@ -416,6 +420,7 @@ class PengajuanSakitProvider extends ChangeNotifier {
           : '${Endpoints.pengajuanSakit}/$trimmedId';
       await _api.deleteDataPrivate(uri);
       _removeItem(trimmedId);
+      await refresh();
       notifyListeners();
       return true;
     } catch (e) {

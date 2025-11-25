@@ -254,6 +254,146 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
     }
   }
 
+  Future<dto.Data?> updatePengajuan(
+    String id, {
+    required String idKategoriIzinJam,
+    required String keperluan,
+    required DateTime tanggalIzin,
+    required DateTime jamMulai,
+    required DateTime jamSelesai,
+    required DateTime tanggalPengganti,
+    required DateTime jamMulaiPengganti,
+    required DateTime jamSelesaiPengganti,
+    String? handover,
+    List<String>? handoverUserIds,
+    List<String>? supervisorIds,
+    ApproversPengajuanProvider? approversProvider,
+    http.MultipartFile? lampiran,
+    Map<String, dynamic>? additionalFields,
+    String supervisorsFieldName = 'recipient',
+  }) async {
+    _startSaving();
+
+    final payload = <String, dynamic>{
+      'id_kategori_izin_jam': idKategoriIzinJam,
+      'keperluan': keperluan,
+      'tanggal_izin': _formatDate(tanggalIzin),
+      'jam_mulai': _formatDateTime(jamMulai),
+      'jam_selesai': _formatDateTime(jamSelesai),
+      'tanggal_pengganti': _formatDate(tanggalPengganti),
+      'jam_mulai_pengganti': _formatDateTime(jamMulaiPengganti),
+      'jam_selesai_pengganti': _formatDateTime(jamSelesaiPengganti),
+      if (handover != null && handover.isNotEmpty) 'handover': handover,
+    };
+
+    if (additionalFields != null) {
+      payload.addAll(additionalFields);
+    }
+
+    final List<String> approverIds = _collectApproverIds(
+      supervisorIds: supervisorIds,
+      approversProvider: approversProvider,
+    );
+
+    if (approverIds.isNotEmpty) {
+      payload['recipient_ids'] = jsonEncode(approverIds);
+    }
+
+    final List<dto_approvers.User> approvers =
+        (approversProvider?.selectedUsers ?? [])
+            .where((user) => user.idUser.trim().isNotEmpty)
+            .toList(growable: false);
+
+    if (approvers.isNotEmpty) {
+      payload['approvals'] = jsonEncode(
+        List<Map<String, dynamic>>.generate(
+          approvers.length,
+          (index) => <String, dynamic>{
+            'approver_user_id': approvers[index].idUser,
+            'level': index + 1,
+            'approver_role': approvers[index].role.trim().toUpperCase(),
+          },
+        ),
+      );
+    }
+
+    final List<String> handoverIds = _resolveHandoverUserIds(
+      provided: handoverUserIds,
+      handover: handover,
+    ).toList(growable: false);
+
+    final files = <http.MultipartFile>[
+      if (lampiran != null) lampiran,
+      ..._createMultipartStrings('tag_user_ids', handoverIds),
+    ];
+
+    // --- TAMBAHAN DEBUG PRINT ---
+    if (kDebugMode) {
+      print("--- [DEBUG] UPDATE PENGAJUAN IZIN JAM ---");
+      print("Endpoint: ${Endpoints.pengajuanIzinJamDetail(id)}");
+      print("--- Payload Fields ---");
+      payload.forEach((key, value) {
+        print("$key: $value");
+      });
+      print("--- Multipart Files ---");
+      if (files.isEmpty) {
+        print("(Tidak ada file)");
+      } else {
+        for (var file in files) {
+          if (file.filename != null) {
+            print(
+              "File: ${file.field} (name: ${file.filename}, size: ${file.length}, type: ${file.contentType})",
+            );
+          } else {
+            if (file.field == 'tag_user_ids') {
+              print(
+                "Field (from string): ${file.field} (ID terkirim: ${handoverIds.join(', ')})",
+              );
+            } else {
+              print("Field (from string): ${file.field}");
+            }
+          }
+        }
+      }
+      print("--------------------------------------");
+    }
+    // --- AKHIR TAMBAHAN DEBUG PRINT ---
+
+    try {
+      final trimmedId = id.trim();
+      final response = await _api.putFormDataPrivate(
+        Endpoints.pengajuanIzinJamDetail(trimmedId),
+        payload,
+        files: files.isEmpty ? null : files,
+      );
+
+      final dto.Data? updated = _parseSingleData(response['data']);
+      final dto.Meta? parsedMeta = _parseMeta(
+        response['meta'] ??
+            (response['data'] is Map<String, dynamic>
+                ? (response['data'] as Map<String, dynamic>)['meta']
+                : null),
+      );
+
+      if (parsedMeta != null) {
+        meta = parsedMeta;
+      }
+
+      if (updated != null) {
+        _upsertItem(updated);
+      }
+
+      final message =
+          _extractMessage(response) ??
+          'Pengajuan izin jam berhasil diperbarui.';
+      _finishSaving(message: message);
+      return updated;
+    } catch (e) {
+      _finishSaving(error: e.toString());
+      return null;
+    }
+  }
+
   Future<dto.Data?> fetchDetail(String id, {bool useCache = true}) async {
     final trimmedId = id.trim();
     if (trimmedId.isEmpty) return null;

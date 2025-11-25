@@ -1,6 +1,3 @@
-// lib/shared_widget/file_picker_field_widget.dart
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
-
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +13,7 @@ class FilePickerFieldWidget extends StatelessWidget {
     super.key,
     required this.label,
     this.file,
-    this.fileUrl, // <--- PARAMETER BARU: URL dari server
+    this.fileUrl,
     required this.onFileChanged,
     this.prefixIcon = Icons.camera_alt_outlined,
     this.buttonText = 'Unggah Bukti',
@@ -28,11 +25,12 @@ class FilePickerFieldWidget extends StatelessWidget {
     this.backgroundColor,
     this.borderColor,
     this.borderWidth = 1.0,
+    this.allowedExtensions,
   });
 
   final String label;
   final File? file;
-  final String? fileUrl; // <--- Simpan URL di sini
+  final String? fileUrl;
   final ValueChanged<File?> onFileChanged;
   final IconData? prefixIcon;
   final String buttonText;
@@ -44,12 +42,12 @@ class FilePickerFieldWidget extends StatelessWidget {
   final Color? backgroundColor;
   final Color? borderColor;
   final double borderWidth;
+  final List<String>? allowedExtensions;
 
   Future<void> _pickFile(
     BuildContext context,
     FormFieldState<File> state,
   ) async {
-    // ... (Kode _pickFile SAMA SEPERTI SEBELUMNYA, tidak berubah) ...
     final _PickSource? source = await showModalBottomSheet<_PickSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -90,7 +88,8 @@ class FilePickerFieldWidget extends StatelessWidget {
       } else {
         FilePickerResult? result = await FilePicker.platform.pickFiles(
           type: FileType.custom,
-          allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+          allowedExtensions:
+              allowedExtensions ?? ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
         );
         if (result != null && result.files.single.path != null) {
           path = result.files.single.path;
@@ -127,7 +126,6 @@ class FilePickerFieldWidget extends StatelessWidget {
         ext == '.webp';
   }
 
-  // Helper cek apakah URL adalah gambar (sederhana)
   bool _isImageUrl(String? url) {
     if (url == null) return false;
     final lower = url.toLowerCase();
@@ -153,7 +151,6 @@ class FilePickerFieldWidget extends StatelessWidget {
         validator:
             validator ??
             (value) {
-              // Validasi: Wajib jika file lokal kosong DAN URL server juga kosong
               if (isRequired &&
                   value == null &&
                   (fileUrl == null || fileUrl!.isEmpty)) {
@@ -165,13 +162,9 @@ class FilePickerFieldWidget extends StatelessWidget {
         initialValue: file,
         builder: (FormFieldState<File> state) {
           final localFile = state.value;
-
-          // --- LOGIKA TAMPILAN BARU ---
-          // Tampilkan preview jika ada file lokal ATAU ada URL dari server
           final bool hasContent =
               localFile != null || (fileUrl != null && fileUrl!.isNotEmpty);
 
-          // Cek tipe konten untuk preview (Image vs Doc)
           final bool showImagePreview = localFile != null
               ? _isImageFile(localFile.path)
               : _isImageUrl(fileUrl);
@@ -200,7 +193,6 @@ class FilePickerFieldWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-
               if (state.hasError)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -212,8 +204,6 @@ class FilePickerFieldWidget extends StatelessWidget {
                     ),
                   ),
                 ),
-
-              // Tampilkan tombol JIKA kosong, ATAU tampilkan Preview JIKA ada isi
               if (!hasContent)
                 InkWell(
                   onTap: () => _pickFile(context, state),
@@ -268,7 +258,6 @@ class FilePickerFieldWidget extends StatelessWidget {
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: localFile != null
-                          // 1. File Lokal (Prioritas Utama)
                           ? (showImagePreview
                                 ? Image.file(
                                     localFile,
@@ -283,7 +272,6 @@ class FilePickerFieldWidget extends StatelessWidget {
                                     p.basename(localFile.path),
                                     Icons.insert_drive_file,
                                   ))
-                          // 2. File dari URL (Fallback jika lokal kosong)
                           : (showImagePreview
                                 ? Image.network(
                                     fileUrl!,
@@ -309,7 +297,6 @@ class FilePickerFieldWidget extends StatelessWidget {
                                     Icons.description,
                                   )),
                     ),
-                    // Tombol Hapus / Ganti
                     Positioned(
                       top: -10,
                       right: -10,
@@ -319,13 +306,10 @@ class FilePickerFieldWidget extends StatelessWidget {
                         elevation: 2,
                         child: InkWell(
                           customBorder: const CircleBorder(),
-                          // Jika ada file lokal -> Hapus file lokal (kembali ke URL atau kosong)
-                          // Jika hanya URL -> Hapus tampilan (anggap user mau ganti baru) -> trigger pick
                           onTap: () {
                             if (localFile != null) {
                               _clearFile(state);
                             } else {
-                              // Jika user klik X pada gambar URL, kita buka picker untuk ganti
                               _pickFile(context, state);
                             }
                           },
@@ -336,9 +320,7 @@ class FilePickerFieldWidget extends StatelessWidget {
                               border: Border.all(color: Colors.white, width: 2),
                             ),
                             child: Icon(
-                              localFile != null
-                                  ? Icons.close
-                                  : Icons.edit, // Icon beda dikit biar UX enak
+                              localFile != null ? Icons.close : Icons.edit,
                               color: AppColors.secondaryColor,
                               size: 20,
                             ),

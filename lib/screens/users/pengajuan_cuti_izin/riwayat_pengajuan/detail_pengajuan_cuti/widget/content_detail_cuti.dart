@@ -42,12 +42,12 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
 
   String _fmtDate(DateTime? d, {String pattern = 'dd MMMM yyyy'}) {
     if (d == null) return '-';
-    return DateFormat(pattern, 'id_ID').format(d);
+    return DateFormat(pattern, 'id_ID').format(d.toLocal());
   }
 
   String _fmtTime(DateTime? d) {
     if (d == null) return '';
-    return DateFormat('HH:mm', 'id_ID').format(d);
+    return DateFormat('HH:mm', 'id_ID').format(d.toLocal());
   }
 
   @override
@@ -84,6 +84,7 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
     final DateTime? tglSelesai =
         data.tanggalSelesai ??
         (data.tanggalList.isNotEmpty ? data.tanggalList.last : null);
+    final DateTime? tglMasuk = data.tanggalMasukKerja;
 
     final String handoverDescription = MentionParser.convertMarkupToDisplay(
       data.handover,
@@ -134,6 +135,52 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        Container(
+          width: 350,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.work_history_outlined,
+                color: AppColors.primaryColor,
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Tanggal Masuk Kerja",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  Text(
+                    _fmtDate(tglMasuk),
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDefaultColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -151,7 +198,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
         ),
         const SizedBox(height: 10),
         Padding(
-          // UBAH DARI 0 MENJADI 20 AGAR SEJAJAR
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Align(
             alignment: Alignment.centerLeft,

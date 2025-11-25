@@ -1,10 +1,5 @@
-// lib/screens/users/pengajuan_cuti_izin/riwayat_pengajuan/widget/content_riwayat_pengajuan.dart
-
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
-
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
-// Import Provider untuk akses fungsi delete
 import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
@@ -146,34 +141,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     return status;
   }
 
-  Widget Function(RiwayatPengajuanItem item)? _resolveDetailBuilder(
-    RiwayatPengajuanItem item,
-  ) {
-    final resolvedBuilder = _detailRoutes[item.resolvedType];
-    if (resolvedBuilder != null) return resolvedBuilder;
-
-    final jenisLower = item.jenisPengajuan.toLowerCase();
-
-    if (jenisLower.contains('hari')) {
-      return (currentItem) =>
-          DetailPengajuanIzinTukarHari(pengajuan: currentItem.tukarHariData);
-    }
-    if (jenisLower.contains('jam')) {
-      return (currentItem) =>
-          DetailPengajuanIzinJam(pengajuan: currentItem.izinJamData);
-    }
-    if (jenisLower.contains('cuti')) {
-      return (currentItem) =>
-          DetailPengajuanCuti(pengajuan: currentItem.cutiData);
-    }
-    if (jenisLower.contains('sakit')) {
-      return (currentItem) =>
-          DetailPengajuanSakit(pengajuan: currentItem.sakitData);
-    }
-
-    return null;
-  }
-
   String _resolveTitle(String jenisPengajuan) {
     final lower = jenisPengajuan.toLowerCase();
     if (lower.contains('tukar') || lower.contains('hari')) {
@@ -195,15 +162,29 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => builder(item)));
   }
 
-  void _openEdit(RiwayatPengajuanItem item) {
-    final builder = _resolveDetailBuilder(item);
-    if (builder == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => builder(item)));
+  Future<void> _openEdit(RiwayatPengajuanItem item) async {
+    final builder = _editRoutes[item.resolvedType];
+
+    if (builder == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Form edit tidak ditemukan untuk tipe ini'),
+        ),
+      );
+      return;
+    }
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => builder(item)),
+    );
+
+    if (result != null) {
+      _scheduleFetch();
+    }
   }
 
-  // --- FUNGSI HAPUS ---
   Future<void> _handleDelete(RiwayatPengajuanItem item) async {
-    // 1. Tampilkan Dialog Konfirmasi
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -225,9 +206,8 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     if (confirm != true) return;
 
     bool success = false;
-    final ctx = context; // Simpan context
+    final ctx = context;
 
-    // Tampilkan loading sementara
     ScaffoldMessenger.of(ctx).showSnackBar(
       const SnackBar(
         content: Text('Sedang menghapus...'),
@@ -236,7 +216,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     );
 
     try {
-      // 2. Panggil fungsi delete provider sesuai tipe
       switch (item.resolvedType) {
         case RiwayatPengajuanType.cuti:
           success = await ctx.read<PengajuanCutiProvider>().deletePengajuan(
@@ -262,7 +241,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
 
       if (!mounted) return;
 
-      // 3. Refresh Data jika Berhasil
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -270,7 +248,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
             backgroundColor: AppColors.succesColor,
           ),
         );
-        // Panggil ulang data agar list terupdate
         _scheduleFetch();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -302,7 +279,6 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
         ),
         const SizedBox(height: 20),
 
-        // Filter Dropdowns
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
@@ -384,13 +360,11 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
 
         const SizedBox(height: 20),
 
-        // List Riwayat
         FutureBuilder<void>(
           future: _loadFuture,
           builder: (context, snapshot) {
             return Consumer<RiwayatPengajuanProvider>(
               builder: (context, provider, _) {
-                // Hanya tampilkan spinner jika list kosong (initial load)
                 if (provider.loading && provider.items.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.only(top: 50),
@@ -450,8 +424,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                         statusBackgroundColor: statusColor.withOpacity(0.2),
                         borderColor: statusColor,
                         onEditPressed: () => _openEdit(item),
-                        onDeletePressed: () =>
-                            _handleDelete(item), // <-- PASANG FUNGSI DELETE
+                        onDeletePressed: () => _handleDelete(item),
                         onDetailPressed: () => _openDetail(item),
                       ),
                     );
@@ -522,7 +495,6 @@ class RiwayatItemCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Tombol Edit/Delete hanya muncul jika Status == "Menunggu"
               if (statusText == "Menunggu")
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -542,7 +514,7 @@ class RiwayatItemCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     InkWell(
-                      onTap: onDeletePressed, // <-- Panggil callback
+                      onTap: onDeletePressed,
                       customBorder: const CircleBorder(),
                       child: const CircleAvatar(
                         backgroundColor: AppColors.backgroundColor,

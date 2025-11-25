@@ -1,17 +1,19 @@
-// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_sakit/widget/form_pengajuan_sakit.dart
-
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_mentions/flutter_mentions.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
+import 'package:intl/intl.dart';
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/pengajuan_sakit_provider.dart';
 import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/kategori_pengajuan_sakit_provider.dart';
@@ -20,13 +22,10 @@ import 'package:e_hrm/dto/pengajuan_sakit/kategori_pengajuan_sakit.dart'
 import 'package:e_hrm/dto/pengajuan_sakit/pengajuan_sakit.dart'
     as pengajuan_sakit;
 import 'package:e_hrm/shared_widget/kategori_sakit_selection_field.dart';
-import 'package:flutter_mentions/flutter_mentions.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/dto/tag_hand_over/tag_hand_over.dart' as dto_tag;
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
-import 'dart:async';
-import 'package:intl/intl.dart';
 
 class FormPengajuanSakit extends StatefulWidget {
   const FormPengajuanSakit({super.key, this.initialPengajuan});
@@ -146,8 +145,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
 
     _handoverMarkupText = data.handover;
     _handoverPlainText = MentionParser.convertMarkupToDisplay(data.handover);
-
-    // Tidak perlu download manual lagi, URL akan dikirim ke widget FilePicker
   }
 
   void _tryPrefillKategoriFromProvider(
@@ -233,7 +230,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
       return;
     }
 
-    // Validasi Bukti: Wajib jika Create, Opsional jika Edit
     if (!_isEditing && _buktiFile == null) {
       messenger.showSnackBar(
         const SnackBar(
@@ -252,13 +248,42 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
       handoverMarkup,
     );
 
-    // Siapkan lampiran jika ada file baru
     http.MultipartFile? lampiran;
     if (_buktiFile != null) {
-      lampiran = await http.MultipartFile.fromPath(
-        'lampiran_izin_sakit',
-        _buktiFile!.path,
-      );
+      final String path = _buktiFile!.path.toLowerCase();
+      if (!path.endsWith('.jpg') &&
+          !path.endsWith('.jpeg') &&
+          !path.endsWith('.png')) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Format file tidak valid! Hanya JPG/PNG.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final String? mimeStr = lookupMimeType(_buktiFile!.path);
+      MediaType? mediaType;
+      if (mimeStr != null) {
+        mediaType = MediaType.parse(mimeStr);
+      }
+
+      try {
+        lampiran = await http.MultipartFile.fromPath(
+          'lampiran_izin_sakit',
+          _buktiFile!.path,
+          contentType: mediaType,
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Gagal membaca lampiran: $e'),
+            backgroundColor: AppColors.errorColor,
+          ),
+        );
+        return;
+      }
     }
 
     pengajuan_sakit.Data? result;
@@ -365,9 +390,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                 padding: EdgeInsets.only(top: 8.0),
                 child: LinearProgressIndicator(),
               ),
-
             SizedBox(height: 20),
-
             DatePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -379,8 +402,6 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
               isRequired: true,
             ),
             SizedBox(height: 20),
-
-            // --- FIELD HANDOVER ---
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -424,8 +445,8 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                     }
 
                     final int wordCount = _getWordCount(text);
-                    if (wordCount < 15) {
-                      return 'Minimal 15 kata. (Sekarang: $wordCount kata)';
+                    if (wordCount < 10) {
+                      return 'Minimal 10 kata. (Sekarang: $wordCount kata)';
                     }
                     return null;
                   },
@@ -477,7 +498,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                           ),
                           mentions: [
                             Mention(
-                              trigger: '@', 
+                              trigger: '@',
                               style: TextStyle(
                                 color: AppColors.primaryColor,
                                 fontWeight: FontWeight.bold,
@@ -549,9 +570,7 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                 ),
               ],
             ),
-
             SizedBox(height: 20),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: FormField<Set<String>>(
@@ -595,19 +614,16 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                 },
               ),
             ),
-
             SizedBox(height: 20),
-
-            // --- FILE PICKER UPDATED ---
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
-              label: 'Unggah Bukti',
+              label: 'Unggah Bukti (JPG/PNG)',
               buttonText: 'Unggah Bukti',
               prefixIcon: Icons.camera_alt_outlined,
               file: _buktiFile,
-              // Tampilkan gambar lama (URL) jika sedang edit dan belum ada file baru
               fileUrl: widget.initialPengajuan?.lampiranIzinSakitUrl,
+              allowedExtensions: const ['jpg', 'jpeg', 'png'],
               onFileChanged: (newFile) {
                 setState(() {
                   _buktiFile = newFile;
@@ -616,19 +632,29 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
                   formKey.currentState?.validate();
                 }
               },
-              // Wajib hanya jika mode Create (bukan edit)
               isRequired: !_isEditing,
               autovalidateMode: autovalidateMode,
               validator: (file) {
-                // Jika mode Create dan file kosong => Error
                 if (!_isEditing && file == null) {
                   return 'Bukti wajib diunggah';
+                }
+                if (file != null) {
+                  final String path = file.path.toLowerCase();
+                  final bool isValidImage =
+                      path.endsWith('.jpg') ||
+                      path.endsWith('.jpeg') ||
+                      path.endsWith('.png');
+                  if (!isValidImage) {
+                    return 'Format file harus JPG, JPEG, atau PNG.';
+                  }
+                  final bytes = file.lengthSync();
+                  if (bytes > 5 * 1024 * 1024) {
+                    return 'Ukuran foto maksimal 5MB.';
+                  }
                 }
                 return null;
               },
             ),
-
-            // --- AKHIR FILE PICKER UPDATED ---
             SizedBox(height: 20),
             Consumer<PengajuanSakitProvider>(
               builder: (context, provider, _) {
@@ -672,3 +698,4 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
     );
   }
 }
+  

@@ -1,7 +1,3 @@
-// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_jam/widget/form_pengajuan_izin_jam.dart
-
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
@@ -95,26 +91,22 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
 
     keperluanController.text = data.keperluan;
 
-    // Tanggal Izin (Tanpa toLocal)
     _tanggalIjinJam = data.tanggalIzin;
     tanggalIjinJamController.text = _tanggalIjinJam == null
         ? ''
         : DateFormat('dd MMMM yyyy', 'id_ID').format(_tanggalIjinJam!);
 
-    // Tanggal Pengganti (Tanpa toLocal)
     _tanggalPenggantiJam = data.tanggalPengganti;
     tanggalPenggantiJamController.text = _tanggalPenggantiJam == null
         ? ''
         : DateFormat('dd MMMM yyyy', 'id_ID').format(_tanggalPenggantiJam!);
 
-    // Jam Mulai & Selesai (Izin)
     _startTimeIjin = _toTimeOfDay(data.jamMulai);
     startTimeIjinController.text = _formatTime(data.jamMulai);
 
     _endTimeIjin = _toTimeOfDay(data.jamSelesai);
     endTimeIjinController.text = _formatTime(data.jamSelesai);
 
-    // Jam Mulai & Selesai (Pengganti)
     _startTimePengganti = _toTimeOfDay(data.jamMulaiPengganti);
     startTimePenggantiController.text = _formatTime(data.jamMulaiPengganti);
 
@@ -199,13 +191,11 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
 
   String _formatTime(DateTime? value) {
     if (value == null) return '';
-    // Hapus .toLocal() sesuai permintaan
     return DateFormat('HH:mm').format(value);
   }
 
   TimeOfDay? _toTimeOfDay(DateTime? value) {
     if (value == null) return null;
-    // Hapus .toLocal() sesuai permintaan
     return TimeOfDay.fromDateTime(value);
   }
 
@@ -325,12 +315,21 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
     dto_pengajuan_izin.Data? result;
 
     if (_isEditing) {
-      // Fallback karena fungsi update belum ada di provider sesuai diskusi sebelumnya
-      _showSnackBar(
-        "Fitur update belum diimplementasikan di Provider.",
-        isError: true,
+      result = await pengajuanProvider.updatePengajuan(
+        widget.initialData!.idPengajuanIzinJam,
+        idKategoriIzinJam: _selectedKategoriIzinJam!.idKategoriIzinJam,
+        keperluan: keperluanController.text.trim(),
+        tanggalIzin: _tanggalIjinJam!,
+        jamMulai: jamMulai,
+        jamSelesai: jamSelesai,
+        tanggalPengganti: _tanggalPenggantiJam!,
+        jamMulaiPengganti: jamMulaiPengganti,
+        jamSelesaiPengganti: jamSelesaiPengganti,
+        handover: handoverMarkup,
+        handoverUserIds: handoverUserIds,
+        approversProvider: approversProvider,
+        lampiran: lampiran,
       );
-      return;
     } else {
       result = await pengajuanProvider.createPengajuan(
         idKategoriIzinJam: _selectedKategoriIzinJam!.idKategoriIzinJam,
@@ -658,7 +657,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Mulai",
                     controller: startTimeIjinController,
-                    initialTime: _startTimeIjin, // <--- Penting!
+                    initialTime: _startTimeIjin,
                     onChanged: (time) => setState(() => _startTimeIjin = time),
                     isRequired: true,
                     validator: (value) {
@@ -674,7 +673,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Selesai",
                     controller: endTimeIjinController,
-                    initialTime: _endTimeIjin, // <--- Penting!
+                    initialTime: _endTimeIjin,
                     onChanged: (time) => setState(() => _endTimeIjin = time),
                     isRequired: true,
                     validator: (value) {
@@ -715,7 +714,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Mulai Pengganti",
                     controller: startTimePenggantiController,
-                    initialTime: _startTimePengganti, // <--- Penting!
+                    initialTime: _startTimePengganti,
                     onChanged: (time) =>
                         setState(() => _startTimePengganti = time),
                     isRequired: true,
@@ -732,7 +731,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                     borderColor: AppColors.textDefaultColor,
                     label: "Jam Selesai Pengganti",
                     controller: endTimePenggantiController,
-                    initialTime: _endTimePengganti, // <--- Penting!
+                    initialTime: _endTimePengganti,
                     onChanged: (time) =>
                         setState(() => _endTimePengganti = time),
                     isRequired: true,

@@ -1,5 +1,3 @@
-// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_cuti/widget/form_pengajuan_cuti.dart
-
 import 'dart:io';
 
 import 'package:e_hrm/contraints/colors.dart';
@@ -10,6 +8,7 @@ import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
+import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/recipient_cuti.dart';
 import 'package:e_hrm/shared_widget/date_picker_field_widget.dart';
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
@@ -281,6 +280,10 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     }
 
     if (result != null) {
+      if (mounted) {
+        context.read<RiwayatPengajuanProvider>().fetch();
+      }
+
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop(result);
       } else {
@@ -359,7 +362,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       } else {
         apply();
       }
-      // _scheduleHandoverControllerSync(''); // <-- HAPUS INI
       return;
     }
 
@@ -409,7 +411,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     } else {
       apply();
     }
-    // _scheduleHandoverControllerSync(plainHandover); // <-- HAPUS INI
   }
 
   kategori_dto.Data? _resolveInitialKategori(pengajuan_dto.Data data) {
@@ -444,20 +445,6 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
     if (v.isEmpty) return 0;
     return v.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
   }
-
-  // FUNGSI INI DIHAPUS KARENA MENYEBABKAN MASALAH STYLING
-  /*
-  void _scheduleHandoverControllerSync(String text) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final controller = _mentionsKey.currentState?.controller;
-      if (controller == null || controller.text == text) return;
-
-      controller
-        ..text = text
-        ..selection = TextSelection.collapsed(offset: text.length);
-    });
-  }
-  */
 
   String _getCurrentHandoverText() {
     final controller = _mentionsKey.currentState?.controller;
@@ -591,8 +578,8 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                     }
 
                     final int wordCount = _getWordCount(text);
-                    if (wordCount < 15) {
-                      return 'Minimal 15 kata. (Sekarang: $wordCount kata)';
+                    if (wordCount < 10) {
+                      return 'Minimal 10 kata. (Sekarang: $wordCount kata)';
                     }
 
                     return null;
@@ -628,7 +615,7 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
                             fillColor: AppColors.textColor,
                             filled: true,
                             hintText:
-                                'Handover Pekerjaan (min. 50 kata). Ketik @ untuk mention...',
+                                'Handover Pekerjaan (min. 10 kata). Ketik @ untuk mention...',
                             prefixIcon: const Icon(Icons.description_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),

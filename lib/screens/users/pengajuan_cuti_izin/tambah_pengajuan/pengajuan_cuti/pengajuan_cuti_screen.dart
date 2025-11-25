@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'dart:math' as math;
 
 import 'package:e_hrm/contraints/colors.dart';
@@ -12,7 +10,6 @@ import 'package:e_hrm/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengaju
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// Impor provider untuk tag
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 
 class PengajuanCutiScreen extends StatefulWidget {
@@ -58,41 +55,53 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
   }
 
   void _ensureDetailLoaded(BuildContext context) {
-    if (_pengajuan != null || _detailRequested || _detailLoading) {
-      return;
-    }
+    // Cek jika data sudah ada, sedang loading, atau sudah diminta
+    if (_pengajuan != null || _detailLoading || _detailRequested) return;
 
     final id = _extractPengajuanId(context);
     if (id == null || id.isEmpty) return;
 
+    // Tandai sudah diminta agar tidak loop, tapi JANGAN setState di sini
     _detailRequested = true;
-    setState(() {
-      _detailLoading = true;
-      _detailError = null;
-    });
 
+    // Pindahkan semua logika state change ke post frame callback
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
+      // Set loading state (aman dilakukan di sini karena build sudah selesai)
+      setState(() {
+        _detailLoading = true;
+        _detailError = null;
+      });
+
       try {
         final provider = context.read<PengajuanCutiProvider>();
-        final dto.Data? detail = await provider.fetchDetail(id);
+        final dto.Data? detail = await provider.fetchDetail(
+          id,
+          useCache: false,
+        );
+
         if (!mounted) return;
         setState(() {
-          _pengajuan = detail;
+          if (detail != null) {
+            _pengajuan = detail;
+          }
           _detailLoading = false;
-          if (detail == null) {
+          if (detail == null && _pengajuan == null) {
             _detailError = 'Data pengajuan cuti tidak ditemukan.';
-            _detailRequested = false;
           } else {
             _detailError = null;
           }
+          // Reset flag request agar bisa dicoba lagi jika gagal/perlu refresh
+          _detailRequested = false;
         });
       } catch (e) {
         if (!mounted) return;
         setState(() {
           _detailLoading = false;
-          _detailError = e.toString();
+          if (_pengajuan == null) {
+            _detailError = e.toString();
+          }
           _detailRequested = false;
         });
       }
@@ -186,7 +195,6 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
       providers: [
         ChangeNotifierProvider(create: (_) => KategoriCutiProvider()),
         ChangeNotifierProvider(create: (_) => PengajuanCutiProvider()),
-        // Tambahkan provider tag
         ChangeNotifierProvider(create: (_) => TagHandOverProvider()),
       ],
       child: Builder(

@@ -110,4 +110,6 @@ class Endpoints {
       "$baseURL/notifications/$notificationId";
   static const String markAllNotificationsAsRead =
       "$baseURL/notifications/mark-all-as-read";
+
+  static const String mobileCalendar = "$baseURL/mobile/calendar";
 }

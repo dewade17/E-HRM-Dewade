@@ -5,6 +5,7 @@ import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/auth/reset_password_provider.dart';
+import 'package:e_hrm/providers/calendar/calendar_provider.dart';
 import 'package:e_hrm/providers/departements/departements_provider.dart';
 import 'package:e_hrm/providers/face/face_enroll/face_enroll_provider.dart';
 import 'package:e_hrm/providers/istirahat/istirahat_provider.dart';
@@ -93,6 +94,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PengajuanSakitProvider()),
         ChangeNotifierProvider(create: (_) => RiwayatPengajuanProvider()),
         ChangeNotifierProvider(create: (_) => PengajuanCutiProvider()),
+        ChangeNotifierProvider(create: (_) => CalendarProvider()),
       ],
       child: Portal(
         child: MaterialApp(

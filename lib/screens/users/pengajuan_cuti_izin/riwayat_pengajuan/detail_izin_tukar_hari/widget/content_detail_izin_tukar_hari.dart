@@ -416,7 +416,7 @@ class ContentDetailIzinTukarHari extends StatelessWidget {
         ? approval.approver!.namaPengguna
         : (approval.approverRole != null && approval.approverRole!.isNotEmpty)
         ? approval.approverRole!
-        : "Approver";
+        : "Level ${approval.level}";
 
     return Container(
       width: double.infinity,

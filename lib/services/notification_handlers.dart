@@ -1,7 +1,3 @@
-// lib/services/notification_handlers.dart
-
-// ignore_for_file: unused_element, unused_local_variable
-
 import 'dart:convert';
 import 'dart:collection';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,11 +20,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   );
 }
 
-// Wajib top-level untuk callback background pada iOS 10+
 @pragma('vm:entry-point')
-void notificationTapBackground(NotificationResponse response) {
-  // TODO: arahkan user ke layar tertentu kalau perlu
-}
+void notificationTapBackground(NotificationResponse response) {}
 
 class NotificationHandler {
   NotificationHandler._internal();
@@ -48,7 +41,6 @@ class NotificationHandler {
     if (_initialized) return;
     _initialized = true;
 
-    // --- Permission FCM ---
     await _firebaseMessaging.requestPermission();
     await _firebaseMessaging.setForegroundNotificationPresentationOptions(
       alert: true,
@@ -56,19 +48,14 @@ class NotificationHandler {
       sound: true,
     );
 
-    // --- Background handler ---
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // --- Inisialisasi flutter_local_notifications (ANDROID + iOS/macOS) ---
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // v10+ pakai DarwinInitializationSettings untuk iOS/macOS
     const darwinInit = DarwinInitializationSettings(
-      // minta izin pakai API plugin di bawah (lebih fleksibel), jadi false di sini
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
-      // onDidReceiveLocalNotification: ... // iOS < 10; jarang diperlukan
     );
 
     const initSettings = InitializationSettings(
@@ -79,15 +66,10 @@ class NotificationHandler {
 
     await _localNotifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (resp) {
-        // Handle tap notif saat app foreground/background
-        final payload = resp.payload;
-        // TODO: parse payload & navigate
-      },
+      onDidReceiveNotificationResponse: (resp) {},
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
-    // --- Minta permission via plugin (iOS/macOS) ---
     await _localNotifications
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
@@ -100,10 +82,8 @@ class NotificationHandler {
         >()
         ?.requestPermissions(alert: true, badge: true, sound: true);
 
-    // --- Android: buat notification channel ---
     await _createAndroidNotificationChannel();
 
-    // --- Listener FCM foreground ---
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final String uniqueLogId = DateTime.now().millisecondsSinceEpoch
           .toString();
@@ -114,22 +94,8 @@ class NotificationHandler {
       );
     });
 
-    // --- Token → server ---
     await _getTokenAndSendToServer();
     _firebaseMessaging.onTokenRefresh.listen(_sendTokenToServer);
-  }
-
-  bool _shouldShowLocal(RemoteMessage message, {required bool fromBackground}) {
-    final hasNotificationPayload =
-        message.notification != null &&
-        ((message.notification!.title?.isNotEmpty ?? false) ||
-            (message.notification!.body?.isNotEmpty ?? false));
-
-    if (fromBackground && hasNotificationPayload) {
-      // Android sudah munculkan via sistem; hindari duplikat
-      return false;
-    }
-    return true;
   }
 
   bool _isDuplicate(RemoteMessage message) {
@@ -148,8 +114,7 @@ class NotificationHandler {
     String from = 'Unknown',
     required bool fromBackground,
   }) {
-    // Guard opsional untuk cegah duplikat Android background
-    // if (!_shouldShowLocal(message, fromBackground: fromBackground)) return;
+    if (_isDuplicate(message)) return;
 
     final String title =
         message.data['title'] ?? message.notification?.title ?? 'No Title';
@@ -176,7 +141,6 @@ class NotificationHandler {
           tag: 'e_hrm_general',
           groupKey: 'e_hrm_general',
         ),
-        // iOS/macOS details (tidak wajib, tapi baik untuk konsistensi)
         iOS: const DarwinNotificationDetails(
           threadIdentifier: 'e_hrm_general',
           presentAlert: true,
@@ -230,9 +194,7 @@ class NotificationHandler {
       await _apiService.postDataPrivate(Endpoints.getNotifications, {
         'token': token,
       });
-    } catch (_) {
-      // abaikan gagal kirim token
-    }
+    } catch (_) {}
   }
 }
 

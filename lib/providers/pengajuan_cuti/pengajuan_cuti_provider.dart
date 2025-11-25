@@ -290,10 +290,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
       ..._createMultipartStrings('recipient_ids[]', approverIds),
       ..._createMultipartStrings('tanggal_cuti[]', formattedDates),
       ..._createMultipartStrings('tanggal_list', formattedDates),
-      ..._createMultipartStrings(
-        'tanggal_list[]',
-        tanggalList.map((t) => _formatDate(t)).toList(),
-      ),
+      ..._createMultipartStrings('tanggal_list[]', formattedDates),
       ..._createMultipartStrings('handover_tag_user_ids', handoverIds),
       ..._createMultipartStrings('handover_tag_user_ids[]', handoverIds),
     ];
@@ -413,10 +410,7 @@ class PengajuanCutiProvider extends ChangeNotifier {
       ..._createMultipartStrings('recipient_ids[]', approverIds),
       ..._createMultipartStrings('tanggal_cuti[]', formattedDates),
       ..._createMultipartStrings('tanggal_list', formattedDates),
-      ..._createMultipartStrings(
-        'tanggal_list[]',
-        tanggalList.map((t) => _formatDate(t)).toList(),
-      ),
+      ..._createMultipartStrings('tanggal_list[]', formattedDates),
       ..._createMultipartStrings('handover_tag_user_ids', handoverIds),
       ..._createMultipartStrings('handover_tag_user_ids[]', handoverIds),
     ];

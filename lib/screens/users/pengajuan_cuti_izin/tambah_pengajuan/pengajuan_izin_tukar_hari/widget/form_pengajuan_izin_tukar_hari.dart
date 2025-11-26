@@ -1,7 +1,3 @@
-// lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/pengajuan_izin_tukar_hari/widget/form_pengajuan_izin_tukar_hari.dart
-
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
@@ -26,7 +22,6 @@ import 'package:http/http.dart' as http;
 import 'package:e_hrm/shared_widget/file_picker_field_widget.dart';
 import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:intl/intl.dart';
-// import 'package:path/path.dart' as p; // Tidak diperlukan lagi
 
 class _TanggalTukarPair {
   DateTime? tanggalIzin;
@@ -146,7 +141,6 @@ class _FormPengajuanIzinTukarHariState
 
   void _prefillInitialPengajuan(tukar_hari.Data? data) {
     if (data == null) {
-      // Tidak perlu _addPair di sini jika sudah ada di initState
       return;
     }
 
@@ -171,8 +165,6 @@ class _FormPengajuanIzinTukarHariState
     } else {
       _addPair(useSetState: false);
     }
-
-    // Lampiran ditangani oleh FilePickerFieldWidget via fileUrl, tidak perlu download manual
   }
 
   void _addPair({
@@ -270,7 +262,6 @@ class _FormPengajuanIzinTukarHariState
       return;
     }
 
-    // Validasi Bukti: Wajib jika Create, Opsional jika Edit
     if (!_isEditing && _buktiFile == null) {
       _showSnackBar('Bukti wajib diunggah.', isError: true);
       return;
@@ -305,7 +296,6 @@ class _FormPengajuanIzinTukarHariState
     tukar_hari.Data? result;
 
     if (_isEditing) {
-      // Mode UPDATE
       result = await pengajuanProvider.updatePengajuan(
         widget.initialPengajuan!.idIzinTukarHari,
         kategori: kategori,
@@ -318,7 +308,6 @@ class _FormPengajuanIzinTukarHariState
         lampiran: lampiran,
       );
     } else {
-      // Mode CREATE
       result = await pengajuanProvider.createPengajuan(
         kategori: kategori,
         keperluan: rawKeperluan,
@@ -360,7 +349,7 @@ class _FormPengajuanIzinTukarHariState
   void _resetFormState({bool resetApprovers = false}) {
     formKey.currentState?.reset();
 
-    for (final pair in _daftarTanggal) {
+    for (var pair in _daftarTanggal) {
       pair.dispose();
     }
 
@@ -678,8 +667,6 @@ class _FormPengajuanIzinTukarHariState
               ),
             ),
             SizedBox(height: 20),
-
-            // --- FILE PICKER UPDATED ---
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -687,7 +674,6 @@ class _FormPengajuanIzinTukarHariState
               buttonText: 'Unggah Bukti',
               prefixIcon: Icons.camera_alt_outlined,
               file: _buktiFile,
-              // Kirim URL jika ada di mode edit
               fileUrl: widget.initialPengajuan?.lampiranIzinTukarHariUrl,
               onFileChanged: (newFile) {
                 setState(() {
@@ -697,7 +683,6 @@ class _FormPengajuanIzinTukarHariState
                   formKey.currentState?.validate();
                 }
               },
-              // Wajib hanya jika buat baru (bukan edit)
               isRequired: !_isEditing,
               autovalidateMode: autovalidateMode,
               validator: (file) {
@@ -707,8 +692,6 @@ class _FormPengajuanIzinTukarHariState
                 return null;
               },
             ),
-
-            // --- AKHIR FILE PICKER UPDATED ---
             SizedBox(height: 20),
             Consumer<PengajuanIzinTukarHariProvider>(
               builder: (context, provider, _) {

@@ -364,12 +364,15 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
       }
 
       final messageToShow =
-          successMessage ?? 'Pengajuan izin jam berhasil disimpan.';
+          successMessage ??
+          (_isEditing
+              ? "Pengajuan izin jam berhasil diperbarui."
+              : 'Pengajuan izin jam berhasil disimpan.');
       _showSnackBar(messageToShow, isError: false);
 
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop(result);
-      } else {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop(true);
+      } else if (mounted) {
         formState.reset();
         approversProvider.clearSelection();
         setState(() {
@@ -450,7 +453,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                 child: LinearProgressIndicator(),
               ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -470,7 +473,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                 return null;
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,7 +555,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                             fillColor: AppColors.textColor,
                             filled: true,
                             hintText:
-                                'Handover Pekerjaan (min. 10 kata). Ketik @ untuk mention...',
+                                'Handover Pekerjaan (min. 15 kata). Ketik @ untuk mention...',
                             prefixIcon: const Icon(Icons.description_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -642,7 +645,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
               ],
             ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             DatePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -652,7 +655,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
               onDateChanged: (date) => setState(() => _tanggalIjinJam = date),
               isRequired: true,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -698,7 +701,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             DatePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
@@ -709,7 +712,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                   setState(() => _tanggalPenggantiJam = date),
               isRequired: true,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -760,7 +763,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: FormField<Set<String>>(
@@ -805,7 +808,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
               ),
             ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             FilePickerFieldWidget(
               backgroundColor: AppColors.textColor,
@@ -833,7 +836,7 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
               },
             ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Consumer<PengajuanIzinJamProvider>(
               builder: (context, provider, _) {
                 final bool saving = provider.saving;

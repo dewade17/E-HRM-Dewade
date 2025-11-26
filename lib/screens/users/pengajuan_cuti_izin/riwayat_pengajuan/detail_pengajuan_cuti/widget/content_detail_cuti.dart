@@ -45,11 +45,6 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
     return DateFormat(pattern, 'id_ID').format(d.toLocal());
   }
 
-  String _fmtTime(DateTime? d) {
-    if (d == null) return '';
-    return DateFormat('HH:mm', 'id_ID').format(d.toLocal());
-  }
-
   @override
   Widget build(BuildContext context) {
     final data = widget.data;

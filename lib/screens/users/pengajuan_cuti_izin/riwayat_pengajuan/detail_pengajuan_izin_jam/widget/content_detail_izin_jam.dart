@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart' as dto;
 import 'package:e_hrm/utils/mention_parser.dart';
@@ -157,7 +155,10 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              _fmtDate(data.createdAt, pattern: 'dd MMMM yyyy, HH:mm'),
+              _fmtDate(
+                data.createdAt?.toLocal(),
+                pattern: 'dd MMMM yyyy, HH:mm',
+              ),
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,

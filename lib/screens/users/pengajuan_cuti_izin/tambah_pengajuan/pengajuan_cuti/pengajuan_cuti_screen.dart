@@ -194,7 +194,6 @@ class _PengajuanCutiScreenState extends State<PengajuanCutiScreen> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => KategoriCutiProvider()),
-        ChangeNotifierProvider(create: (_) => PengajuanCutiProvider()),
         ChangeNotifierProvider(create: (_) => TagHandOverProvider()),
       ],
       child: Builder(

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 DateTime? _parseDateTime(dynamic value) {
   if (value == null) return null;
-  if (value is DateTime) return value.isUtc ? value.toLocal() : value;
+  if (value is DateTime) return value;
   if (value is String && value.isNotEmpty) {
     final raw = value.trim();
     final parsed = DateTime.tryParse(raw);
@@ -11,7 +11,7 @@ DateTime? _parseDateTime(dynamic value) {
     final hasTimeZoneSuffix = RegExp(r'(Z|[+-]\d{2}:?\d{2})$').hasMatch(raw);
 
     if (parsed.isUtc || hasTimeZoneSuffix) {
-      return parsed.toLocal();
+      return parsed;
     }
 
     return parsed;
@@ -23,7 +23,9 @@ int? _parseInt(dynamic value) {
   if (value == null) return null;
   if (value is int) return value;
   if (value is num) return value.toInt();
-  if (value is String) return int.tryParse(value);
+  if (value is String && value.trim().isNotEmpty) {
+    return int.tryParse(value.trim());
+  }
   return null;
 }
 

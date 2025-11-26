@@ -58,6 +58,9 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   String? _selectedValueStatus;
   late Future<void> _loadFuture;
 
+  // --- TAMBAHAN: State untuk menyimpan tanggal yang dipilih di kalender ---
+  DateTime? _selectedDate;
+
   @override
   void initState() {
     super.initState();
@@ -110,8 +113,52 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
     setState(() {
       if (jenis != null) _selectedValuePengajuan = jenis;
       if (status != null) _selectedValueStatus = status;
+      // Saat filter dropdown berubah, reset filter tanggal
+      _selectedDate = null;
     });
     _scheduleFetch();
+  }
+
+  // --- FUNGSI BARU: Handler saat tanggal di kalender dipilih ---
+  void _onDaySelected(DateTime? date) {
+    setState(() {
+      // Normalisasi tanggal yang dipilih
+      _selectedDate = date != null
+          ? DateTime(date.year, date.month, date.day)
+          : null;
+    });
+    // Tidak perlu fetch API baru, cukup pemicu rebuild (setState)
+  }
+
+  // --- FUNGSI BARU: Logika filter klien berdasarkan tanggal ---
+  List<RiwayatPengajuanItem> _filterItemsByDate(
+    List<RiwayatPengajuanItem> items,
+  ) {
+    if (_selectedDate == null) {
+      return items;
+    }
+
+    final selected = _selectedDate!;
+
+    return items.where((item) {
+      final start = item.tanggalMulai;
+      final end = item.tanggalBerakhir;
+
+      if (start == null) return false;
+
+      // Normalisasi tanggal item menjadi tanggal saja (tanpa waktu)
+      final normalizedStart = DateTime(start.year, start.month, start.day);
+      final normalizedEnd = end != null
+          ? DateTime(end.year, end.month, end.day)
+          : normalizedStart;
+
+      // Cek apakah tanggal yang dipilih (selected) berada dalam rentang [start, end]
+      // Perhitungan menggunakan normalisasi tanggal (tahun/bulan/hari)
+      return (selected.isAtSameMomentAs(normalizedStart) ||
+              selected.isAfter(normalizedStart)) &&
+          (selected.isAtSameMomentAs(normalizedEnd) ||
+              selected.isBefore(normalizedEnd));
+    }).toList();
   }
 
   String _formatDate(DateTime? date) {
@@ -185,6 +232,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
   }
 
   Future<void> _handleDelete(RiwayatPengajuanItem item) async {
+    // ... (Logika handle delete tidak berubah)
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -274,7 +322,12 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
       children: [
         Consumer<RiwayatPengajuanProvider>(
           builder: (context, provider, _) {
-            return CalendarRiwayatPengajuan(items: provider.items);
+            return CalendarRiwayatPengajuan(
+              items: provider.items,
+              // --- PERBAIKAN: Hubungkan selectedDay dan onDaySelected ---
+              selectedDay: _selectedDate,
+              onDaySelected: _onDaySelected,
+            );
           },
         ),
         const SizedBox(height: 20),
@@ -405,8 +458,28 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
                   );
                 }
 
+                // --- PERBAIKAN: Filter item berdasarkan tanggal yang dipilih ---
+                final filteredItems = _filterItemsByDate(provider.items);
+
+                if (filteredItems.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 50),
+                    child: Text(
+                      _selectedDate == null
+                          ? 'Belum ada riwayat pengajuan.'
+                          : 'Tidak ada pengajuan untuk tanggal ${_formatDate(_selectedDate)}.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: AppColors.textDefaultColor,
+                      ),
+                    ),
+                  );
+                }
+                // --- Akhir Perbaikan Filter ---
+
                 return Column(
-                  children: provider.items.map((item) {
+                  // Menggunakan item yang sudah difilter
+                  children: filteredItems.map((item) {
                     final Color statusColor = _statusColor(item.status);
                     return Padding(
                       padding: const EdgeInsets.symmetric(
@@ -440,6 +513,7 @@ class _ContentRiwayatPengajuanState extends State<ContentRiwayatPengajuan> {
 }
 
 class RiwayatItemCard extends StatelessWidget {
+  // ... (RiwayatItemCard tidak berubah)
   final String title;
   final String tanggalMulai;
   final String tanggalBerakhir;

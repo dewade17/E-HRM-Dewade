@@ -2,6 +2,7 @@
 
 import 'package:e_hrm/dto/notification/notification.dart' as history_dto;
 import 'package:e_hrm/providers/notifications/notifications_provider.dart';
+import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -21,7 +22,6 @@ class _NotificationContentState extends State<NotificationContent> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Mengambil notifikasi saat halaman pertama kali dibuka
       context.read<NotificationProvider>().fetchNotifications();
     });
     _scrollController.addListener(_onScroll);
@@ -34,7 +34,6 @@ class _NotificationContentState extends State<NotificationContent> {
     super.dispose();
   }
 
-  // Logika untuk memuat lebih banyak notifikasi saat scroll ke bawah
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
@@ -42,16 +41,13 @@ class _NotificationContentState extends State<NotificationContent> {
     }
   }
 
-  // Helper untuk membuat huruf pertama kapital
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-  // Metode untuk menangani aksi 'Mark All As Read'
   void _handleMarkAllAsRead() async {
     final provider = context.read<NotificationProvider>();
     final messenger = ScaffoldMessenger.of(context);
 
-    // Periksa apakah ada notifikasi yang belum dibaca
     final hasUnread = provider.items.any((n) => n.status != 'read');
     if (!hasUnread && !provider.isLoading) {
       messenger.showSnackBar(
@@ -85,11 +81,9 @@ class _NotificationContentState extends State<NotificationContent> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // [PERUBAHAN] Menggunakan Row untuk menampung tombol dan filter
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // [PENAMBAHAN BARU] Tombol Mark All As Read
                   TextButton.icon(
                     onPressed: (hasUnread && !isBusy)
                         ? _handleMarkAllAsRead
@@ -112,7 +106,6 @@ class _NotificationContentState extends State<NotificationContent> {
                     ),
                   ),
 
-                  // Header filter dropdown
                   SizedBox(
                     width: 160,
                     child: DecoratedBox(
@@ -131,7 +124,6 @@ class _NotificationContentState extends State<NotificationContent> {
                           onChanged: isBusy
                               ? null
                               : (val) {
-                                  // Disable saat loading
                                   if (val != null) {
                                     provider.setFilter(val);
                                   }
@@ -142,7 +134,6 @@ class _NotificationContentState extends State<NotificationContent> {
                                   value: f,
                                   child: Text(
                                     _capitalize(
-                                      // Mengganti nama enum agar lebih mudah dibaca
                                       f.name.replaceAll('Dibaca', ' Dibaca'),
                                     ),
                                     style: const TextStyle(fontSize: 14),
@@ -158,7 +149,6 @@ class _NotificationContentState extends State<NotificationContent> {
               ),
               const SizedBox(height: 12),
 
-              // Daftar notifikasi
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => provider.refresh(),
@@ -172,7 +162,6 @@ class _NotificationContentState extends State<NotificationContent> {
     );
   }
 
-  // Membangun tampilan body utama berdasarkan state dari provider
   Widget _buildBody(NotificationProvider provider) {
     if (provider.isLoading && provider.items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -190,7 +179,6 @@ class _NotificationContentState extends State<NotificationContent> {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (index >= provider.items.length) {
-          // Menampilkan indikator loading di bagian bawah saat memuat lebih banyak
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(8.0),
@@ -201,7 +189,6 @@ class _NotificationContentState extends State<NotificationContent> {
         final n = provider.items[index];
         return GestureDetector(
           onTap: () {
-            // Hanya panggil fungsi jika notifikasi belum dibaca
             if (n.status != 'read') {
               context.read<NotificationProvider>().markAsRead(n.id);
             }
@@ -213,18 +200,15 @@ class _NotificationContentState extends State<NotificationContent> {
   }
 }
 
-// Widget untuk menampilkan satu kartu notifikasi
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({required this.notif});
 
   final history_dto.NotificationItem notif;
 
-  // Definisi warna
   static const _bgUnread = Color(0xFFEAF8F3);
   static const _bgRead = Color(0xFFF6FAF8);
   static const _accent = Color(0xFF18A36C);
 
-  // Format tanggal dan waktu
   String _formatDateTime(DateTime dt) {
     return DateFormat('dd-MM-yyyy, HH:mm', 'id_ID').format(dt.toLocal());
   }
@@ -233,6 +217,8 @@ class _NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isRead = notif.status.toLowerCase() != 'unread';
     final bg = isRead ? _bgRead : _bgUnread;
+
+    final displayBody = MentionParser.convertMarkupToDisplay(notif.body);
 
     return Container(
       decoration: BoxDecoration(
@@ -253,7 +239,6 @@ class _NotificationCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon dan indikator belum dibaca
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -288,7 +273,6 @@ class _NotificationCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Konten teks notifikasi
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,7 +288,7 @@ class _NotificationCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  notif.body,
+                  displayBody,
                   style: const TextStyle(
                     fontSize: 13.5,
                     height: 1.35,

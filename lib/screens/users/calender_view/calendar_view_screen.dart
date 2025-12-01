@@ -1,6 +1,9 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/calendar/calendar_data.dart';
 import 'package:e_hrm/providers/calendar/calendar_provider.dart';
+import 'package:e_hrm/utils/mention_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -177,6 +180,14 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
         break;
     }
 
+    final isStoryPlanner =
+        item.type.toLowerCase() == 'story_planner' ||
+        item.type.toLowerCase() == 'story planner';
+
+    final parsedDescription = item.description != null
+        ? MentionParser.convertMarkupToDisplay(item.description!)
+        : null;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -211,9 +222,9 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (item.description != null && item.description!.isNotEmpty)
+            if (parsedDescription != null && parsedDescription.isNotEmpty)
               Text(
-                item.description!,
+                parsedDescription,
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: Colors.grey.shade600,
@@ -222,20 +233,25 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 12, color: Colors.grey.shade500),
-                const SizedBox(width: 4),
-                Text(
-                  "${DateFormat('HH:mm').format(item.start)} - ${DateFormat('HH:mm').format(item.end)}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
+            if (!isStoryPlanner)
+              Row(
+                children: [
+                  Icon(
+                    Icons.access_time,
+                    size: 12,
                     color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "${DateFormat('HH:mm').format(item.start)} - ${DateFormat('HH:mm').format(item.end)}",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
@@ -358,47 +360,45 @@ class _FormPengajuanIzinJamState extends State<FormPengajuanIzinJam> {
       return;
     }
 
-    if (result != null) {
-      if (mounted) {
-        await context.read<RiwayatPengajuanProvider>().fetch();
-      }
+    if (mounted) {
+      await context.read<RiwayatPengajuanProvider>().fetch();
+    }
 
-      final messageToShow =
-          successMessage ??
-          (_isEditing
-              ? "Pengajuan izin jam berhasil diperbarui."
-              : 'Pengajuan izin jam berhasil disimpan.');
-      _showSnackBar(messageToShow, isError: false);
+    final messageToShow =
+        successMessage ??
+        (_isEditing
+            ? "Pengajuan izin jam berhasil diperbarui."
+            : 'Pengajuan izin jam berhasil disimpan.');
+    _showSnackBar(messageToShow, isError: false);
 
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.of(context).pop(true);
-      } else if (mounted) {
-        formState.reset();
-        approversProvider.clearSelection();
-        setState(() {
-          _selectedKategoriIzinJam = null;
-          keperluanController.clear();
-          tanggalIjinJamController.clear();
-          tanggalPenggantiJamController.clear();
-          startTimeIjinController.clear();
-          endTimeIjinController.clear();
-          startTimePenggantiController.clear();
-          endTimePenggantiController.clear();
-          _tanggalIjinJam = null;
-          _tanggalPenggantiJam = null;
-          _startTimeIjin = null;
-          _endTimeIjin = null;
-          _startTimePengganti = null;
-          _endTimePengganti = null;
-          _buktiFile = null;
-          _handoverPlainText = '';
-          _handoverMarkupText = '';
-          _handoverFieldVersion++;
-          _autoValidate = false;
-        });
-      }
-    } else {
-      _showSnackBar('Gagal menyimpan pengajuan.', isError: true);
+    final popPayload = result ?? true;
+
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.of(context).pop(popPayload);
+    } else if (mounted) {
+      formState.reset();
+      approversProvider.clearSelection();
+      setState(() {
+        _selectedKategoriIzinJam = null;
+        keperluanController.clear();
+        tanggalIjinJamController.clear();
+        tanggalPenggantiJamController.clear();
+        startTimeIjinController.clear();
+        endTimeIjinController.clear();
+        startTimePenggantiController.clear();
+        endTimePenggantiController.clear();
+        _tanggalIjinJam = null;
+        _tanggalPenggantiJam = null;
+        _startTimeIjin = null;
+        _endTimeIjin = null;
+        _startTimePengganti = null;
+        _endTimePengganti = null;
+        _buktiFile = null;
+        _handoverPlainText = '';
+        _handoverMarkupText = '';
+        _handoverFieldVersion++;
+        _autoValidate = false;
+      });
     }
   }
 

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_izin_jam/pengajuan_izin_jam.dart' as dto;
 import 'package:e_hrm/utils/mention_parser.dart';
@@ -558,10 +560,7 @@ class _ContentDetailIzinJamState extends State<ContentDetailIzinJam> {
                               ),
                               if (approval.decidedAt != null)
                                 Text(
-                                  _fmtDate(
-                                    approval.decidedAt,
-                                    pattern: 'dd/MM',
-                                  ),
+                                  _fmtDate(approval.decidedAt),
                                   style: GoogleFonts.poppins(
                                     color: textColor,
                                     fontSize: 11,

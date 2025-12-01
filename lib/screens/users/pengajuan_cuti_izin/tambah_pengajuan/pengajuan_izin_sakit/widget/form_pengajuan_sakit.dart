@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'dart:async';
 import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
@@ -312,34 +314,35 @@ class _FormPengajuanSakitState extends State<FormPengajuanSakit> {
     final String? saveError = pengajuanSakitProvider.saveError;
     final String? saveMessage = pengajuanSakitProvider.saveMessage;
 
-    if (saveError == null) {
-      if (saveMessage != null && saveMessage.isNotEmpty) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(saveMessage),
-            backgroundColor: AppColors.succesColor,
-          ),
-        );
-      }
-
-      if (result != null) {
-        if (mounted) {
-          await context.read<RiwayatPengajuanProvider>().fetch();
-        }
-
-        if (Navigator.canPop(context)) {
-          Navigator.of(context).pop(result);
-        } else {
-          _resetFormFields(approversProvider);
-        }
-      }
-    } else {
+    if (saveError != null) {
       messenger.showSnackBar(
         SnackBar(
           content: Text(saveError),
           backgroundColor: AppColors.errorColor,
         ),
       );
+      return;
+    }
+
+    if (saveMessage != null && saveMessage.isNotEmpty) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(saveMessage),
+          backgroundColor: AppColors.succesColor,
+        ),
+      );
+    }
+
+    if (mounted) {
+      await context.read<RiwayatPengajuanProvider>().fetch();
+    }
+
+    final popPayload = result ?? true;
+
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop(popPayload);
+    } else {
+      _resetFormFields(approversProvider);
     }
   }
 

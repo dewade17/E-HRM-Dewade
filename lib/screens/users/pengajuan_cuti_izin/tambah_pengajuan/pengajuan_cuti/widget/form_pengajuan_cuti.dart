@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable, use_build_context_synchronously
+
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/kategori_pengajuan_cuti.dart'
@@ -278,23 +280,23 @@ class _FormPengajuanCutiState extends State<FormPengajuanCuti> {
       _showSnackBar(successMessage, isError: false);
     }
 
-    if (result != null) {
-      if (mounted) {
-        context.read<RiwayatPengajuanProvider>().fetch();
-      }
+    if (mounted) {
+      context.read<RiwayatPengajuanProvider>().fetch();
+    }
 
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop(result);
-      } else {
-        formState.reset();
-        _applyInitialData(null, notify: false);
-        setState(() {
-          _buktiFile = null;
-          _autoValidate = false;
-          _tanggalMasukKerja = null;
-          _selectedDates = [];
-        });
-      }
+    final popPayload = result ?? true;
+
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop(popPayload);
+    } else {
+      formState.reset();
+      _applyInitialData(null, notify: false);
+      setState(() {
+        _buktiFile = null;
+        _autoValidate = false;
+        _tanggalMasukKerja = null;
+        _selectedDates = [];
+      });
     }
   }
 

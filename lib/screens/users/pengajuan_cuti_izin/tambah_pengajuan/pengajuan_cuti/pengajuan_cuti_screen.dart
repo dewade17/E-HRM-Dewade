@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_cast, deprecated_member_use
+
 import 'dart:math' as math;
 
 import 'package:e_hrm/contraints/colors.dart';

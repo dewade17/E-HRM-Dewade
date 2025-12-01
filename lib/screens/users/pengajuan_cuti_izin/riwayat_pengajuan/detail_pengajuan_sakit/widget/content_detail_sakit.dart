@@ -502,10 +502,7 @@ class _ContentDetailSakitState extends State<ContentDetailSakit> {
                               ),
                               if (approval.decidedAt != null)
                                 Text(
-                                  _fmtDate(
-                                    approval.decidedAt,
-                                    pattern: 'dd/MM',
-                                  ),
+                                  _fmtDate(approval.decidedAt),
                                   style: GoogleFonts.poppins(
                                     color: textColor,
                                     fontSize: 11,

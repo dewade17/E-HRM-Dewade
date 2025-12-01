@@ -188,8 +188,9 @@ class RiwayatPengajuanProvider extends ChangeNotifier {
     return rawItems
         .map((dynamic entry) {
           if (entry is izin_jam.Data) return entry;
-          if (entry is Map<String, dynamic>)
+          if (entry is Map<String, dynamic>) {
             return izin_jam.Data.fromJson(entry);
+          }
           return izin_jam.Data.fromJson(
             Map<String, dynamic>.from(entry as Map),
           );
@@ -216,8 +217,9 @@ class RiwayatPengajuanProvider extends ChangeNotifier {
     return rawItems
         .map((dynamic entry) {
           if (entry is tukar_hari.Data) return entry;
-          if (entry is Map<String, dynamic>)
+          if (entry is Map<String, dynamic>) {
             return tukar_hari.Data.fromJson(entry);
+          }
           return tukar_hari.Data.fromJson(
             Map<String, dynamic>.from(entry as Map),
           );

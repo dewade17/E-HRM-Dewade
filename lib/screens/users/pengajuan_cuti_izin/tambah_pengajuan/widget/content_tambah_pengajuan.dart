@@ -1,5 +1,7 @@
 // lib/screens/users/pengajuan_cuti_izin/tambah_pengajuan/widget/content_tambah_pengajuan.dart
 
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/konfigurasi_cuti/konfigurasi_cuti.dart'; // Import DTO
 import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart';
@@ -78,12 +80,12 @@ class _ContentTambahPengajuanState extends State<ContentTambahPengajuan> {
 
     final String sisaCutiText = hasData
         ? _formatValue(
-            currentData!.koutaCuti,
+            currentData.koutaCuti,
           ) // Gunakan currentData, bukan latestData
         : (konfigurasi.loading ? '...' : '--');
 
     final String cutiTabungText = hasData
-        ? _formatValue(currentData!.cutiTabung) // Gunakan currentData
+        ? _formatValue(currentData.cutiTabung) // Gunakan currentData
         : (konfigurasi.loading ? '...' : '--');
 
     final String rawStatus = konfigurasi.statusCuti?.trim() ?? '';

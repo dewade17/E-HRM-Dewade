@@ -1,5 +1,7 @@
 // lib/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart
 
+// ignore_for_file: unnecessary_string_escapes
+
 // --- IMPORT BARU ---
 import 'dart:convert';
 

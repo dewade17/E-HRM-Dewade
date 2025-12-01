@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
@@ -334,15 +336,16 @@ class _FormPengajuanIzinTukarHariState
       _showSnackBar(successMessage);
     }
 
-    if (result != null) {
-      if (mounted) {
-        await context.read<RiwayatPengajuanProvider>().fetch();
-      }
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop(result);
-      } else {
-        _resetFormState(resetApprovers: true);
-      }
+    if (mounted) {
+      await context.read<RiwayatPengajuanProvider>().fetch();
+    }
+
+    final popPayload = result ?? true;
+
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop(popPayload);
+    } else {
+      _resetFormState(resetApprovers: true);
     }
   }
 

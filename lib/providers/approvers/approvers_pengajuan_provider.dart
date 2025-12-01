@@ -54,8 +54,9 @@ class ApproversPengajuanProvider extends ChangeNotifier {
     _error = null;
     _users.clear();
     if (search != null) _search = search;
-    if (newRoles != null && newRoles.isNotEmpty)
+    if (newRoles != null && newRoles.isNotEmpty) {
       roles = List<String>.from(newRoles);
+    }
     if (newIncludeDeleted != null) includeDeleted = newIncludeDeleted;
 
     await _fetch(page: 1, pageSize: pageSize ?? defaultPageSize, append: false);

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, unnecessary_nullable_for_final_variable_declarations, deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_cuti/pengajuan_cuti.dart' as dto;
 import 'package:e_hrm/utils/mention_parser.dart';
@@ -583,10 +585,7 @@ class _ContentDetailCutiState extends State<ContentDetailCuti> {
                               ),
                               if (approval.decidedAt != null)
                                 Text(
-                                  _fmtDate(
-                                    approval.decidedAt,
-                                    pattern: 'dd/MM',
-                                  ),
+                                  _fmtDate(approval.decidedAt),
                                   style: GoogleFonts.poppins(
                                     color: textColor,
                                     fontSize: 11,

@@ -130,8 +130,9 @@ class KonfigurasiCutiProvider extends ChangeNotifier {
   }) {
     final currentAvailable = availableQuota;
     if (currentAvailable == null) return null; // Belum tahu kuota
-    if (!reducesQuota)
+    if (!reducesQuota) {
       return currentAvailable; // Kategori tidak mengurangi kuota
+    }
 
     final int remaining = currentAvailable - selectedDaysCount;
     return remaining > 0 ? remaining : 0;

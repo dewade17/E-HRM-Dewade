@@ -1,7 +1,6 @@
 class Endpoints {
   static const String baseURL = "https://f54ldwpd-3000.asse.devtunnels.ms/api";
-  static const String faceBaseURL =
-      "https://face-recognition.onestepsolutionbali.com";
+  static const String faceBaseURL = "https://f54ldwpd-8000.asse.devtunnels.ms";
 
   //auth
   static const String login = "$baseURL/mobile/auth/login";
@@ -73,7 +72,7 @@ class Endpoints {
   static String agendaKerjaUser(String userId) => "$agendaKerja/user/$userId";
   static String agendaKerjaDetail(String id) => "$agendaKerjaCrud/$id";
 
-  //agenda (admin)
+  //agenda (admin)\
   static const String agenda = "$baseURL/admin/agenda";
   //detail-agenda
   static String agendaDetail(String id) => "$agenda/$id";

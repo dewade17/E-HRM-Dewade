@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:math' as math;
 import 'package:e_hrm/dto/pengajuan_tukar_hari/pengajuan_tukar_hari.dart'
     as dto;

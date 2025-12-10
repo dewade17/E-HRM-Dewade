@@ -50,7 +50,9 @@ class HomeContent extends StatelessWidget {
         HomeMenuItem(
           imagePath: 'lib/assets/image/menu_home/finance.png',
           label: "Finance",
-          onTap: () {},
+          onTap: () {
+            Navigator.pushNamed(context, '/finance-karyawan');
+          },
         ),
       ],
     );

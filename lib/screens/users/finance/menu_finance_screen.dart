@@ -1,25 +1,25 @@
 import 'dart:math' as math;
-import 'package:e_hrm/screens/users/pengajuan_cuti_izin.dart/tambah_pengajuan/widget/content_tambah_pengajuan.dart';
+
+import 'package:e_hrm/screens/users/finance/widget/content_finance.dart';
+import 'package:e_hrm/screens/users/finance/widget/header_finance.dart';
 import 'package:flutter/material.dart';
 
-class TambahPengajuanScreen extends StatefulWidget {
-  const TambahPengajuanScreen({super.key});
+class MenuFinanceScreen extends StatefulWidget {
+  const MenuFinanceScreen({super.key});
 
   @override
-  State<TambahPengajuanScreen> createState() => _TambahPengajuanScreenState();
+  State<MenuFinanceScreen> createState() => _MenuFinanceScreenState();
 }
 
-class _TambahPengajuanScreenState extends State<TambahPengajuanScreen> {
+class _MenuFinanceScreenState extends State<MenuFinanceScreen> {
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
+    final size = MediaQuery.of(context).size;
     final iconMax = (math.min(size.width, size.height) * 0.4).clamp(
       320.0,
       360.0,
     );
-
     return Scaffold(
-      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // BG ikon samar di tengah
@@ -50,27 +50,16 @@ class _TambahPengajuanScreenState extends State<TambahPengajuanScreen> {
 
           Positioned.fill(
             child: SafeArea(
-              // top/bottom tetap aman, kiri/kanan edge-to-edge
               left: false,
               right: false,
               child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                // full width secara horizontal
-                padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
-                child: Stack(
-                  //saya ingin
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [ContentTambahPengajuan()],
-                    ),
-                  ],
-                ),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(15, 80, 15, 24),
+                child: const ContentFinance(),
               ),
             ),
           ),
+          const Positioned(top: 40, left: 10, child: HeaderFinance()),
         ],
       ),
     );

@@ -28,6 +28,7 @@ import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/screens/auth/login/login_screen.dart';
 import 'package:e_hrm/screens/auth/reset_password/reset_password_screen.dart';
 import 'package:e_hrm/screens/opening/opening_screen.dart';
+import 'package:e_hrm/screens/users/finance/menu_finance_screen.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/kunjungan_klien_screen.dart';
 import 'package:e_hrm/screens/users/pengajuan_cuti_izin/pengajuan_screen.dart';
 import 'package:e_hrm/screens/users/profile/profile_screen.dart';
@@ -128,6 +129,8 @@ class MyApp extends StatelessWidget {
                 AuthWrapper(child: const JamIstirahatScreen()),
             '/pengajuan-cuti': (context) =>
                 AuthWrapper(child: const PengajuanScreen()),
+            '/finance-karyawan': (context) =>
+                AuthWrapper(child: const MenuFinanceScreen()),
           },
         ),
       ),

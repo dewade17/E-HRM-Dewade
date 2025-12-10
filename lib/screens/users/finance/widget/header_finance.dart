@@ -2,8 +2,8 @@ import 'package:e_hrm/contraints/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class HeaderPengajuan extends StatelessWidget {
-  const HeaderPengajuan({super.key});
+class HeaderFinance extends StatelessWidget {
+  const HeaderFinance({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,21 +22,12 @@ class HeaderPengajuan extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 15),
             Text(
-              "Rencana Kunjungan",
+              "Finance",
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textDefaultColor,
-              ),
-            ),
-            Text(
-              "Silahkan mengisi form rencana kunjungan",
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDefaultColor,
+                color: AppColors.secondTextColor,
               ),
             ),
           ],

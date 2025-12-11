@@ -40,7 +40,7 @@ class Endpoints {
   static String pengajuanSakitDetail(String id) => "$pengajuanSakit/$id";
 
   //departements
-  static const String departements = "$baseURL/mobile/departements";
+  static const String departements = "$baseURL/admin/departements";
 
   //kunjungan
   static const String kategoriKunjungan = "$baseURL/admin/kategori-kunjungan";

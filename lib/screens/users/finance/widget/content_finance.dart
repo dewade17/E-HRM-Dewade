@@ -1,4 +1,5 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/screens/users/finance/reimburse/add_reimburse/reimburse_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -12,30 +13,28 @@ class ContentFinance extends StatefulWidget {
 class _ContentFinanceState extends State<ContentFinance> {
   @override
   Widget build(BuildContext context) {
-    // Menggunakan ListView agar jika konten melebihi layar, bisa di-scroll
-    // Tambahkan padding di atas agar gambar kartu pertama tidak terpotong
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Komponen 1: Reimburse
           FinanceCard(
+            type: "reimburse",
             title: "Reimburse !",
             subtitle:
                 "Semua pengeluaran kerja bisa balik, \ncukup ajukan reimburse disini!",
             imagePath: 'lib/assets/image/finance/reimbursex4.png',
             button1Text: "Ajukan",
             onButton1Pressed: () {
-              print("Ajukan Reimburse ditekan");
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ReimburseScreen()),
+              );
             },
             button2Text: "Riwayat",
-            onButton2Pressed: () {
-              print("Riwayat Reimburse ditekan");
-            },
+            onButton2Pressed: () {},
           ),
-
-          const SizedBox(height: 20), // Jarak antar kartu
-          // Komponen 2: Cash Advance
+          const SizedBox(height: 20),
           FinanceCard(
+            type: "pocket",
             title: "Pocket Money !",
             subtitle:
                 "Butuh tambahan buat jalanin \nkerjaan? Klaim pocket money easy banget, tinggal klik! ",
@@ -45,11 +44,9 @@ class _ContentFinanceState extends State<ContentFinance> {
             button2Text: "Riwayat",
             onButton2Pressed: () {},
           ),
-
           const SizedBox(height: 30),
-
-          // Komponen 3: Lembur
           FinanceCard(
+            type: "payment",
             title: "Payment !",
             subtitle:
                 "Semua pengeluaran kerja bisa balik, cukup ajukan reimburse disini!",
@@ -65,11 +62,8 @@ class _ContentFinanceState extends State<ContentFinance> {
   }
 }
 
-// ==========================================
-// REUSABLE COMPONENT (FinanceCard)
-// ==========================================
-
 class FinanceCard extends StatelessWidget {
+  final String type;
   final String title;
   final String subtitle;
   final String imagePath;
@@ -80,6 +74,7 @@ class FinanceCard extends StatelessWidget {
 
   const FinanceCard({
     super.key,
+    required this.type,
     required this.title,
     required this.subtitle,
     required this.imagePath,
@@ -92,10 +87,8 @@ class FinanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      // PENTING: Clip.none agar gambar bisa 'keluar'
       clipBehavior: Clip.none,
       children: [
-        // Lapis 1: Kartu Biru (Container Utama)
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -163,10 +156,8 @@ class FinanceCard extends StatelessWidget {
             ],
           ),
         ),
-
-        // Lapis 2: Gambar 3D (Positioned)
         Positioned(
-          top: -25.6, // Gambar menonjol ke atas
+          top: -25.6,
           right: -3.8,
           child: Image.asset(imagePath, height: 140, fit: BoxFit.contain),
         ),

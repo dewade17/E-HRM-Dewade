@@ -101,6 +101,8 @@ class _FormProfileState extends State<FormProfile> {
     final golongan = _nullableString(profile.golonganDarah);
     final nomorRekening = _asString(profile.nomorRekening);
     final jenisBank = _asString(profile.jenisBank);
+    final kontakDarurat = _asString(profile.kontakDarurat);
+    final namaKontakDarurat = _asString(profile.namaKontakDarurat);
     final tanggal = _parseDate(profile.tanggalLahir);
 
     namapenggunaController.text = profile.namaPengguna;
@@ -110,6 +112,8 @@ class _FormProfileState extends State<FormProfile> {
     kontakController.text = kontak;
     nomorRekeningController.text = nomorRekening;
     jenisbankController.text = jenisBank;
+    kontakdaruratController.text = kontakDarurat;
+    namakontakdaruratController.text = namaKontakDarurat;
 
     setState(() {
       agamaValue = agama;

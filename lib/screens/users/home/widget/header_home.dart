@@ -46,6 +46,41 @@ class _HeaderHomeState extends State<HeaderHome> {
     return t.isEmpty ? fallback : t;
   }
 
+  String _safePhoto(dynamic raw) {
+    if (raw == null) return '';
+    final value = raw.toString().trim();
+    return value;
+  }
+
+  Widget _buildAvatar(String photoUrl) {
+    const diameter = 36.0;
+    final hasPhoto = photoUrl.isNotEmpty;
+    return SizedBox(
+      width: diameter,
+      height: diameter,
+      child: ClipOval(
+        child: Container(
+          color: Colors.grey,
+          child: hasPhoto
+              ? Image.network(
+                  photoUrl,
+                  width: diameter,
+                  height: diameter,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 20,
+                    );
+                  },
+                )
+              : const Icon(Icons.person, color: Colors.white, size: 20),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileProvider = context.watch<ProfileProvider>();
@@ -53,6 +88,7 @@ class _HeaderHomeState extends State<HeaderHome> {
 
     final name = _safe(profile?.namaPengguna);
     final subtitle = _safe(profile?.email);
+    final photoUrl = _safePhoto(profile?.fotoProfilUser);
 
     // Agar teks tidak melebar, beri batas maksimum
     final w = MediaQuery.of(context).size.width;
@@ -143,11 +179,7 @@ class _HeaderHomeState extends State<HeaderHome> {
                     ),
                   ),
                 ],
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey,
-                  child: Icon(Icons.person, color: Colors.white, size: 20),
-                ),
+                child: _buildAvatar(photoUrl),
               ),
             ],
           ),

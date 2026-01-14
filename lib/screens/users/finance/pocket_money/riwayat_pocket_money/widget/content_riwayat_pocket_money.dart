@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pocket_money/pocket_money.dart' as dto;
 import 'package:e_hrm/providers/pocket_money/pocket_money_provider.dart';

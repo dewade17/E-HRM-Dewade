@@ -90,10 +90,11 @@ class KonfigurasiCutiProvider extends ChangeNotifier {
     final konfigurasi.Data currentMonthData = items.firstWhere(
       (item) => item.bulan.trim().toUpperCase() == currentMonthName,
       orElse: () {
-        if (kDebugMode)
+        if (kDebugMode) {
           print(
             '[DEBUG QUOTA] Data for $currentMonthName NOT FOUND. Using items.last.',
           );
+        }
         return items.last;
       },
     );

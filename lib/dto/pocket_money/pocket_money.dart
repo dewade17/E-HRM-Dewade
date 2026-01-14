@@ -1,9 +1,3 @@
-// To parse this JSON data, do
-//
-//     final pocketMoney = pocketMoneyFromJson(jsonString);
-
-import 'package:e_hrm/dto/pengajuan_izin_jam/kategori_izin_jam.dart';
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 PocketMoney pocketMoneyFromJson(String str) =>

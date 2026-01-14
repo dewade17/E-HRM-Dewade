@@ -271,12 +271,14 @@ class PocketMoneyProvider extends ChangeNotifier {
     if (keterangan != null) payload['keterangan'] = keterangan;
 
     if (nomorRekening != null) payload['nomor_rekening'] = nomorRekening;
-    if (namaPemilikRekening != null)
+    if (namaPemilikRekening != null) {
       payload['nama_pemilik_rekening'] = namaPemilikRekening;
+    }
     if (jenisBank != null) payload['jenis_bank'] = jenisBank;
 
-    if (buktiPembayaranUrl != null)
+    if (buktiPembayaranUrl != null) {
       payload['bukti_pembayaran_url'] = buktiPembayaranUrl;
+    }
 
     final normalizedItems = _normalizeItems(items);
     if (normalizedItems != null) payload['items'] = jsonEncode(normalizedItems);
@@ -352,16 +354,18 @@ class PocketMoneyProvider extends ChangeNotifier {
       payload['id_kategori_keperluan'] = idKategoriKeperluan;
     }
 
-    if (metodePembayaran != null)
+    if (metodePembayaran != null) {
       payload['metode_pembayaran'] = metodePembayaran;
+    }
     if (nomorRekening != null) payload['nomor_rekening'] = nomorRekening;
     if (namaPemilikRekening != null) {
       payload['nama_pemilik_rekening'] = namaPemilikRekening;
     }
     if (jenisBank != null) payload['jenis_bank'] = jenisBank;
 
-    if (buktiPembayaranUrl != null)
+    if (buktiPembayaranUrl != null) {
       payload['bukti_pembayaran_url'] = buktiPembayaranUrl;
+    }
 
     final normalizedItems = _normalizeItems(items);
     if (normalizedItems != null) payload['items'] = jsonEncode(normalizedItems);
@@ -476,12 +480,14 @@ class PocketMoneyProvider extends ChangeNotifier {
           (it['nama_item_pocket_money'] ?? it['nama_item'] ?? it['nama'] ?? '')
               .toString()
               .trim();
-      if (nama.isEmpty)
+      if (nama.isEmpty) {
         throw ArgumentError('items[$i].nama_item_pocket_money wajib diisi.');
+      }
 
       final harga = _normalizeMoneyOrNull(it['harga']);
-      if (harga == null)
+      if (harga == null) {
         throw ArgumentError('items[$i].harga wajib berupa angka.');
+      }
 
       out.add(<String, dynamic>{
         'nama_item_pocket_money': nama,
@@ -587,8 +593,9 @@ class PocketMoneyProvider extends ChangeNotifier {
 
     String safeIsoDate(dynamic v, {required String fallback}) {
       final s = v?.toString();
-      if (s == null || s.trim().isEmpty || s.trim().toLowerCase() == 'null')
+      if (s == null || s.trim().isEmpty || s.trim().toLowerCase() == 'null') {
         return fallback;
+      }
       return s;
     }
 

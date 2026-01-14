@@ -11,7 +11,7 @@ class ConfirmationDialog extends StatelessWidget {
   final Color? confirmColor;
 
   const ConfirmationDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.onConfirm,
@@ -20,7 +20,7 @@ class ConfirmationDialog extends StatelessWidget {
     this.onCancel,
     this.imagePath, // Opsional: Bisa di-override jika ingin gambar lain
     this.confirmColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

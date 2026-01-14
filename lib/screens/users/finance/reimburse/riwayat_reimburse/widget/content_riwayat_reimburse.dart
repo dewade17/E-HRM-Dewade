@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/pengajuan_reimburse/pengajuan_reimburse.dart' as dto;
 import 'package:e_hrm/providers/pengajuan_reimburse/pengajuan_reimburse_provider.dart';

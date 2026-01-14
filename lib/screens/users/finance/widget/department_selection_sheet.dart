@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/departements/departements.dart';
@@ -182,7 +184,7 @@ class _DepartmentSelectionSheetState extends State<DepartmentSelectionSheet> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: items.length + (provider.loading ? 1 : 0),
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             if (index >= items.length) {
                               return const Padding(

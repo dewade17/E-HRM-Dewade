@@ -1,8 +1,3 @@
-// To parse this JSON data, do
-//
-//     final sopPerusahaan = sopPerusahaanFromJson(jsonString);
-
-import 'package:meta/meta.dart';
 import 'dart:convert';
 
 SopPerusahaan sopPerusahaanFromJson(String str) =>

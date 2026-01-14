@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart'; // Pastikan package ini ada
@@ -231,7 +233,7 @@ class _ContentSopState extends State<ContentSop>
                       onRefresh: () => provider.fetchAllSop(),
                       child: ListView.separated(
                         itemCount: visibleList.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final sop = visibleList[index];
                           final isFav = provider.isPinned(sop.idSopKaryawan);

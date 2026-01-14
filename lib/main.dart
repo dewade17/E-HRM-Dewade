@@ -73,10 +73,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mq = MediaQuery.of(context);
-    debugPrint(
-      'size=${mq.size} dpr=${mq.devicePixelRatio} textScale=${mq.textScaleFactor} padding=${mq.padding} viewInsets=${mq.viewInsets}',
-    );
+    // final mq = MediaQuery.of(context);
+    // debugPrint(
+    //   'size=${mq.size} dpr=${mq.devicePixelRatio} textScale=${mq.textScaleFactor} padding=${mq.padding} viewInsets=${mq.viewInsets}',
+    // );
 
     return MultiProvider(
       providers: [

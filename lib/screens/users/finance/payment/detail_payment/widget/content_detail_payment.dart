@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/payment/payment.dart' as dto;
 import 'package:e_hrm/providers/payment/payment_provider.dart';
@@ -400,7 +402,7 @@ class _ContentDetailPaymentState extends State<ContentDetailPayment> {
                         child: Image.network(
                           proofUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Image.asset(
+                          errorBuilder: (_, _, _) => Image.asset(
                             'lib/assets/image/finance/empty.png',
                             fit: BoxFit.contain,
                           ),

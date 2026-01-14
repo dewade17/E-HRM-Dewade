@@ -71,7 +71,6 @@ class HomeScreenContent extends StatefulWidget {
 }
 
 class _HomeScreenContentState extends State<HomeScreenContent> {
-  static const double _absenBottomGap = 20.0;
   static const double _absenReserveSpace = 10;
 
   Future<void> _handleRefresh() async {

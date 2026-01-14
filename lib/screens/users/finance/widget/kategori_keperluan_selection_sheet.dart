@@ -140,7 +140,7 @@ class _KategoriKeperluanSelectionSheetState
                           itemCount:
                               provider.items.length +
                               (provider.loading ? 1 : 0),
-                          separatorBuilder: (_, __) => const Divider(),
+                          separatorBuilder: (_, _) => const Divider(),
                           itemBuilder: (context, index) {
                             if (index >= provider.items.length) {
                               return const Center(

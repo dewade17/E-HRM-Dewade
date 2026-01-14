@@ -309,7 +309,9 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
     if (kDebugMode) {
       print("--- DEBUG: createPengajuan PAYLOAD ---");
       payload.forEach((key, value) {
-        print("Payload Field: $key = $value");
+        if (kDebugMode) {
+          print("Payload Field: $key = $value");
+        }
       });
       print("--- DEBUG: createPengajuan FILES ---");
       for (var file in files) {
@@ -457,7 +459,9 @@ class PengajuanIzinTukarHariProvider extends ChangeNotifier {
     if (kDebugMode) {
       print("--- DEBUG: updatePengajuan PAYLOAD (ID: $id) ---");
       payload.forEach((key, value) {
-        print("Payload Field: $key = $value");
+        if (kDebugMode) {
+          print("Payload Field: $key = $value");
+        }
       });
       print("--- DEBUG: updatePengajuan FILES ---");
       for (var file in files) {

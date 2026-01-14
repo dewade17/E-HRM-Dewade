@@ -188,39 +188,6 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
       // ..._createMultipartStrings('tag_user_ids[]', handoverIds),
     ];
 
-    // --- TAMBAHAN DEBUG PRINT ---
-    if (kDebugMode) {
-      print("--- [DEBUG] CREATE PENGAJUAN IZIN JAM (Telah Diperbaiki) ---");
-      print("Endpoint: ${Endpoints.pengajuanIzinJam}");
-      print("--- Payload Fields ---");
-      payload.forEach((key, value) {
-        print("$key: $value");
-      });
-      print("--- Multipart Files ---");
-      if (files.isEmpty) {
-        print("(Tidak ada file)");
-      } else {
-        for (var file in files) {
-          if (file.filename != null) {
-            print(
-              "File: ${file.field} (name: ${file.filename}, size: ${file.length}, type: ${file.contentType})",
-            );
-          } else {
-            // Untuk file 'tag_user_ids', kita print manual agar terlihat
-            if (file.field == 'tag_user_ids') {
-              print(
-                "Field (from string): ${file.field} (ID terkirim: ${handoverIds.join(', ')})",
-              );
-            } else {
-              print("Field (from string): ${file.field}");
-            }
-          }
-        }
-      }
-      print("--------------------------------------");
-    }
-    // --- AKHIR TAMBAHAN DEBUG PRINT ---
-
     try {
       final response = await _api.postFormDataPrivate(
         Endpoints.pengajuanIzinJam,
@@ -335,7 +302,9 @@ class PengajuanIzinJamProvider extends ChangeNotifier {
       print("Endpoint: ${Endpoints.pengajuanIzinJamDetail(id)}");
       print("--- Payload Fields ---");
       payload.forEach((key, value) {
-        print("$key: $value");
+        if (kDebugMode) {
+          print("$key: $value");
+        }
       });
       print("--- Multipart Files ---");
       if (files.isEmpty) {

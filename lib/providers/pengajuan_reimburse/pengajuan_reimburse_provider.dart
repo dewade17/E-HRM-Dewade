@@ -119,8 +119,9 @@ class PengajuanReimburseProvider extends ChangeNotifier {
     final user = (idUser ?? '').trim();
     if (user.isNotEmpty) qp['id_user'] = user;
 
-    if (tanggalFrom != null)
+    if (tanggalFrom != null) {
       qp['tanggal_from'] = _dateFormatter.format(tanggalFrom!);
+    }
     if (tanggalTo != null) qp['tanggal_to'] = _dateFormatter.format(tanggalTo!);
 
     return qp;
@@ -249,12 +250,14 @@ class PengajuanReimburseProvider extends ChangeNotifier {
     if (keterangan != null) payload['keterangan'] = keterangan;
 
     if (nomorRekening != null) payload['nomor_rekening'] = nomorRekening;
-    if (namaPemilikRekening != null)
+    if (namaPemilikRekening != null) {
       payload['nama_pemilik_rekening'] = namaPemilikRekening;
+    }
     if (jenisBank != null) payload['jenis_bank'] = jenisBank;
 
-    if (buktiPembayaranUrl != null)
+    if (buktiPembayaranUrl != null) {
       payload['bukti_pembayaran_url'] = buktiPembayaranUrl;
+    }
 
     final normalizedItems = _normalizeItems(items);
     if (normalizedItems != null) payload['items'] = jsonEncode(normalizedItems);
@@ -324,15 +327,18 @@ class PengajuanReimburseProvider extends ChangeNotifier {
 
     if (tanggal != null) payload['tanggal'] = _dateFormatter.format(tanggal);
     if (keterangan != null) payload['keterangan'] = keterangan;
-    if (metodePembayaran != null)
+    if (metodePembayaran != null) {
       payload['metode_pembayaran'] = metodePembayaran;
+    }
     if (nomorRekening != null) payload['nomor_rekening'] = nomorRekening;
-    if (namaPemilikRekening != null)
+    if (namaPemilikRekening != null) {
       payload['nama_pemilik_rekening'] = namaPemilikRekening;
+    }
     if (jenisBank != null) payload['jenis_bank'] = jenisBank;
 
-    if (buktiPembayaranUrl != null)
+    if (buktiPembayaranUrl != null) {
       payload['bukti_pembayaran_url'] = buktiPembayaranUrl;
+    }
 
     final normalizedItems = _normalizeItems(items);
     if (normalizedItems != null) payload['items'] = jsonEncode(normalizedItems);
@@ -493,8 +499,9 @@ class PengajuanReimburseProvider extends ChangeNotifier {
 
     String safeIsoDate(dynamic v, {required String fallback}) {
       final s = v?.toString();
-      if (s == null || s.trim().isEmpty || s.trim().toLowerCase() == 'null')
+      if (s == null || s.trim().isEmpty || s.trim().toLowerCase() == 'null') {
         return fallback;
+      }
       return s;
     }
 
@@ -700,12 +707,14 @@ class PengajuanReimburseProvider extends ChangeNotifier {
           (it['nama_item_reimburse'] ?? it['nama_item'] ?? it['nama'] ?? '')
               .toString()
               .trim();
-      if (nama.isEmpty)
+      if (nama.isEmpty) {
         throw ArgumentError('items[$i].nama_item_reimburse wajib diisi.');
+      }
 
       final harga = _normalizeMoneyOrNull(it['harga']);
-      if (harga == null)
+      if (harga == null) {
         throw ArgumentError('items[$i].harga wajib berupa angka >= 0.');
+      }
 
       out.add(<String, dynamic>{'nama_item_reimburse': nama, 'harga': harga});
     }

@@ -12,6 +12,7 @@ import 'package:e_hrm/shared_widget/text_field_widget.dart';
 import 'package:e_hrm/shared_widget/time_picker_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class FormAgendaEdit extends StatefulWidget {
@@ -34,7 +35,7 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
   // String? _selectedAgendaId; // <-- Ganti ini
   AgendaItem? _selectedAgenda; // <-- Dengan ini
   // String? _detailAgendaName; // <-- Bisa dihapus jika _selectedAgenda menyimpan objeknya
-  DateTime? _selectedDate;
+  final List<DateTime> _selectedDates = <DateTime>[];
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
@@ -137,7 +138,10 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       // _selectedAgendaId = detail.idAgenda.isNotEmpty ? detail.idAgenda : null; // Tidak perlu lagi
       // _detailAgendaName = detail.agenda?.namaAgenda; // Tidak perlu lagi
       _selectedStatus = normalizedStatus;
-      _selectedDate = normalizedDate;
+      _selectedDates
+        ..clear()
+        ..addAll(normalizedDate != null ? [normalizedDate] : []);
+      _updateSelectedDatesText();
       _startTime = startTime;
       _endTime = endTime;
       _selectedUrgensi = normalizedUrgensi;
@@ -161,17 +165,26 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       return;
     }
     // ... (validasi tanggal, jam, urgensi tetap sama) ...
-    if (_selectedDate == null || _startTime == null || _endTime == null) {
+    if (_selectedDates.isEmpty || _startTime == null || _endTime == null) {
       _showSnackBar('Tanggal dan jam wajib diisi.', true);
       return;
     }
 
-    final startDateTime = _combineDateTime(_selectedDate!, _startTime!);
-    final endDateTime = _combineDateTime(_selectedDate!, _endTime!);
-    if (!endDateTime.isAfter(startDateTime)) {
-      _showSnackBar('Jam selesai harus lebih besar dari jam mulai.', true);
-      return;
+    final startDates = _selectedDates
+        .map((date) => _combineDateTime(date, _startTime!))
+        .toList();
+    final endDates = _selectedDates
+        .map((date) => _combineDateTime(date, _endTime!))
+        .toList();
+    for (var i = 0; i < startDates.length; i += 1) {
+      if (!endDates[i].isAfter(startDates[i])) {
+        _showSnackBar('Jam selesai harus lebih besar dari jam mulai.', true);
+        return;
+      }
     }
+    final durationSeconds = endDates.first
+        .difference(startDates.first)
+        .inSeconds;
     if (_selectedUrgensi == null || _selectedUrgensi!.trim().isEmpty) {
       _showSnackBar('Urgensi wajib dipilih.', true);
       return;
@@ -183,9 +196,9 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
       idAgenda: _selectedAgenda!.idAgenda, // <-- Ambil ID dari objek
       deskripsiKerja: deskripsiController.text,
       status: _selectedStatus,
-      startDate: startDateTime,
-      endDate: endDateTime,
-      durationSeconds: endDateTime.difference(startDateTime).inSeconds,
+      startDates: startDates,
+      endDates: endDates,
+      durationSeconds: durationSeconds,
       kebutuhanAgenda: _selectedUrgensi,
     );
 
@@ -195,7 +208,10 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
     final errorMessage = provider.error ?? 'Gagal memperbarui agenda kerja.';
 
     if (updated != null) {
-      _showSnackBar(message, false);
+      final successMessage = _selectedDates.length > 1
+          ? 'Agenda kerja berhasil diperbarui untuk ${_selectedDates.length} tanggal.'
+          : message;
+      _showSnackBar(successMessage, false);
       Navigator.of(context).pop(true);
     } else {
       _showSnackBar(errorMessage, true);
@@ -214,6 +230,23 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
 
   DateTime _combineDateTime(DateTime date, TimeOfDay time) {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  void _updateSelectedDatesText() {
+    if (_selectedDates.isEmpty) {
+      calendarController.clear();
+      return;
+    }
+    final formatter = DateFormat('dd MMMM yyyy', 'id_ID');
+    final sortedDates = List<DateTime>.of(_selectedDates)
+      ..sort((a, b) => a.compareTo(b));
+    calendarController.text = sortedDates
+        .map((date) => formatter.format(date))
+        .join(', ');
   }
 
   @override
@@ -299,14 +332,129 @@ class _FormAgendaEditState extends State<FormAgendaEdit> {
               maxLines: 3, // Perbolehkan multiline
             ),
             const SizedBox(height: 20),
-            DatePickerFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Tanggal Agenda',
-              controller: calendarController,
-              initialDate: _selectedDate,
-              onDateChanged: (date) => setState(() => _selectedDate = date),
-              isRequired: true,
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.textColor.withOpacity(
+                  0.05,
+                ), // Latar belakang halus
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.textDefaultColor.withOpacity(0.2),
+                ),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DatePickerFieldWidget(
+                    backgroundColor: AppColors.textColor,
+                    borderColor: AppColors.textDefaultColor,
+                    label: 'Pilih Tanggal Agenda',
+                    controller: calendarController,
+                    initialDate: _selectedDates.isNotEmpty
+                        ? _selectedDates.first
+                        : null,
+                    onDateChanged: (date) {
+                      if (date == null) return;
+                      if (_selectedDates.any(
+                        (item) => _isSameDay(item, date),
+                      )) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedDates.add(date);
+                        _updateSelectedDatesText();
+                      });
+                    },
+                    isRequired: true,
+                    validator: (value) {
+                      if (_selectedDates.isEmpty) {
+                        return 'Tanggal agenda wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  if (_selectedDates.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Tanggal Terpilih (${_selectedDates.length})",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDefaultColor.withOpacity(0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List<Widget>.generate(_selectedDates.length, (
+                        index,
+                      ) {
+                        final formatter = DateFormat('dd MMM yyyy', 'id_ID');
+                        final date = _selectedDates[index];
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.primaryColor.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 14,
+                                color: AppColors.primaryColor,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                formatter.format(date),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedDates.removeAt(index);
+                                    _updateSelectedDatesText();
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 12,
+                                    color: AppColors.errorColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             Row(

@@ -316,56 +316,130 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
               maxLines: 3, // Perbolehkan multiline
             ),
             const SizedBox(height: 20),
-            DatePickerFieldWidget(
-              backgroundColor: AppColors.textColor,
-              borderColor: AppColors.textDefaultColor,
-              label: 'Tanggal Agenda (bisa lebih dari satu)',
-              controller: calendarController,
-              initialDate: _selectedDates.isNotEmpty
-                  ? _selectedDates.first
-                  : null,
-              onDateChanged: (date) {
-                if (date == null) return;
-                if (_selectedDates.any((item) => _isSameDay(item, date))) {
-                  return;
-                }
-                setState(() {
-                  _selectedDates.add(date);
-                  _updateSelectedDatesText();
-                });
-              },
-              isRequired: true,
-              validator: (value) {
-                if (_selectedDates.isEmpty) {
-                  return 'Tanggal agenda wajib diisi';
-                }
-                return null;
-              },
-            ),
-            if (_selectedDates.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: List<Widget>.generate(_selectedDates.length, (
-                    index,
-                  ) {
-                    final formatter = DateFormat('dd MMMM yyyy', 'id_ID');
-                    final date = _selectedDates[index];
-                    return Chip(
-                      label: Text(formatter.format(date)),
-                      deleteIcon: const Icon(Icons.close, size: 18),
-                      onDeleted: () {
-                        setState(() {
-                          _selectedDates.removeAt(index);
-                          _updateSelectedDatesText();
-                        });
-                      },
-                    );
-                  }),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.textColor.withOpacity(
+                  0.05,
+                ), // Latar belakang halus
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.textDefaultColor.withOpacity(0.2),
                 ),
               ),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DatePickerFieldWidget(
+                    backgroundColor: AppColors.textColor,
+                    borderColor: AppColors.textDefaultColor,
+                    label: 'Pilih Tanggal Agenda',
+                    controller: calendarController,
+                    initialDate: _selectedDates.isNotEmpty
+                        ? _selectedDates.first
+                        : null,
+                    onDateChanged: (date) {
+                      if (date == null) return;
+                      if (_selectedDates.any(
+                        (item) => _isSameDay(item, date),
+                      )) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedDates.add(date);
+                        _updateSelectedDatesText();
+                      });
+                    },
+                    isRequired: true,
+                    validator: (value) {
+                      if (_selectedDates.isEmpty) {
+                        return 'Tanggal agenda wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  if (_selectedDates.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Tanggal Terpilih (${_selectedDates.length})",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDefaultColor.withOpacity(0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List<Widget>.generate(_selectedDates.length, (
+                        index,
+                      ) {
+                        final formatter = DateFormat('dd MMM yyyy', 'id_ID');
+                        final date = _selectedDates[index];
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.primaryColor.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 14,
+                                color: AppColors.primaryColor,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                formatter.format(date),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedDates.removeAt(index);
+                                    _updateSelectedDatesText();
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 12,
+                                    color: AppColors.errorColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

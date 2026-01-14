@@ -632,19 +632,38 @@ class AgendaKerjaProvider extends ChangeNotifier {
     String? status,
     DateTime? startDate,
     DateTime? endDate,
+    List<DateTime>? startDates,
+    List<DateTime>? endDates,
     int? durationSeconds,
     Object? idAbsensi = _noValue,
     Object? kebutuhanAgenda = _noValue,
   }) async {
     _setSaving(true);
     try {
+      final normalizedStartDates = startDates
+          ?.map((date) => date.toIso8601String())
+          .toList();
+      final normalizedEndDates = endDates
+          ?.map((date) => date.toIso8601String())
+          .toList();
+      final fallbackStartDate =
+          startDate ??
+          (startDates?.isNotEmpty == true ? startDates!.first : null);
+      final fallbackEndDate =
+          endDate ?? (endDates?.isNotEmpty == true ? endDates!.first : null);
       final body = <String, dynamic>{
         if (idUser != null) 'id_user': idUser.trim(),
         if (idAgenda != null) 'id_agenda': idAgenda.trim(),
         if (deskripsiKerja != null) 'deskripsi_kerja': deskripsiKerja.trim(),
         if (status != null) 'status': status.toLowerCase(),
-        if (startDate != null) 'start_date': startDate.toIso8601String(),
-        if (endDate != null) 'end_date': endDate.toIso8601String(),
+        if (normalizedStartDates != null && normalizedStartDates.isNotEmpty)
+          'start_dates': normalizedStartDates,
+        if (normalizedEndDates != null && normalizedEndDates.isNotEmpty)
+          'end_dates': normalizedEndDates,
+        if (fallbackStartDate != null)
+          'start_date': fallbackStartDate.toIso8601String(),
+        if (fallbackEndDate != null)
+          'end_date': fallbackEndDate.toIso8601String(),
         if (durationSeconds != null) 'duration_seconds': durationSeconds,
       };
       if (idAbsensi != _noValue) {

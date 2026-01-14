@@ -1,5 +1,5 @@
 class Endpoints {
-  static const String baseURL = "https://e-hrm.onestepsolutionbali.com/api";
+  static const String baseURL = "https://fgj63b7p-3000.asse.devtunnels.ms/api";
   static const String faceBaseURL =
       "https://face-recognition.onestepsolutionbali.com";
 

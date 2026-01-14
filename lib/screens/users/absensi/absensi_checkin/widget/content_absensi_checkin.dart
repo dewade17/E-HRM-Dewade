@@ -120,6 +120,14 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
     final shift = context.read<ShiftKerjaRealtimeProvider>();
 
     final agendaIds = agenda.selectedAgendaKerjaIds;
+    if (agendaIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih pekerjaan terlebih dahulu sebelum check-in.'),
+        ),
+      );
+      return;
+    }
     final recipientIds = approvers.selectedRecipientIds.toList(growable: false);
     final catatanEntries = _catatan
         .map((desc) => desc.trim())
@@ -164,6 +172,7 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
   @override
   Widget build(BuildContext context) {
     final absensi = context.watch<AbsensiProvider>();
+    final agenda = context.watch<AgendaKerjaProvider>();
     final shiftProvider = context.watch<ShiftKerjaRealtimeProvider>();
     final scheduleDate = shiftProvider.responseDate ?? DateTime.now();
     final shiftData = shiftProvider.items.isNotEmpty
@@ -178,8 +187,13 @@ class _ContentAbsensiCheckinState extends State<ContentAbsensiCheckin> {
     final shiftName = isLibur
         ? 'Hari Libur'
         : (shiftData?.polaKerja?.namaPolaKerja ?? '-');
+    final hasAgendaSelection = agenda.selectedAgendaKerjaIds.isNotEmpty;
     final canSubmit =
-        _inside && _nearest != null && _position != null && !absensi.saving;
+        _inside &&
+        _nearest != null &&
+        _position != null &&
+        hasAgendaSelection &&
+        !absensi.saving;
 
     final textStyle = GoogleFonts.poppins(
       textStyle: const TextStyle(fontSize: 13.5),

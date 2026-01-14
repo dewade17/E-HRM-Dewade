@@ -22,6 +22,8 @@ class Data {
   dynamic alamatDomisili;
   dynamic alamatKtp;
   dynamic kontak;
+  final String? namaKontakDarurat;
+  final String? kontakDarurat;
   dynamic agama;
   dynamic tanggalLahir;
   dynamic golonganDarah;
@@ -35,6 +37,8 @@ class Data {
     required this.email,
     required this.alamatDomisili,
     required this.alamatKtp,
+    this.namaKontakDarurat,
+    this.kontakDarurat,
     required this.kontak,
     required this.agama,
     required this.tanggalLahir,
@@ -51,6 +55,8 @@ class Data {
     alamatDomisili: json["alamat_domisili"],
     alamatKtp: json["alamat_ktp"],
     kontak: json["kontak"],
+    namaKontakDarurat: json['nama_kontak_darurat'],
+    kontakDarurat: json['kontak_darurat'],
     agama: json["agama"],
     tanggalLahir: json["tanggal_lahir"],
     golonganDarah: json["golongan_darah"],
@@ -66,6 +72,8 @@ class Data {
     "alamat_domisili": alamatDomisili,
     "alamat_ktp": alamatKtp,
     "kontak": kontak,
+    'nama_kontak_darurat': namaKontakDarurat,
+    'kontak_darurat': kontakDarurat,
     "agama": agama,
     "tanggal_lahir": tanggalLahir,
     "golongan_darah": golonganDarah,

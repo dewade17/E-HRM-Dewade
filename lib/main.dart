@@ -9,21 +9,26 @@ import 'package:e_hrm/providers/calendar/calendar_provider.dart';
 import 'package:e_hrm/providers/departements/departements_provider.dart';
 import 'package:e_hrm/providers/face/face_enroll/face_enroll_provider.dart';
 import 'package:e_hrm/providers/istirahat/istirahat_provider.dart';
+import 'package:e_hrm/providers/keperluan_payment/kategori_keperluan_provider.dart';
 import 'package:e_hrm/providers/konfigurasi_cuti/provider_konfigurasi_cuti.dart';
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/providers/location/location_provider.dart';
 import 'package:e_hrm/providers/notifications/notifications_provider.dart';
+import 'package:e_hrm/providers/payment/payment_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/kategori_cuti_provider.dart';
 import 'package:e_hrm/providers/pengajuan_cuti/pengajuan_cuti_provider.dart';
+import 'package:e_hrm/providers/pengajuan_reimburse/pengajuan_reimburse_provider.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/kategori_pengajuan_sakit_provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_jam/kategori_izin_jam.dart';
 import 'package:e_hrm/providers/pengajuan_izin_jam/pengajuan_izin_jam_provider.dart';
 import 'package:e_hrm/providers/pengajuan_izin_tukar_hari/pengajuan_izin_tukar_hari_provider.dart';
 import 'package:e_hrm/providers/pengajuan_sakit/pengajuan_sakit_provider.dart';
+import 'package:e_hrm/providers/pocket_money/pocket_money_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/providers/riwayat_pengajuan/riwayat_pengajuan_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
+import 'package:e_hrm/providers/sop_perusahaan/sop_perusahaan_provider.dart';
 import 'package:e_hrm/providers/tag_hand_over/tag_hand_over_provider.dart';
 import 'package:e_hrm/screens/auth/login/login_screen.dart';
 import 'package:e_hrm/screens/auth/reset_password/reset_password_screen.dart';
@@ -35,6 +40,7 @@ import 'package:e_hrm/screens/users/profile/profile_screen.dart';
 import 'package:e_hrm/screens/users/agenda_kerja/agenda_kerja_screen.dart';
 import 'package:e_hrm/screens/users/home/home_screen.dart';
 import 'package:e_hrm/screens/users/jam_isitirahat/jam_istirahat_screen.dart';
+import 'package:e_hrm/screens/users/sop/sop_screen.dart';
 import 'package:e_hrm/services/auth_wrapper.dart';
 import 'package:e_hrm/services/notification_handlers.dart';
 import 'package:e_hrm/utils/app_theme.dart';
@@ -67,6 +73,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    debugPrint(
+      'size=${mq.size} dpr=${mq.devicePixelRatio} textScale=${mq.textScaleFactor} padding=${mq.padding} viewInsets=${mq.viewInsets}',
+    );
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
@@ -96,6 +107,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RiwayatPengajuanProvider()),
         ChangeNotifierProvider(create: (_) => PengajuanCutiProvider()),
         ChangeNotifierProvider(create: (_) => CalendarProvider()),
+        ChangeNotifierProvider(create: (_) => KategoriKeperluanProvider()),
+        ChangeNotifierProvider(create: (_) => PengajuanReimburseProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
+        ChangeNotifierProvider(create: (_) => PocketMoneyProvider()),
+        ChangeNotifierProvider(create: (_) => SopPerusahaanProvider()),
       ],
       child: Portal(
         child: MaterialApp(
@@ -109,6 +125,7 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+
           home: const OpeningScreen(),
           routes: {
             '/login': (context) => const LoginScreen(),
@@ -131,6 +148,7 @@ class MyApp extends StatelessWidget {
                 AuthWrapper(child: const PengajuanScreen()),
             '/finance-karyawan': (context) =>
                 AuthWrapper(child: const MenuFinanceScreen()),
+            '/sop-karyawan': (context) => AuthWrapper(child: const SopScreen()),
           },
         ),
       ),

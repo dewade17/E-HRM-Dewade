@@ -265,13 +265,33 @@ class PengajuanSakitProvider extends ChangeNotifier {
     // files.addAll(_createMultipartStrings('handover_user_ids', tagUserIds));
 
     // --- DEBUG PRINT ---
+    // --- DEBUG PRINT DIAGNOSTIC ---
     if (kDebugMode) {
-      print("--- [DEBUG] CREATE PENGAJUAN SAKIT (MULTI-PART FIELD FIX) ---");
-      print("Endpoint: ${Endpoints.pengajuanSakit}");
-      payload.forEach((k, v) => print("$k: $v"));
-      print("Approvals count: ${approvalList.length}");
-      print("Total Files parts: ${files.length}");
-      print("-----------------------------------------------------------");
+      // Gunakan debugPrint agar tidak terpotong oleh Android Logcat
+      debugPrint("\n================= START LOG =================\n");
+
+      // Bagian 1
+      debugPrint("[1] PARAMETER UTAMA");
+      debugPrint("Kategori: $idKategoriSakit");
+      debugPrint("Tanggal : $tanggalPengajuan");
+
+      // Bagian 2
+      debugPrint("\n[2] PAYLOAD (MAP)");
+      if (payload.isEmpty) debugPrint("Payload Kosong");
+      payload.forEach((k, v) => debugPrint("Key: $k | Value: $v"));
+
+      // Bagian 3
+      debugPrint("\n[3] APPROVALS");
+      if (approvalList.isEmpty) debugPrint("Approval Kosong");
+      for (var item in approvalList) {
+        debugPrint("Item: ${jsonEncode(item)}");
+      }
+
+      // Bagian 4
+      debugPrint("\n[4] HANDOVER");
+      debugPrint("Raw String: $handover");
+
+      debugPrint("\n================= END LOG =================\n");
     }
 
     try {

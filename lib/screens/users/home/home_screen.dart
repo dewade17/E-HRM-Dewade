@@ -1,5 +1,3 @@
-// lib/screens/users/home/home_screen.dart
-
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/providers/absensi/absensi_provider.dart';
@@ -7,10 +5,10 @@ import 'package:e_hrm/providers/auth/auth_provider.dart';
 import 'package:e_hrm/providers/profile/profile_provider.dart';
 import 'package:e_hrm/providers/shift_kerja/shift_kerja_realtime_provider.dart';
 import 'package:e_hrm/screens/users/calender_view/calendar_view_screen.dart';
+import 'package:e_hrm/screens/users/home/widget/absensi_button.dart';
 import 'package:e_hrm/screens/users/home/widget/header_home.dart';
 import 'package:e_hrm/screens/users/home/widget/home_content.dart';
 import 'package:e_hrm/screens/users/home/widget/information_home.dart';
-import 'package:e_hrm/screens/users/home/widget/absensi_button.dart';
 import 'package:e_hrm/screens/users/notification/notification_screen.dart';
 import 'package:e_hrm/utils/id_user_resolver.dart';
 import 'package:flutter/material.dart';
@@ -37,25 +35,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_selectedIndex],
-      bottomNavigationBar: CurvedNavigationBar(
-        key: _bottomNavigationKey,
-        index: _selectedIndex,
-        items: const [
-          Icon(Icons.home, color: Colors.white),
-          Icon(Icons.notifications, color: Colors.white),
-          Icon(Icons.calendar_month, color: Colors.white),
-        ],
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        color: AppColors.primaryColor,
-        buttonBackgroundColor: AppColors.secondaryColor,
-        backgroundColor: Colors.transparent,
-        height: 60,
-        animationCurve: Curves.easeInOut,
-        animationDuration: const Duration(milliseconds: 300),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        maintainBottomViewPadding: true,
+        child: CurvedNavigationBar(
+          key: _bottomNavigationKey,
+          index: _selectedIndex,
+          items: const [
+            Icon(Icons.home, color: Colors.white),
+            Icon(Icons.notifications, color: Colors.white),
+            Icon(Icons.calendar_month, color: Colors.white),
+          ],
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          color: AppColors.primaryColor,
+          buttonBackgroundColor: AppColors.secondaryColor,
+          backgroundColor: Colors.transparent,
+          height: 60,
+          animationCurve: Curves.easeInOut,
+          animationDuration: const Duration(milliseconds: 300),
+        ),
       ),
     );
   }
@@ -69,21 +71,20 @@ class HomeScreenContent extends StatefulWidget {
 }
 
 class _HomeScreenContentState extends State<HomeScreenContent> {
+  static const double _absenBottomGap = 20.0;
+  static const double _absenReserveSpace = 10;
+
   Future<void> _handleRefresh() async {
-    // 1. Ambil semua provider yang dibutuhkan
     final authProvider = context.read<AuthProvider>();
     final profileProvider = context.read<ProfileProvider>();
     final shiftProvider = context.read<ShiftKerjaRealtimeProvider>();
     final absensiProvider = context.read<AbsensiProvider>();
 
-    // 2. Dapatkan user ID yang sedang aktif
     final userId = await resolveUserId(authProvider, context: context);
     if (userId == null || userId.isEmpty) {
-      // Jika tidak ada user ID, hentikan proses refresh
       return;
     }
 
-    // 3. Jalankan semua proses fetch data secara bersamaan
     await Future.wait([
       profileProvider.fetchProfile(userId),
       shiftProvider.fetch(idUser: userId, date: DateTime.now()),
@@ -96,45 +97,49 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     return RefreshIndicator(
       onRefresh: _handleRefresh,
       child: SafeArea(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: const [
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                child: HeaderHome(),
-              ),
-              InformationHome(),
-              Align(
-                alignment: Alignment.centerLeft,
+        bottom: false,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 50),
-                  child: Text(
-                    "Menu",
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDefaultColor,
-                    ),
+                  padding: const EdgeInsets.only(bottom: _absenReserveSpace),
+                  child: Column(
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 0,
+                          horizontal: 20,
+                        ),
+                        child: HeaderHome(),
+                      ),
+                      InformationHome(),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 50),
+                          child: Text(
+                            "Menu",
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textDefaultColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      HomeContent(),
+                      SizedBox(height: 10),
+
+                      AbsensiButton(),
+                    ],
                   ),
                 ),
               ),
-              SizedBox(height: 10),
-              HomeContent(),
-              SizedBox(height: 10),
-
-              // --- PERUBAHAN DI SINI ---
-              // Tombol absensi dibungkus Padding agar memiliki jarak
-              // konsisten dari tepi layar.
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
-                child: AbsensiButton(),
-              ),
-              // Tambah jarak di bagian bawah
-              SizedBox(height: 20),
-              // --- AKHIR PERUBAHAN ---
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-/// Widget input tanggal yang dapat digunakan kembali dengan tampilan modern.
-/// Membuka dialog pemilih tanggal (datepicker) saat ditekan.
 class DatePickerFieldWidget extends StatefulWidget {
   const DatePickerFieldWidget({
     super.key,
@@ -12,8 +10,7 @@ class DatePickerFieldWidget extends StatefulWidget {
     required this.controller,
     this.initialDate,
     this.onDateChanged,
-    this.dateFormat =
-        'dd MMMM yyyy', // Format default yang lebih ramah pengguna
+    this.dateFormat = 'dd MMMM yyyy',
     this.firstDate,
     this.lastDate,
     this.hintText,
@@ -22,60 +19,32 @@ class DatePickerFieldWidget extends StatefulWidget {
     this.width = 350,
     this.elevation = 3,
     this.borderRadius = 12,
-    // Ditambahkan: Properti baru
     this.backgroundColor,
     this.borderColor,
     this.borderWidth = 1.0,
+    // TAMBAHKAN INI: Parameter validator
+    this.validator,
   });
 
-  /// Teks label di atas field.
   final String label;
-
-  /// Controller untuk menampilkan tanggal yang dipilih.
   final TextEditingController controller;
-
-  /// Tanggal awal yang ditampilkan saat widget pertama kali dibuat.
   final DateTime? initialDate;
-
-  /// Callback yang dipanggil saat tanggal berubah.
   final ValueChanged<DateTime?>? onDateChanged;
-
-  /// Format tanggal yang akan ditampilkan (contoh: 'dd/MM/yyyy').
   final String dateFormat;
-
-  /// Tanggal paling awal yang bisa dipilih.
   final DateTime? firstDate;
-
-  /// Tanggal paling akhir yang bisa dipilih.
   final DateTime? lastDate;
-
-  /// Teks placeholder.
   final String? hintText;
-
-  /// Ikon di sebelah kiri.
   final IconData? prefixIcon;
-
-  /// Menandakan apakah field ini wajib diisi.
   final bool isRequired;
-
-  /// Lebar widget.
   final double? width;
-
-  /// Efek bayangan (elevation) pada Card.
   final double elevation;
-
-  /// Radius sudut pada Card.
   final double borderRadius;
-
-  // Ditambahkan: Properti kustom untuk background dan border
-  /// Warna background untuk Card (opsional).
   final Color? backgroundColor;
-
-  /// Warna border luar field (opsional).
   final Color? borderColor;
-
-  /// Ketebalan border (default 1.0).
   final double borderWidth;
+
+  // TAMBAHKAN INI: Definisi variabel validator
+  final String? Function(String?)? validator;
 
   @override
   State<DatePickerFieldWidget> createState() => _DatePickerFieldWidgetState();
@@ -96,16 +65,11 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
   void didUpdateWidget(covariant DatePickerFieldWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialDate != oldWidget.initialDate) {
-      // PERBAIKAN: Gunakan addPostFrameCallback untuk menunda update
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _updateDate(widget.initialDate);
         }
       });
-    }
-    if (widget.dateFormat != oldWidget.dateFormat) {
-      _dateFormatter = DateFormat(widget.dateFormat, 'id_ID');
-      _updateControllerText();
     }
   }
 
@@ -127,7 +91,6 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
     }
   }
 
-  // Diubah: Menerima FormFieldState
   Future<void> _pickDate(
     BuildContext context,
     FormFieldState<String> state,
@@ -140,7 +103,6 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
       lastDate: widget.lastDate ?? DateTime(2100),
       locale: const Locale('id', 'ID'),
       builder: (context, child) {
-        // Kustomisasi tema date picker agar sesuai dengan tema aplikasi
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
@@ -166,7 +128,6 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
 
     if (picked != null && picked != _selectedDate) {
       _updateDate(picked);
-      // Diubah: Beri tahu FormField tentang nilai baru
       state.didChange(widget.controller.text);
     }
   }
@@ -200,26 +161,29 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
           ),
           const SizedBox(height: 8),
 
-          // Diubah: Dibungkus dengan FormField
           FormField<String>(
             initialValue: widget.controller.text,
-            validator: (value) {
-              if (widget.isRequired && (value == null || value.isEmpty)) {
-                return '${widget.label} tidak boleh kosong';
-              }
-              return null;
-            },
+            // LOGIKA VALIDASI DIPERBAIKI:
+            // Menggunakan validator dari widget jika ada, jika tidak gunakan logika isRequired
+            validator:
+                widget.validator ??
+                (value) {
+                  if (widget.isRequired && (value == null || value.isEmpty)) {
+                    return '${widget.label} tidak boleh kosong';
+                  }
+                  return null;
+                },
             builder: (FormFieldState<String> state) {
-              // Sinkronkan state jika controller berubah (misal oleh _updateDate)
+              // Sinkronisasi manual jika controller diubah dari luar
               if (widget.controller.text != state.value) {
+                // Defer update to avoid build phase errors
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
+                  if (mounted && state.mounted) {
                     state.didChange(widget.controller.text);
                   }
                 });
               }
 
-              // Tentukan border
               final BorderSide errorBorder = const BorderSide(
                 color: AppColors.errorColor,
                 width: 1.0,
@@ -231,46 +195,58 @@ class _DatePickerFieldWidgetState extends State<DatePickerFieldWidget> {
                     )
                   : BorderSide.none;
 
-              return Card(
-                elevation: widget.elevation,
-                margin: EdgeInsets.zero,
-                // Ditambahkan: Terapkan background color
-                color: widget.backgroundColor ?? Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(widget.borderRadius),
-                  // Diubah: Terapkan border dinamis
-                  side: state.hasError ? errorBorder : defaultBorder,
-                ),
-                child: InkWell(
-                  // Diubah: Kirim state ke _pickDate
-                  onTap: () => _pickDate(context, state),
-                  borderRadius: BorderRadius.circular(widget.borderRadius),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        controller: widget.controller,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          hintText: widget.hintText ?? 'Pilih tanggal...',
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontStyle: FontStyle.italic,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Card(
+                    elevation: widget.elevation,
+                    margin: EdgeInsets.zero,
+                    color: widget.backgroundColor ?? Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(widget.borderRadius),
+                      side: state.hasError ? errorBorder : defaultBorder,
+                    ),
+                    child: InkWell(
+                      onTap: () => _pickDate(context, state),
+                      borderRadius: BorderRadius.circular(widget.borderRadius),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: AbsorbPointer(
+                          child: TextFormField(
+                            controller: widget.controller,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              hintText: widget.hintText ?? 'Pilih tanggal...',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                              ),
+                              prefixIcon: widget.prefixIcon != null
+                                  ? _buildPrefixWithDivider(widget.prefixIcon!)
+                                  : null,
+                            ),
                           ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                          ),
-                          prefixIcon: widget.prefixIcon != null
-                              ? _buildPrefixWithDivider(widget.prefixIcon!)
-                              : null,
                         ),
-                        // Diubah: Validator dipindahkan ke FormField
-                        validator: null,
                       ),
                     ),
                   ),
-                ),
+                  // Menampilkan pesan error di bawah field jika validasi gagal
+                  if (state.hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5, left: 5),
+                      child: Text(
+                        state.errorText!,
+                        style: const TextStyle(
+                          color: AppColors.errorColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           ),

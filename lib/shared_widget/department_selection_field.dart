@@ -1,6 +1,6 @@
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/departements/departements.dart';
-import 'package:e_hrm/screens/users/finance/reimburse/add_reimburse/widget/department_selection_sheet.dart';
+import 'package:e_hrm/screens/users/finance/widget/department_selection_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

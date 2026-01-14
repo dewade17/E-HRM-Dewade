@@ -31,92 +31,95 @@ class _OpeningScreenState extends State<OpeningScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background image
-          Positioned.fill(
-            child: Image.asset(
-              'lib/assets/image/bg_login.png',
-              fit: BoxFit.cover,
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            // Background image
+            Positioned.fill(
+              child: Image.asset(
+                'lib/assets/image/bg_login.png',
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
 
-          // Konten utama
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 40),
-                    Text(
-                      "ONE STEP SOLUTION",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.secondaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "WE MAKE YOUR PRIORITY",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.backgroundColor,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    Image.asset(
-                      'lib/assets/image/icon_bg.png',
-                      width: 380,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Tombol Login (muncul saat user belum login)
-                    SizedBox(
-                      width: 200,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondaryColor,
-                          foregroundColor: AppColors.accentColor,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: const StadiumBorder(),
+            // Konten utama
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 40),
+                      Text(
+                        "ONE STEP SOLUTION",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.secondaryColor,
                         ),
-                        onPressed: _checking
-                            ? null
-                            : () {
-                                Navigator.of(context).pushNamed('/login');
-                              },
-                        child: Text(
-                          "Login",
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "WE MAKE YOUR PRIORITY",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.backgroundColor,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      Image.asset(
+                        'lib/assets/image/icon_bg.png',
+                        width: 380,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 40),
+
+                      // Tombol Login (muncul saat user belum login)
+                      SizedBox(
+                        width: 200,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.secondaryColor,
+                            foregroundColor: AppColors.accentColor,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: const StadiumBorder(),
+                          ),
+                          onPressed: _checking
+                              ? null
+                              : () {
+                                  Navigator.of(context).pushNamed('/login');
+                                },
+                          child: Text(
+                            "Login",
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // Overlay loading saat proses cek token
-          if (_checking)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.08),
-                child: const Center(child: CircularProgressIndicator()),
+            // Overlay loading saat proses cek token
+            if (_checking)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.08),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

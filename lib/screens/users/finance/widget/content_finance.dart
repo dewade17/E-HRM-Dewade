@@ -1,7 +1,13 @@
 import 'package:e_hrm/contraints/colors.dart';
+import 'package:e_hrm/screens/users/finance/payment/add_payment/payment_screen.dart';
+import 'package:e_hrm/screens/users/finance/payment/riwayat_payment/riwayat_payment_screen.dart';
+import 'package:e_hrm/screens/users/finance/pocket_money/add_pocket_money/pocket_money_screen.dart';
+import 'package:e_hrm/screens/users/finance/pocket_money/riwayat_pocket_money/riwayat_pocket_money_screen.dart';
 import 'package:e_hrm/screens/users/finance/reimburse/add_reimburse/reimburse_screen.dart';
+import 'package:e_hrm/screens/users/finance/reimburse/riwayat_reimburse/riwayat_reimburse_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path/path.dart';
 
 class ContentFinance extends StatefulWidget {
   const ContentFinance({super.key});
@@ -30,7 +36,14 @@ class _ContentFinanceState extends State<ContentFinance> {
               );
             },
             button2Text: "Riwayat",
-            onButton2Pressed: () {},
+            onButton2Pressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RiwayatReimburseScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 20),
           FinanceCard(
@@ -40,21 +53,43 @@ class _ContentFinanceState extends State<ContentFinance> {
                 "Butuh tambahan buat jalanin \nkerjaan? Klaim pocket money easy banget, tinggal klik! ",
             imagePath: 'lib/assets/image/finance/trypocketx4.png',
             button1Text: "Klaim",
-            onButton1Pressed: () {},
+            onButton1Pressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PocketMoneyScreen()),
+              );
+            },
             button2Text: "Riwayat",
-            onButton2Pressed: () {},
+            onButton2Pressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RiwayatPocketMoneyScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 30),
           FinanceCard(
             type: "payment",
             title: "Payment !",
             subtitle:
-                "Semua pengeluaran kerja bisa balik, cukup ajukan reimburse disini!",
+                "Pengajuan pembayaran kerja jadi lebih mudah. Request payment dan cek riwayat transaksi di sini!",
             imagePath: 'lib/assets/image/finance/trypaymentx4.png',
             button1Text: "Request",
-            onButton1Pressed: () {},
+            onButton1Pressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PaymentScreen()),
+              );
+            },
             button2Text: "Riwayat",
-            onButton2Pressed: () {},
+            onButton2Pressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => RiwayatPaymentScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -133,7 +168,7 @@ class FinanceCard extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
-                        foregroundColor: AppColors.menuColor,
+                        foregroundColor: AppColors.secondaryColor,
                       ),
                       child: Text(button1Text),
                     ),
@@ -145,7 +180,7 @@ class FinanceCard extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
-                        foregroundColor: AppColors.menuColor,
+                        foregroundColor: AppColors.secondaryColor,
                       ),
                       child: Text(button2Text),
                     ),

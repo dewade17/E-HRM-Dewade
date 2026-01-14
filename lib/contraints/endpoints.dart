@@ -42,6 +42,9 @@ class Endpoints {
   //departements
   static const String departements = "$baseURL/admin/departements";
 
+  //kategori-keperluan-payment
+  static const String kategoriKeperluan = "$baseURL/admin/kategori-keperluan";
+
   //kunjungan
   static const String kategoriKunjungan = "$baseURL/admin/kategori-kunjungan";
   static String kategoriKunjunganDetail(String id) =>
@@ -97,7 +100,7 @@ class Endpoints {
   static String get absensiCheckout => "$faceBaseURL/api/absensi/checkout";
   static String get absensiStatus => "$faceBaseURL/api/absensi/status";
 
-  //istirahats
+  //istirahat
   static const String istirahatStart =
       "$faceBaseURL/api/absensi/istirahat/start";
   static const String istirahatEnd = "$faceBaseURL/api/absensi/istirahat/end";
@@ -112,4 +115,20 @@ class Endpoints {
       "$baseURL/notifications/mark-all-as-read";
 
   static const String mobileCalendar = "$baseURL/mobile/calendar";
+
+  //payment
+  static const String payment = "$baseURL/mobile/payment";
+  static String paymentDetail(String id) => "$payment/$id";
+
+  //reimburse
+  static const String reimburse = "$baseURL/mobile/reimburse";
+  static String reimburseDetail(String id) => "$reimburse/$id";
+
+  //pocket money
+  static const String pocketMoney = "$baseURL/mobile/pocket-money";
+  static String pocketMoneyDetail(String id) => "$pocketMoney/$id";
+
+  // SOP perusahaan
+  static const String sopPerusahaan = "$baseURL/admin/sop-perusahaan";
+  static const String favouritePinSop = "$baseURL/mobile/favourite-pin-sop";
 }

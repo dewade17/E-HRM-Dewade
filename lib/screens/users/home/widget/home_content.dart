@@ -43,9 +43,11 @@ class HomeContent extends StatelessWidget {
           },
         ),
         HomeMenuItem(
-          imagePath: 'lib/assets/image/menu_home/lembur.png',
-          label: "Lembur",
-          onTap: () {},
+          imagePath: 'lib/assets/image/menu_home/sop.png',
+          label: "SOP",
+          onTap: () {
+            Navigator.pushNamed(context, '/sop-karyawan');
+          },
         ),
         HomeMenuItem(
           imagePath: 'lib/assets/image/menu_home/finance.png',

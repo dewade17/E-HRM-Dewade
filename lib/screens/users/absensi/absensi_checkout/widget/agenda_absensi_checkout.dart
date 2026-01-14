@@ -185,7 +185,8 @@ class _SelectedAgendaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final start = item.startDate;
     final end = item.endDate;
-    final normalizedStatus = item.status.toLowerCase();
+    final agendaProvider = context.watch<AgendaKerjaProvider>();
+    final normalizedStatus = _normalizeStatus(item.status);
 
     return Container(
       width: double.infinity,
@@ -222,20 +223,58 @@ class _SelectedAgendaTile extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 6,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xfff6f6f6),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        _statusLabel(normalizedStatus),
-                        style: GoogleFonts.poppins(
-                          textStyle: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: normalizedStatus,
+                          isDense: true,
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            size: 18,
                             color: _statusColor(normalizedStatus),
                           ),
+                          items: _statusOptions
+                              .map(
+                                (option) => DropdownMenuItem<String>(
+                                  value: option.value,
+                                  child: Text(
+                                    option.label,
+                                    style: GoogleFonts.poppins(
+                                      textStyle: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: _statusColor(option.value),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: agendaProvider.saving
+                              ? null
+                              : (value) async {
+                                  if (value == null ||
+                                      value == normalizedStatus) {
+                                    return;
+                                  }
+                                  final updated = await agendaProvider.update(
+                                    item.idAgendaKerja,
+                                    status: value,
+                                  );
+                                  if (updated == null && context.mounted) {
+                                    final message =
+                                        agendaProvider.error ??
+                                        'Gagal memperbarui status pekerjaan.';
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(message)),
+                                    );
+                                  }
+                                },
                         ),
                       ),
                     ),
@@ -307,10 +346,14 @@ class _SelectedAgendaTile extends StatelessWidget {
     return _dateFormatter.format(date);
   }
 
-  static String _statusLabel(String value) {
-    if (value.isEmpty) return '-';
-    final lower = value.toLowerCase();
-    return lower[0].toUpperCase() + lower.substring(1);
+  static String _normalizeStatus(String? value) {
+    final lower = (value ?? '').trim().toLowerCase();
+    for (final option in _statusOptions) {
+      if (option.value == lower) {
+        return option.value;
+      }
+    }
+    return _statusOptions.first.value;
   }
 
   static Color _statusColor(String value) {
@@ -344,3 +387,16 @@ class _SelectedAgendaTile extends StatelessWidget {
     );
   }
 }
+
+class _StatusOption {
+  const _StatusOption({required this.value, required this.label});
+
+  final String value;
+  final String label;
+}
+
+const List<_StatusOption> _statusOptions = <_StatusOption>[
+  _StatusOption(value: 'diproses', label: 'Diproses'),
+  _StatusOption(value: 'selesai', label: 'Selesai'),
+  _StatusOption(value: 'ditunda', label: 'Ditunda'),
+];

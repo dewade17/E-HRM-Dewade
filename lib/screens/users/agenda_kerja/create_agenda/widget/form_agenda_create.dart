@@ -13,6 +13,7 @@ import 'package:e_hrm/shared_widget/time_picker_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,7 +40,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
   String _selectedStatus = _statusOptions.first.value;
   // String? _selectedAgendaId; // <-- Ganti ini
   AgendaItem? _selectedAgenda; // <-- Dengan ini (simpan objek AgendaItem)
-  DateTime? _selectedDate;
+  final List<DateTime> _selectedDates = <DateTime>[];
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
@@ -52,7 +53,8 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     // Pre-fill the date from the provider if it's already available
     final initialProvider = context.read<AgendaKerjaProvider>();
     if (initialProvider.currentDate != null) {
-      _selectedDate = initialProvider.currentDate;
+      _selectedDates.add(initialProvider.currentDate!);
+      _updateSelectedDatesText();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,8 +109,12 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     var shouldUpdate = false;
 
     if (providerDate != null &&
-        (_selectedDate == null || !_isSameDay(_selectedDate!, providerDate))) {
-      _selectedDate = providerDate;
+        (_selectedDates.isEmpty ||
+            !_selectedDates.any((date) => _isSameDay(date, providerDate)))) {
+      _selectedDates
+        ..clear()
+        ..add(providerDate);
+      _updateSelectedDatesText();
       shouldUpdate = true;
     }
 
@@ -134,7 +140,7 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       return;
     }
     // ... (validasi tanggal, jam, urgensi tetap sama) ...
-    if (_selectedDate == null) {
+    if (_selectedDates.isEmpty) {
       _showSnackBar('Tanggal agenda wajib diisi.', true);
       return;
     }
@@ -147,13 +153,21 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       return;
     }
 
-    final startDateTime = _combineDateTime(_selectedDate!, _startTime!);
-    final endDateTime = _combineDateTime(_selectedDate!, _endTime!);
-    if (!endDateTime.isAfter(startDateTime)) {
-      _showSnackBar('Jam selesai harus lebih besar dari jam mulai.', true);
-      return;
+    final startDates = _selectedDates
+        .map((date) => _combineDateTime(date, _startTime!))
+        .toList();
+    final endDates = _selectedDates
+        .map((date) => _combineDateTime(date, _endTime!))
+        .toList();
+    for (var i = 0; i < startDates.length; i += 1) {
+      if (!endDates[i].isAfter(startDates[i])) {
+        _showSnackBar('Jam selesai harus lebih besar dari jam mulai.', true);
+        return;
+      }
     }
-
+    final durationSeconds = endDates.first
+        .difference(startDates.first)
+        .inSeconds;
     // ... (ensureUserId tetap sama) ...
     final auth = context.read<AuthProvider>();
     final userId = await _ensureUserId(auth);
@@ -170,9 +184,9 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
       idAgenda: _selectedAgenda!.idAgenda, // <-- Ambil ID dari objek
       deskripsiKerja: deskripsiController.text,
       status: _selectedStatus,
-      startDate: startDateTime,
-      endDate: endDateTime,
-      durationSeconds: endDateTime.difference(startDateTime).inSeconds,
+      startDates: startDates,
+      endDates: endDates,
+      durationSeconds: durationSeconds,
       kebutuhanAgenda: _selectedUrgensi,
     );
 
@@ -182,7 +196,10 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
     final errorMessage = provider.error ?? 'Gagal membuat agenda kerja.';
 
     if (created != null) {
-      _showSnackBar(message, false);
+      final successMessage = _selectedDates.length > 1
+          ? 'Agenda kerja berhasil dibuat untuk ${_selectedDates.length} tanggal.'
+          : message;
+      _showSnackBar(successMessage, false);
       Navigator.of(context).pop(true);
     } else {
       _showSnackBar(errorMessage, true);
@@ -219,6 +236,19 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  void _updateSelectedDatesText() {
+    if (_selectedDates.isEmpty) {
+      calendarController.clear();
+      return;
+    }
+    final formatter = DateFormat('dd MMMM yyyy', 'id_ID');
+    final sortedDates = List<DateTime>.of(_selectedDates)
+      ..sort((a, b) => a.compareTo(b));
+    calendarController.text = sortedDates
+        .map((date) => formatter.format(date))
+        .join(', ');
   }
 
   @override
@@ -289,12 +319,53 @@ class _FormAgendaCreateState extends State<FormAgendaCreate> {
             DatePickerFieldWidget(
               backgroundColor: AppColors.textColor,
               borderColor: AppColors.textDefaultColor,
-              label: 'Tanggal Agenda',
+              label: 'Tanggal Agenda (bisa lebih dari satu)',
               controller: calendarController,
-              initialDate: _selectedDate,
-              onDateChanged: (date) => setState(() => _selectedDate = date),
+              initialDate: _selectedDates.isNotEmpty
+                  ? _selectedDates.first
+                  : null,
+              onDateChanged: (date) {
+                if (date == null) return;
+                if (_selectedDates.any((item) => _isSameDay(item, date))) {
+                  return;
+                }
+                setState(() {
+                  _selectedDates.add(date);
+                  _updateSelectedDatesText();
+                });
+              },
               isRequired: true,
+              validator: (value) {
+                if (_selectedDates.isEmpty) {
+                  return 'Tanggal agenda wajib diisi';
+                }
+                return null;
+              },
             ),
+            if (_selectedDates.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: List<Widget>.generate(_selectedDates.length, (
+                    index,
+                  ) {
+                    final formatter = DateFormat('dd MMMM yyyy', 'id_ID');
+                    final date = _selectedDates[index];
+                    return Chip(
+                      label: Text(formatter.format(date)),
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedDates.removeAt(index);
+                          _updateSelectedDatesText();
+                        });
+                      },
+                    );
+                  }),
+                ),
+              ),
             const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

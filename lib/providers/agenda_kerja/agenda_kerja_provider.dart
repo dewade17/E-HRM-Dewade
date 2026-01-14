@@ -543,6 +543,8 @@ class AgendaKerjaProvider extends ChangeNotifier {
     String? status,
     DateTime? startDate,
     DateTime? endDate,
+    List<DateTime>? startDates,
+    List<DateTime>? endDates,
     int? durationSeconds,
     String? idAbsensi,
     String? kebutuhanAgenda,
@@ -553,12 +555,30 @@ class AgendaKerjaProvider extends ChangeNotifier {
       final kebutuhanAgendaValue = kebutuhanAgenda != null
           ? _normalizeKebutuhanAgendaString(kebutuhanAgenda)
           : null;
-
+      final normalizedStartDates = startDates
+          ?.map((date) => date.toIso8601String())
+          .toList();
+      final normalizedEndDates = endDates
+          ?.map((date) => date.toIso8601String())
+          .toList();
+      final fallbackStartDate =
+          startDate ??
+          (startDates?.isNotEmpty == true ? startDates!.first : null);
+      final fallbackEndDate =
+          endDate ?? (endDates?.isNotEmpty == true ? endDates!.first : null);
       final body = _buildBody(<String, dynamic>{
         'id_user': idUser.trim(),
         'id_agenda': idAgenda.trim(),
         'deskripsi_kerja': deskripsiKerja.trim(),
         if (status != null) 'status': status.toLowerCase(),
+        if (normalizedStartDates != null && normalizedStartDates.isNotEmpty)
+          'start_dates': normalizedStartDates,
+        if (normalizedEndDates != null && normalizedEndDates.isNotEmpty)
+          'end_dates': normalizedEndDates,
+        if (fallbackStartDate != null)
+          'start_date': fallbackStartDate.toIso8601String(),
+        if (fallbackEndDate != null)
+          'end_date': fallbackEndDate.toIso8601String(),
         if (startDate != null) 'start_date': startDate.toIso8601String(),
         if (endDate != null) 'end_date': endDate.toIso8601String(),
         if (durationSeconds != null) 'duration_seconds': durationSeconds,

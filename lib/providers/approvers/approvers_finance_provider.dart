@@ -5,14 +5,14 @@ import 'package:e_hrm/dto/approvers/approvers.dart' as dto;
 import 'package:e_hrm/services/api_services.dart';
 import 'package:flutter/foundation.dart';
 
-class ApproversPengajuanProvider extends ChangeNotifier {
-  ApproversPengajuanProvider({
+class ApproversFinanceProvider extends ChangeNotifier {
+  ApproversFinanceProvider({
     List<String>? initialRoles,
     this.defaultPageSize = 20,
     bool? initialIncludeDeleted,
   }) : roles = (initialRoles?.isNotEmpty ?? false)
            ? List<String>.from(initialRoles!)
-           : <String>['SUPERADMIN'],
+           : <String>['DIREKTUR'],
        includeDeleted = initialIncludeDeleted ?? false;
 
   final int defaultPageSize;

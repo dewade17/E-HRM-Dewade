@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart'; // Pastikan package ini ada
+import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:e_hrm/providers/sop_perusahaan/sop_perusahaan_provider.dart';
 import 'package:e_hrm/dto/sop_perusahaan/sop_perushaan.dart' as sop_dto;
@@ -19,7 +19,6 @@ class _ContentSopState extends State<ContentSop>
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
   bool _isFocused = false;
-
   final Set<String> _selectedCategories = {};
   Set<String> _tempSelectedCategories = {};
 
@@ -29,7 +28,6 @@ class _ContentSopState extends State<ContentSop>
     _tabController = TabController(length: 2, vsync: this)
       ..addListener(() => setState(() {}));
 
-    // Fetch data saat pertama kali dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<SopPerusahaanProvider>();
       provider.fetchAllSop();
@@ -46,16 +44,22 @@ class _ContentSopState extends State<ContentSop>
     super.dispose();
   }
 
-  // Fungsi untuk membuka browser
   Future<void> _openSopUrl(String url) async {
     if (url.isEmpty) return;
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
+
+    String formattedUrl = url.trim();
+    if (!formattedUrl.startsWith('http://') &&
+        !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://$formattedUrl';
+    }
+
+    final uri = Uri.parse(formattedUrl);
+    try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak dapat membuka tautan SOP')),
+          const SnackBar(content: Text('Gagal membuka tautan SOP')),
         );
       }
     }
@@ -66,7 +70,6 @@ class _ContentSopState extends State<ContentSop>
     SopPerusahaanProvider provider,
   ) {
     final query = _searchController.text.toLowerCase();
-
     return items.where((sop) {
       final matchSearch = sop.namaDokumen.toLowerCase().contains(query);
       final isFavorite = provider.isPinned(sop.idSopKaryawan);
@@ -74,7 +77,6 @@ class _ContentSopState extends State<ContentSop>
       final matchCategory =
           _selectedCategories.isEmpty ||
           _selectedCategories.contains(sop.kategoriSop.namaKategori);
-
       return matchSearch && matchTab && matchCategory;
     }).toList();
   }
@@ -118,9 +120,8 @@ class _ContentSopState extends State<ContentSop>
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    setDialogState(() => _tempSelectedCategories.clear());
-                  },
+                  onPressed: () =>
+                      setDialogState(() => _tempSelectedCategories.clear()),
                   child: const Text(
                     'Reset',
                     style: TextStyle(color: Colors.red),
@@ -148,7 +149,6 @@ class _ContentSopState extends State<ContentSop>
   Widget build(BuildContext context) {
     return Consumer<SopPerusahaanProvider>(
       builder: (context, provider, child) {
-        // Ambil kategori unik dari data yang ada untuk filter
         final availableCategories = provider.sopItems
             .map((e) => e.kategoriSop.namaKategori)
             .where((name) => name.isNotEmpty)
@@ -160,7 +160,6 @@ class _ContentSopState extends State<ContentSop>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 🔍 SEARCH + FILTER
             Row(
               children: [
                 Expanded(
@@ -208,9 +207,7 @@ class _ContentSopState extends State<ContentSop>
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
             TabBar(
               controller: _tabController,
               labelColor: Colors.blue,
@@ -221,47 +218,58 @@ class _ContentSopState extends State<ContentSop>
                 Tab(text: 'Favorite'),
               ],
             ),
-
             const SizedBox(height: 12),
-
             Expanded(
               child: provider.loadingSop && provider.sopItems.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : visibleList.isEmpty
-                  ? const Center(child: Text("SOP tidak ditemukan"))
                   : RefreshIndicator(
                       onRefresh: () => provider.fetchAllSop(),
-                      child: ListView.separated(
-                        itemCount: visibleList.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final sop = visibleList[index];
-                          final isFav = provider.isPinned(sop.idSopKaryawan);
+                      child: visibleList.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.4,
+                                  child: const Center(
+                                    child: Text("SOP tidak ditemukan"),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: visibleList.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final sop = visibleList[index];
+                                final isFav = provider.isPinned(
+                                  sop.idSopKaryawan,
+                                );
+                                String formattedDate = "N/A";
+                                try {
+                                  formattedDate = DateFormat(
+                                    'dd MMM yyyy',
+                                  ).format(sop.createdAt);
+                                } catch (_) {}
 
-                          // Format tanggal dari API
-                          String formattedDate = "N/A";
-                          try {
-                            formattedDate = DateFormat(
-                              'dd MMM yyyy',
-                            ).format(sop.createdAt);
-                          } catch (_) {}
-
-                          return _SopItem(
-                            title: sop.namaDokumen,
-                            category: sop.kategoriSop.namaKategori,
-                            date: formattedDate,
-                            isFavorite: isFav,
-                            onFavorite: () {
-                              if (isFav) {
-                                provider.unpinSop(sop.idSopKaryawan);
-                              } else {
-                                provider.pinSop(sop.idSopKaryawan);
-                              }
-                            },
-                            onTap: () => _openSopUrl(sop.lampiranSopUrl),
-                          );
-                        },
-                      ),
+                                return _SopItem(
+                                  title: sop.namaDokumen,
+                                  category: sop.kategoriSop.namaKategori,
+                                  date: formattedDate,
+                                  isFavorite: isFav,
+                                  onFavorite: () {
+                                    if (isFav) {
+                                      provider.unpinSop(sop.idSopKaryawan);
+                                    } else {
+                                      provider.pinSop(sop.idSopKaryawan);
+                                    }
+                                  },
+                                  onTap: () => _openSopUrl(sop.lampiranSopUrl),
+                                );
+                              },
+                            ),
                     ),
             ),
           ],
@@ -291,7 +299,7 @@ class _SopItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap, // Aksi ketika item diklik
+      onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.all(14),

@@ -100,6 +100,12 @@ class KategoriIzinJamProvider extends ChangeNotifier {
           .map(dto.Data.fromJson)
           .toList();
 
+      mapped.sort(
+        (a, b) => a.namaKategori.toLowerCase().compareTo(
+          b.namaKategori.toLowerCase(),
+        ),
+      );
+
       final dynamic paginationMap = response['pagination'];
       // Perubahan: Menggunakan dto.Pagination.fromJson
       final dto.Pagination? pagination = paginationMap is Map

@@ -74,6 +74,12 @@ class AgendaProvider extends ChangeNotifier {
                 .toList()
           : <AgendaItem>[];
 
+      mapped.sort(
+        (a, b) => (a.namaAgenda ?? '').toLowerCase().compareTo(
+          (b.namaAgenda ?? '').toLowerCase(),
+        ),
+      );
+
       Meta? metaValue;
       final metaRaw = res['meta'];
       if (metaRaw != null) {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:collection';
+import 'package:flutter/foundation.dart'; // Dibutuhkan untuk debugPrint
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -11,6 +12,11 @@ import 'package:e_hrm/services/api_services.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Gunakan print biasa untuk background isolate agar lebih konsisten muncul di log
+  if (kDebugMode) {
+    print("📩 [Background] Pesan diterima! ID: ${message.messageId}");
+  }
+
   final String uniqueLogId = DateTime.now().millisecondsSinceEpoch.toString();
 
   NotificationHandler().showLocalNotification(
@@ -21,7 +27,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 @pragma('vm:entry-point')
-void notificationTapBackground(NotificationResponse response) {}
+void notificationTapBackground(NotificationResponse response) {
+  debugPrint("🖱️ [Background] Notifikasi diklik: ${response.payload}");
+}
 
 class NotificationHandler {
   NotificationHandler._internal();
@@ -41,7 +49,15 @@ class NotificationHandler {
     if (_initialized) return;
     _initialized = true;
 
-    await _firebaseMessaging.requestPermission();
+    debugPrint("🔔 [System] Memulai inisialisasi NotificationHandler...");
+
+    // Meminta Izin
+    NotificationSettings settings = await _firebaseMessaging
+        .requestPermission();
+    debugPrint(
+      "🔔 [System] Status Izin Firebase: ${settings.authorizationStatus}",
+    );
+
     await _firebaseMessaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
@@ -66,15 +82,19 @@ class NotificationHandler {
 
     await _localNotifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (resp) {},
+      onDidReceiveNotificationResponse: (resp) {
+        debugPrint("🖱️ [Foreground] Notifikasi diklik: ${resp.payload}");
+      },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
+    // Izin spesifik iOS/MacOS
     await _localNotifications
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >()
         ?.requestPermissions(alert: true, badge: true, sound: true);
+    debugPrint("🔔 [System] Izin lokal iOS diminta.");
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
@@ -82,9 +102,16 @@ class NotificationHandler {
         >()
         ?.requestPermissions(alert: true, badge: true, sound: true);
 
-    await _createAndroidNotificationChannel();
+    try {
+      await _createAndroidNotificationChannel();
+      debugPrint("✅ [System] Android Notification Channel berhasil dibuat.");
+    } catch (e) {
+      debugPrint("❌ [System] Gagal membuat Android Channel: $e");
+    }
 
+    // Listener saat aplikasi terbuka (Foreground)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint("📩 [Foreground] Pesan diterima!");
       final String uniqueLogId = DateTime.now().millisecondsSinceEpoch
           .toString();
       showLocalNotification(
@@ -94,6 +121,7 @@ class NotificationHandler {
       );
     });
 
+    // Ambil token dan kirim ke server
     await _getTokenAndSendToServer();
     _firebaseMessaging.onTokenRefresh.listen(_sendTokenToServer);
   }
@@ -101,7 +129,10 @@ class NotificationHandler {
   bool _isDuplicate(RemoteMessage message) {
     final id = message.messageId;
     if (id == null) return false;
-    if (_seenMessageIds.contains(id)) return true;
+    if (_seenMessageIds.contains(id)) {
+      debugPrint("⚠️ [Dedupe] Pesan diabaikan karena duplikat: $id");
+      return true;
+    }
     _seenMessageIds.add(id);
     if (_seenMessageIds.length > 64) {
       _seenMessageIds.remove(_seenMessageIds.first);
@@ -114,6 +145,8 @@ class NotificationHandler {
     String from = 'Unknown',
     required bool fromBackground,
   }) {
+    debugPrint("🛠️ [Logic] Memproses tampilan notifikasi dari: $from");
+
     if (_isDuplicate(message)) return;
 
     final String title =
@@ -121,7 +154,14 @@ class NotificationHandler {
     final String body =
         message.data['body'] ?? message.notification?.body ?? 'No Body';
 
-    if (title.isEmpty && body.isEmpty) return;
+    debugPrint("📝 [Logic] Judul: $title | Isi: $body");
+
+    if (title.isEmpty && body.isEmpty) {
+      debugPrint(
+        "⚠️ [Logic] Notifikasi tidak ditampilkan karena judul dan isi kosong.",
+      );
+      return;
+    }
 
     final String dedupeKey = message.data['dedupeKey'] ?? '$title|$body';
     final int notificationId = dedupeKey.hashCode & 0x7fffffff;
@@ -147,15 +187,10 @@ class NotificationHandler {
           presentBadge: true,
           presentSound: true,
         ),
-        macOS: const DarwinNotificationDetails(
-          threadIdentifier: 'e_hrm_general',
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
       ),
       payload: jsonEncode(message.data),
     );
+    debugPrint("🚀 [Local Notification] Perintah tampil berhasil dikirim.");
   }
 
   Future<void> _createAndroidNotificationChannel() async {
@@ -176,8 +211,10 @@ class NotificationHandler {
     if (_cachedToken != null) return _cachedToken;
     try {
       _cachedToken = await _firebaseMessaging.getToken();
+      debugPrint("🔑 [Token] FCM Token: $_cachedToken");
       return _cachedToken;
-    } catch (_) {
+    } catch (e) {
+      debugPrint("❌ [Token] Gagal mengambil FCM Token: $e");
       return null;
     }
   }
@@ -186,15 +223,21 @@ class NotificationHandler {
     final String? token = await getFcmToken();
     if (token != null) {
       await _sendTokenToServer(token);
+    } else {
+      debugPrint("⚠️ [Token] Token null, tidak mengirim ke server.");
     }
   }
 
   Future<void> _sendTokenToServer(String token) async {
     try {
+      debugPrint("🚀 [Sync] Mengirim token ke server...");
       await _apiService.postDataPrivate(Endpoints.getNotifications, {
         'token': token,
       });
-    } catch (_) {}
+      debugPrint("✅ [Sync] Token berhasil diperbarui di server.");
+    } catch (e) {
+      debugPrint("❌ [Sync] Gagal sinkronisasi token ke server: $e");
+    }
   }
 }
 

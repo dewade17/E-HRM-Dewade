@@ -92,6 +92,12 @@ class KategoriKeperluanProvider extends ChangeNotifier {
           .map(Data.fromJson)
           .toList();
 
+      mapped.sort(
+        (a, b) => a.namaKeperluan.toLowerCase().compareTo(
+          b.namaKeperluan.toLowerCase(),
+        ),
+      );
+
       final dynamic paginationMap = response['pagination'];
       final Pagination? pagination = paginationMap is Map
           ? Pagination.fromJson(Map<String, dynamic>.from(paginationMap))

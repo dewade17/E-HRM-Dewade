@@ -1,4 +1,4 @@
-import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_finance_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -20,7 +20,7 @@ class _ApproverFinanceSelectionState extends State<ApproverFinanceSelection> {
     _searchController = TextEditingController();
     _searchController.addListener(_handleSearch);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ApproversPengajuanProvider>();
+      final provider = context.read<ApproversFinanceProvider>();
       if (!provider.isLoading && provider.users.isEmpty) {
         provider.refresh();
       }
@@ -28,9 +28,7 @@ class _ApproverFinanceSelectionState extends State<ApproverFinanceSelection> {
   }
 
   void _handleSearch() {
-    context.read<ApproversPengajuanProvider>().setSearch(
-      _searchController.text,
-    );
+    context.read<ApproversFinanceProvider>().setSearch(_searchController.text);
   }
 
   @override
@@ -80,7 +78,7 @@ class _ApproverFinanceSelectionState extends State<ApproverFinanceSelection> {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: Consumer<ApproversPengajuanProvider>(
+                child: Consumer<ApproversFinanceProvider>(
                   builder: (context, provider, _) {
                     final users = provider.users;
                     final loading = provider.isLoading;

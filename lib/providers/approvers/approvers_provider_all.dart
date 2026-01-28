@@ -1,51 +1,50 @@
 import 'dart:async';
+
+import 'package:e_hrm/contraints/endpoints.dart';
+import 'package:e_hrm/dto/approvers/approvers.dart' as dto;
+import 'package:e_hrm/services/api_services.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:e_hrm/dto/approvers/approvers.dart';
-import 'package:e_hrm/contraints/endpoints.dart';
-import 'package:e_hrm/services/api_services.dart';
-
-class ApproversProvider extends ChangeNotifier {
-  ApproversProvider({
+class ApproversProviderAll extends ChangeNotifier {
+  ApproversProviderAll({
     List<String>? initialRoles,
     this.defaultPageSize = 20,
     bool? initialIncludeDeleted,
   }) : roles = (initialRoles?.isNotEmpty ?? false)
-           ? initialRoles!
-           : <String>['HR', 'DIREKTUR', 'OPERASIONAL', 'SUPERADMIN'],
+           ? List<String>.from(initialRoles!)
+           : <String>['DIREKTUR', 'SUPERADMIN'],
        includeDeleted = initialIncludeDeleted ?? false;
 
-  // ===== config =====
   final int defaultPageSize;
   final ApiService _api = ApiService();
 
-  // ===== state =====
-  final List<User> _users = <User>[];
-  Pagination? _pagination;
+  final List<dto.User> _users = <dto.User>[];
+  final Map<String, dto.User> _selectedUserCache = <String, dto.User>{};
+  dto.Pagination? _pagination;
   String _search = '';
-  List<String> roles; // ['HR','DIREKTUR','OPERASIONAL']
+  List<String> roles;
   bool includeDeleted;
 
   bool _isLoading = false;
   String? _error;
 
-  // chip terpilih
   final Set<String> selectedRecipientIds = <String>{};
 
-  // debounce & race guard
   Timer? _debounce;
   int _requestSeq = 0;
 
-  // ===== getters =====
-  List<User> get users => List<User>.unmodifiable(_users);
-  Pagination? get pagination => _pagination;
+  List<dto.User> get users => List<dto.User>.unmodifiable(_users);
+  List<dto.User> get selectedUsers => selectedRecipientIds
+      .map((id) => _selectedUserCache[id] ?? _findUserById(id))
+      .whereType<dto.User>()
+      .toList(growable: false);
+  dto.Pagination? get pagination => _pagination;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get search => _search;
   bool get canLoadMore =>
       _pagination != null && _pagination!.page < _pagination!.totalPages;
 
-  // ===== public API =====
   Future<void> refresh({
     String? search,
     List<String>? newRoles,
@@ -55,7 +54,9 @@ class ApproversProvider extends ChangeNotifier {
     _error = null;
     _users.clear();
     if (search != null) _search = search;
-    if (newRoles != null && newRoles.isNotEmpty) roles = newRoles;
+    if (newRoles != null && newRoles.isNotEmpty) {
+      roles = List<String>.from(newRoles);
+    }
     if (newIncludeDeleted != null) includeDeleted = newIncludeDeleted;
 
     await _fetch(page: 1, pageSize: pageSize ?? defaultPageSize, append: false);
@@ -83,16 +84,47 @@ class ApproversProvider extends ChangeNotifier {
   }
 
   void toggleSelect(String userId) {
-    if (selectedRecipientIds.contains(userId)) {
-      selectedRecipientIds.remove(userId);
+    final trimmed = userId.trim();
+    if (trimmed.isEmpty) return;
+
+    if (selectedRecipientIds.remove(trimmed)) {
+      _selectedUserCache.remove(trimmed);
     } else {
-      selectedRecipientIds.add(userId);
+      selectedRecipientIds.add(trimmed);
+      final user = _findUserById(trimmed);
+      if (user != null) {
+        _selectedUserCache[trimmed] = user;
+      }
+    }
+    notifyListeners();
+  }
+
+  void replaceSelection(Iterable<String> userIds, {Iterable<dto.User>? users}) {
+    selectedRecipientIds
+      ..clear()
+      ..addAll(userIds.map((id) => id.trim()).where((id) => id.isNotEmpty));
+
+    if (users != null) {
+      for (final user in users) {
+        _selectedUserCache[user.idUser] = user;
+      }
+    }
+
+    notifyListeners();
+  }
+
+  void hydrateSelectedUsers(Iterable<dto.User> users) {
+    for (final user in users) {
+      if (selectedRecipientIds.contains(user.idUser)) {
+        _selectedUserCache[user.idUser] = user;
+      }
     }
     notifyListeners();
   }
 
   void clearSelection() {
     selectedRecipientIds.clear();
+    _selectedUserCache.clear();
     notifyListeners();
   }
 
@@ -102,7 +134,6 @@ class ApproversProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  // ===== internal =====
   Future<void> _fetch({
     required int page,
     required int pageSize,
@@ -127,16 +158,27 @@ class ApproversProvider extends ChangeNotifier {
         Endpoints.getApprovers,
       ).replace(queryParameters: params);
 
-      // ApiService.fetchDataPrivate mengharapkan URL absolut (sudah OK)
-      final jsonMap = await _api.fetchDataPrivate(uri.toString());
+      final Map<String, dynamic> jsonMap = await _api.fetchDataPrivate(
+        uri.toString(),
+      );
 
-      // drop respons lama jika ada request lebih baru
       if (seq != _requestSeq) return;
 
-      final parsed = Approvers.fromJson(jsonMap);
-      if (!append) _users.clear();
-      _users.addAll(parsed.users);
+      final parsed = dto.Approvers.fromJson(jsonMap);
+      if (!append) {
+        _users
+          ..clear()
+          ..addAll(parsed.users);
+      } else {
+        _users.addAll(parsed.users);
+      }
       _pagination = parsed.pagination;
+
+      for (final user in parsed.users) {
+        if (selectedRecipientIds.contains(user.idUser)) {
+          _selectedUserCache[user.idUser] = user;
+        }
+      }
 
       _isLoading = false;
       notifyListeners();
@@ -146,5 +188,12 @@ class ApproversProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
     }
+  }
+
+  dto.User? _findUserById(String id) {
+    for (final user in _users) {
+      if (user.idUser == id) return user;
+    }
+    return _selectedUserCache[id];
   }
 }

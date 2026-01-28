@@ -1,79 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-  <key>CFBundleDevelopmentRegion</key>
-  <string>$(DEVELOPMENT_LANGUAGE)</string>
+  <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
 
-  <key>CFBundleDisplayName</key>
-  <string>E Hrm</string>
+    <key>CFBundleDisplayName</key>
+    <string>E Hrm</string>
 
-  <key>CFBundleExecutable</key>
-  <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
 
-  <key>CFBundleIdentifier</key>
-  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
 
-  <key>CFBundleName</key>
-  <string>E-HRM</string>
+    <key>CFBundleName</key>
+    <string>E-HRM</string>
 
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
 
-  <key>CFBundleShortVersionString</key>
-  <string>$(FLUTTER_BUILD_NAME)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(FLUTTER_BUILD_NAME)</string>
 
-  <key>CFBundleVersion</key>
-  <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>CFBundleVersion</key>
+    <string>$(FLUTTER_BUILD_NUMBER)</string>
 
-  <key>LSRequiresIPhoneOS</key>
-  <true/>
+    <key>LSRequiresIPhoneOS</key>
+    <true />
 
-  <key>UILaunchStoryboardName</key>
-  <string>LaunchScreen</string>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
 
-  <!-- (Opsional; Flutter biasanya tidak pakai Main.storyboard, boleh dibiarkan) -->
-  <key>UIMainStoryboardFile</key>
-  <string>Main</string>
+    <!-- (Opsional; Flutter biasanya tidak pakai Main.storyboard, boleh dibiarkan) -->
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
 
-  <!-- ⬇️ Array harus LANGSUNG mengikuti key ini -->
-  <key>UISupportedInterfaceOrientations</key>
-  <array>
-    <string>UIInterfaceOrientationPortrait</string>
-    <string>UIInterfaceOrientationLandscapeLeft</string>
-    <string>UIInterfaceOrientationLandscapeRight</string>
-  </array>
+    <!-- ⬇️ Array harus LANGSUNG mengikuti key ini -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
 
-  <key>UISupportedInterfaceOrientations~ipad</key>
-  <array>
-    <string>UIInterfaceOrientationPortrait</string>
-    <string>UIInterfaceOrientationPortraitUpsideDown</string>
-    <string>UIInterfaceOrientationLandscapeLeft</string>
-    <string>UIInterfaceOrientationLandscapeRight</string>
-  </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
 
-  <key>CADisableMinimumFrameDurationOnPhone</key>
-  <true/>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true />
 
-  <key>UIApplicationSupportsIndirectInputEvents</key>
-  <true/>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true />
 
-  <key>UIStatusBarHidden</key>
-  <false/>
+    <key>UIStatusBarHidden</key>
+    <false />
 
-  <!-- Permissions taruh DI LUAR pasangan key->array di atas -->
-  <key>NSCameraUsageDescription</key>
-  <string>Kamera digunakan untuk pengambilan foto wajah.</string>
+    <!-- Permissions taruh DI LUAR pasangan key->array di atas -->
+    <key>NSCameraUsageDescription</key>
+    <string>Kamera digunakan untuk pengambilan foto wajah.</string>
 
-  <key>NSLocationWhenInUseUsageDescription</key>
-  <string>App membutuhkan lokasi untuk verifikasi area absensi.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>App membutuhkan lokasi untuk verifikasi area absensi.</string>
 
-  <!-- Tambahkan izin lain jika perlu:
+    <!-- Tambahkan izin lain jika perlu:
   <key>NSPhotoLibraryUsageDescription</key>
   <string>Akses galeri untuk memilih foto absensi.</string>
   -->
-</dict>
+
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>https</string>
+      <string>http</string>
+    </array>
+  </dict>
 </plist>

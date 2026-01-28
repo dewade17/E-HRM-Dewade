@@ -21,10 +21,9 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<CalendarProvider>();
-      // Fetch awal
-      provider.fetchCalendarData(DateTime.now(), context: context);
+      await provider.fetchCalendarData(DateTime.now(), context: context);
     });
   }
 
@@ -45,7 +44,6 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
     }
   }
 
-  // Fungsi Refresh
   Future<void> _onRefresh() async {
     await context.read<CalendarProvider>().refreshCurrentMonth(context);
   }
@@ -58,7 +56,7 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          'Kalender Kegiatan',
+          'Jadwal Absensi',
           style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -66,6 +64,22 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          Consumer<CalendarProvider>(
+            builder: (context, provider, _) {
+              return IconButton(
+                icon: Icon(
+                  provider.isGlobalView ? Icons.group : Icons.person,
+                  color: AppColors.textDefaultColor,
+                ),
+                tooltip: 'Lihat shift: Sendiri/Semua',
+                onPressed: () async {
+                  await provider.toggleViewScope(context: context);
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<CalendarProvider>(
         builder: (context, provider, _) {
@@ -74,8 +88,6 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
               _buildTableCalendar(provider),
               const SizedBox(height: 10),
               const Divider(thickness: 1, height: 1, color: Color(0xFFEEEEEE)),
-
-              // Bungkus list event dengan RefreshIndicator
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _onRefresh,
@@ -140,7 +152,6 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
             markerBuilder: (context, day, events) {
               if (events.isEmpty) return null;
               final itemsToShow = events.take(4).toList();
-
               return Positioned(
                 bottom: 1,
                 child: Row(
@@ -163,20 +174,15 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
           onDaySelected: (selectedDay, focusedDay) {
             provider.onDaySelected(selectedDay, focusedDay);
           },
-          onPageChanged: (focusedDay) {
-            provider.onPageChanged(focusedDay);
-            // Fetch data saat bulan berubah
-            provider.fetchCalendarData(focusedDay, context: context);
+          onPageChanged: (focusedDay) async {
+            await provider.onPageChanged(focusedDay, context: context);
           },
         ),
       ),
     );
   }
 
-  // Mengubah widget ini agar selalu mengembalikan ListView (agar bisa ditarik refresh)
   Widget _buildEventList(CalendarProvider provider) {
-    // Selalu gunakan ListView dengan physics always scrollable
-    // agar gesture pull-to-refresh bekerja meskipun list kosong/error/loading
     const scrollPhysics = AlwaysScrollableScrollPhysics();
 
     if (provider.loading) {
@@ -247,10 +253,10 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
   }
 
   Widget _buildEventCard(CalendarItem item) {
-    Color typeColor = _getEventColor(item.type);
+    final typeColor = _getEventColor(item.type);
     IconData typeIcon = Icons.event;
 
-    final String typeKey = item.type.toLowerCase();
+    final typeKey = item.type.toLowerCase();
     switch (typeKey) {
       case 'cuti':
         typeIcon = Icons.beach_access;
@@ -357,7 +363,6 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
                               color: Colors.grey.shade700,
                               height: 1.5,
                             ),
-                            maxLines: null,
                           ),
                         ),
                       if (typeKey != 'shift_kerja')
@@ -397,7 +402,9 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
         end.minute == 0) {
       return "Sepanjang Hari";
     }
-    if (start.day != end.day) {
+    final startDateOnly = DateTime(start.year, start.month, start.day);
+    final endDateOnly = DateTime(end.year, end.month, end.day);
+    if (startDateOnly != endDateOnly) {
       final fmt = DateFormat('dd MMM HH:mm', 'id_ID');
       return "${fmt.format(start)} - ${fmt.format(end)}";
     }

@@ -3,7 +3,8 @@
 import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/kunjungan/kategori_kunjungan.dart'; // <-- Import DTO Kategori
 import 'package:e_hrm/dto/kunjungan/kunjungan_klien.dart';
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_provider_all.dart';
+
 import 'package:e_hrm/providers/kunjungan/kategori_kunjungan_provider.dart';
 import 'package:e_hrm/providers/kunjungan/kunjungan_klien_provider.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/mark_me_map.dart';
@@ -97,7 +98,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
         }
       });
 
-      final approverProvider = context.read<ApproversProvider>();
+      final approverProvider = context.read<ApproversProviderAll>();
       approverProvider.clearSelection(); // Pastikan clear dulu
       // Ambil data approver terbaru SEBELUM set pilihan lama
       approverProvider.refresh().then((_) {
@@ -175,7 +176,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
     final kunjunganProvider = context.read<KunjunganKlienProvider>();
     if (kunjunganProvider.isSaving) return;
 
-    final approverProvider = context.read<ApproversProvider>();
+    final approverProvider = context.read<ApproversProviderAll>();
     // Validasi Approver sudah ditangani oleh FormField
 
     FocusScope.of(context).unfocus();
@@ -266,7 +267,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
   @override
   Widget build(BuildContext context) {
     // Pindahkan watch provider ke atas
-    context.watch<ApproversProvider>();
+    context.watch<ApproversProviderAll>();
     // Watch KategoriKunjunganProvider agar field bisa rebuild jika datanya berubah
     context.watch<KategoriKunjunganProvider>();
     final kunjunganProvider = context.watch<KunjunganKlienProvider>();
@@ -415,7 +416,7 @@ class _FormEndKunjunganState extends State<FormEndKunjungan> {
                 validator: (value) {
                   // Gunakan read karena hanya perlu nilai saat validasi
                   final currentSelectedIds = context
-                      .read<ApproversProvider>()
+                      .read<ApproversProviderAll>()
                       .selectedRecipientIds;
                   if (currentSelectedIds.isEmpty) {
                     return 'Anda harus memilih minimal satu penerima laporan.';

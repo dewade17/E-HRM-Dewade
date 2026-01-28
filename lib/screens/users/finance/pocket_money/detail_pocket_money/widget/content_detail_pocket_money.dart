@@ -389,14 +389,18 @@ class _ContentDetailPocketMoneyState extends State<ContentDetailPocketMoney> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: Text(
-                    _safeText(data.nomorRekening),
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                // Gunakan Expanded agar teks panjang tidak overflow
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Text(
+                      _safeText(data.nomorRekening),
+                      textAlign: TextAlign.end, // Rata kanan
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ),
@@ -404,6 +408,8 @@ class _ContentDetailPocketMoneyState extends State<ContentDetailPocketMoney> {
             ),
 
             const SizedBox(height: 10),
+
+            // 2. PERBAIKAN UTAMA: Nama Pemilik Rekening
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -418,14 +424,19 @@ class _ContentDetailPocketMoneyState extends State<ContentDetailPocketMoney> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: Text(
-                    _safeText(data.namaPemilikRekening),
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                // Membungkus Text dengan Expanded untuk mencegah overflow
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Text(
+                      _safeText(data.namaPemilikRekening),
+                      textAlign:
+                          TextAlign.end, // Memastikan teks tetap di sisi kanan
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ),

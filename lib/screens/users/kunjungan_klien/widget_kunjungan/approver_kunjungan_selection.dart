@@ -1,4 +1,4 @@
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_provider_all.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -21,7 +21,7 @@ class _ApproverKunjunganSelectionState
     _searchController = TextEditingController();
     _searchController.addListener(_handleSearch);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ApproversProvider>();
+      final provider = context.read<ApproversProviderAll>();
       if (!provider.isLoading && provider.users.isEmpty) {
         provider.refresh();
       }
@@ -29,7 +29,7 @@ class _ApproverKunjunganSelectionState
   }
 
   void _handleSearch() {
-    context.read<ApproversProvider>().setSearch(_searchController.text);
+    context.read<ApproversProviderAll>().setSearch(_searchController.text);
   }
 
   @override
@@ -79,7 +79,7 @@ class _ApproverKunjunganSelectionState
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: Consumer<ApproversProvider>(
+                child: Consumer<ApproversProviderAll>(
                   builder: (context, provider, _) {
                     final users = provider.users;
                     final loading = provider.isLoading;

@@ -6,7 +6,8 @@ import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/departements/departements.dart';
 import 'package:e_hrm/dto/kategori_keperluan/kategori_keperluan.dart'
     as dto_kategori;
-import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_finance_provider.dart';
+
 import 'package:e_hrm/providers/pocket_money/pocket_money_provider.dart';
 import 'package:e_hrm/screens/users/finance/widget/recipient_finance.dart';
 import 'package:e_hrm/shared_widget/confirmation_dialog.dart';
@@ -149,7 +150,7 @@ class _ContentPocketMoneyState extends State<ContentPocketMoney> {
       return;
     }
 
-    final approvers = context.read<ApproversPengajuanProvider>();
+    final approvers = context.read<ApproversFinanceProvider>();
     if (approvers.selectedRecipientIds.isEmpty) {
       _showSnackBar(
         'Pilih minimal satu penerima laporan (supervisi).',
@@ -223,8 +224,9 @@ class _ContentPocketMoneyState extends State<ContentPocketMoney> {
 
     final List<Map<String, dynamic>> itemsPayload = _buildItemsPayload();
 
-    final approversProvider = context.read<ApproversPengajuanProvider>();
+    final approversProvider = context.read<ApproversFinanceProvider>();
     final pocketMoneyProvider = context.read<PocketMoneyProvider>();
+    final approvals = _buildApprovalsFromProvider(approversProvider);
 
     final result = await pocketMoneyProvider.createPocketMoney(
       idDepartement: deptId,
@@ -242,7 +244,7 @@ class _ContentPocketMoneyState extends State<ContentPocketMoney> {
       buktiPembayaranFile: buktiFile,
       items: itemsPayload,
       totalPengeluaran: totalController.text,
-      approversProvider: approversProvider,
+      approvals: approvals,
     );
 
     if (!mounted) return;
@@ -279,6 +281,25 @@ class _ContentPocketMoneyState extends State<ContentPocketMoney> {
       });
     }
     return out;
+  }
+
+  List<Map<String, dynamic>> _buildApprovalsFromProvider(
+    ApproversFinanceProvider provider,
+  ) {
+    final selected = provider.selectedUsers
+        .where((user) => user.idUser.trim().isNotEmpty)
+        .toList(growable: false);
+    if (selected.isEmpty) return <Map<String, dynamic>>[];
+
+    return List<Map<String, dynamic>>.generate(selected.length, (index) {
+      final user = selected[index];
+      final role = user.role.trim().toUpperCase();
+      return <String, dynamic>{
+        'approver_user_id': user.idUser,
+        'approver_role': role,
+        'level': index + 1,
+      };
+    });
   }
 
   DateTime? _tryParseTanggal(String input) {

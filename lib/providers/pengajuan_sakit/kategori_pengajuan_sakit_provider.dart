@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:e_hrm/contraints/endpoints.dart';
-import 'package:e_hrm/dto/pengajuan_sakit/kategori_pengajuan_sakit.dart'
-    as dto;
+import 'package:e_hrm/dto/pengajuan_sakit/kategori_pengajuan_sakit.dart' as dto;
 import 'package:e_hrm/services/api_services.dart';
 
 class KategoriPengajuanSakitProvider extends ChangeNotifier {
@@ -91,11 +90,15 @@ class KategoriPengajuanSakitProvider extends ChangeNotifier {
           .map(dto.Data.fromJson)
           .toList();
 
+      mapped.sort(
+        (a, b) => a.namaKategori.toLowerCase().compareTo(
+          b.namaKategori.toLowerCase(),
+        ),
+      );
+
       final dynamic paginationMap = response['pagination'];
       final dto.Pagination? pagination = paginationMap is Map
-          ? dto.Pagination.fromJson(
-              Map<String, dynamic>.from(paginationMap),
-            )
+          ? dto.Pagination.fromJson(Map<String, dynamic>.from(paginationMap))
           : null;
 
       this.page = pagination?.page ?? currentPage;

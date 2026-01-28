@@ -1,5 +1,5 @@
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_finance_provider.dart';
 import 'package:e_hrm/screens/users/finance/widget/approver_finance_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,7 +17,7 @@ class _RecipientFinanceState extends State<RecipientFinance> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ApproversPengajuanProvider>();
+      final provider = context.read<ApproversFinanceProvider>();
       if (!provider.isLoading && provider.users.isEmpty) {
         provider.refresh();
       }
@@ -34,7 +34,7 @@ class _RecipientFinanceState extends State<RecipientFinance> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ApproversPengajuanProvider>(
+    return Consumer<ApproversFinanceProvider>(
       builder: (context, provider, _) {
         final selected = provider.selectedUsers;
 

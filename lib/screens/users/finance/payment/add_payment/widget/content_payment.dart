@@ -6,7 +6,8 @@ import 'package:e_hrm/contraints/colors.dart';
 import 'package:e_hrm/dto/departements/departements.dart';
 import 'package:e_hrm/dto/kategori_keperluan/kategori_keperluan.dart'
     as dto_kategori;
-import 'package:e_hrm/providers/approvers/approvers_pengajuan_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_finance_provider.dart';
+
 import 'package:e_hrm/providers/payment/payment_provider.dart';
 import 'package:e_hrm/screens/users/finance/widget/recipient_finance.dart';
 import 'package:e_hrm/shared_widget/confirmation_dialog.dart';
@@ -92,7 +93,7 @@ class _ContentPaymentState extends State<ContentPayment> {
       return;
     }
 
-    final approvers = context.read<ApproversPengajuanProvider>();
+    final approvers = context.read<ApproversFinanceProvider>();
     if (approvers.selectedRecipientIds.isEmpty) {
       _showSnackBar(
         'Pilih minimal satu penerima laporan (supervisi).',
@@ -152,7 +153,7 @@ class _ContentPaymentState extends State<ContentPayment> {
       return;
     }
 
-    final approversProvider = context.read<ApproversPengajuanProvider>();
+    final approversProvider = context.read<ApproversFinanceProvider>();
     final paymentProvider = context.read<PaymentProvider>();
     final approvals = _buildApprovalsFromProvider(approversProvider);
 
@@ -241,7 +242,7 @@ class _ContentPaymentState extends State<ContentPayment> {
   }
 
   List<Map<String, dynamic>> _buildApprovalsFromProvider(
-    ApproversPengajuanProvider provider,
+    ApproversFinanceProvider provider,
   ) {
     final selected = provider.selectedUsers
         .where((user) => user.idUser.trim().isNotEmpty)

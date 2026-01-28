@@ -78,6 +78,11 @@ class DepartementProvider extends ChangeNotifier {
             (e) => Departements.fromJson(Map<String, dynamic>.from(e as Map)),
           )
           .toList();
+      mapped.sort(
+        (a, b) => a.namaDepartement.toLowerCase().compareTo(
+          b.namaDepartement.toLowerCase(),
+        ),
+      );
 
       // --- Pagination -> DTO ---
       final pgMap = (res['pagination'] is Map)

@@ -1,5 +1,5 @@
 import 'package:e_hrm/contraints/colors.dart';
-import 'package:e_hrm/providers/approvers/approvers_absensi_provider.dart';
+import 'package:e_hrm/providers/approvers/approvers_provider_all.dart';
 import 'package:e_hrm/screens/users/kunjungan_klien/widget_kunjungan/approver_kunjungan_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,7 +17,7 @@ class _RecipientKunjunganState extends State<RecipientKunjungan> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ApproversProvider>();
+      final provider = context.read<ApproversProviderAll>();
       if (!provider.isLoading && provider.users.isEmpty) {
         provider.refresh();
       }
@@ -34,7 +34,7 @@ class _RecipientKunjunganState extends State<RecipientKunjungan> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ApproversProvider>(
+    return Consumer<ApproversProviderAll>(
       builder: (context, provider, _) {
         final selected = provider.selectedUsers;
 

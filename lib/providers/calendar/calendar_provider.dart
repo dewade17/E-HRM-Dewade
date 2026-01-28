@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:e_hrm/providers/auth/auth_provider.dart';
 
+enum CalendarViewScope { personal, global }
+
 class CalendarProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
 
@@ -15,14 +17,11 @@ class CalendarProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  // Cache raw items
   final List<CalendarItem> _allItems = [];
 
-  // Map Event: Key = Tanggal (tanpa jam), Value = List Event
   final Map<DateTime, List<CalendarItem>> _events = {};
   Map<DateTime, List<CalendarItem>> get events => _events;
 
-  // Cache untuk melacak bulan apa saja yang sudah di-fetch (format: "2023-10")
   final Set<String> _fetchedMonths = {};
 
   DateTime _focusedDay = DateTime.now();
@@ -30,6 +29,11 @@ class CalendarProvider extends ChangeNotifier {
 
   DateTime get focusedDay => _focusedDay;
   DateTime? get selectedDay => _selectedDay;
+
+  CalendarViewScope _viewScope = CalendarViewScope.personal;
+  CalendarViewScope get viewScope => _viewScope;
+
+  bool get isGlobalView => _viewScope == CalendarViewScope.global;
 
   void onDaySelected(DateTime selected, DateTime focused) {
     if (!isSameDay(_selectedDay, selected)) {
@@ -39,10 +43,9 @@ class CalendarProvider extends ChangeNotifier {
     }
   }
 
-  void onPageChanged(DateTime focused) {
+  Future<void> onPageChanged(DateTime focused, {BuildContext? context}) async {
     _focusedDay = focused;
-    // Ambil data bulan baru (jika belum ada di cache)
-    fetchCalendarData(focused);
+    await fetchCalendarData(focused, context: context);
   }
 
   List<CalendarItem> getEventsForDay(DateTime day) {
@@ -50,13 +53,19 @@ class CalendarProvider extends ChangeNotifier {
     return _events[normalized] ?? [];
   }
 
-  /// Refresh manual (dipanggil dari UI Pull-to-Refresh)
-  Future<void> refreshCurrentMonth(BuildContext context) async {
-    // Hapus cache bulan yang sedang dilihat agar bisa di-fetch ulang
-    final monthKey = "${_focusedDay.year}-${_focusedDay.month}";
-    _fetchedMonths.remove(monthKey);
+  Future<void> toggleViewScope({required BuildContext context}) async {
+    _viewScope = _viewScope == CalendarViewScope.global
+        ? CalendarViewScope.personal
+        : CalendarViewScope.global;
+    _clearAllCache();
+    await fetchCalendarData(_focusedDay, context: context, forceRefresh: true);
+    notifyListeners();
+  }
 
-    // Panggil fetch dengan forceRefresh: true
+  Future<void> refreshCurrentMonth(BuildContext context) async {
+    final key = _monthKey(_focusedDay);
+    _fetchedMonths.remove(key);
+    _removeMonthFromCache(_focusedDay);
     await fetchCalendarData(_focusedDay, context: context, forceRefresh: true);
   }
 
@@ -66,19 +75,24 @@ class CalendarProvider extends ChangeNotifier {
     bool forceRefresh = false,
   }) async {
     String? userId;
-    if (context != null) {
-      final auth = context.read<AuthProvider>();
-      userId = await resolveUserId(auth, context: context);
-    } else {
-      userId = await loadUserIdFromPrefs();
+
+    if (!isGlobalView) {
+      if (context != null) {
+        final auth = context.read<AuthProvider>();
+        userId = await resolveUserId(auth, context: context);
+      } else {
+        userId = await loadUserIdFromPrefs();
+      }
+      if (userId == null) return;
     }
 
-    if (userId == null) return;
-
-    // Cek cache: Jika bulan ini sudah diambil & bukan paksaan refresh, skip.
-    final monthKey = "${targetMonth.year}-${targetMonth.month}";
+    final monthKey = _monthKey(targetMonth);
     if (!forceRefresh && _fetchedMonths.contains(monthKey)) {
       return;
+    }
+
+    if (forceRefresh) {
+      _removeMonthFromCache(targetMonth);
     }
 
     _loading = true;
@@ -96,48 +110,38 @@ class CalendarProvider extends ChangeNotifier {
         59,
       );
 
-      // List sementara untuk menampung semua data dari semua halaman
-      List<CalendarItem> allFetchedItems = [];
+      final List<CalendarItem> allFetchedItems = [];
       int currentPage = 1;
       int totalPages = 1;
 
-      // --- LOGIKA LOOPING (RECURSIVE FETCHING) ---
-      // Terus minta data selama masih ada halaman selanjutnya
       do {
-        final params = {
-          'user_id': userId,
+        final params = <String, String>{
           'from': startDate.toIso8601String(),
           'to': endDate.toIso8601String(),
           'page': currentPage.toString(),
-          'perPage': '100', // Kita minta 100 per request agar ringan
+          'perPage': '100',
         };
+
+        if (!isGlobalView) {
+          params['user_id'] = userId!;
+        }
 
         final uri = Uri.parse(
           Endpoints.mobileCalendar,
         ).replace(queryParameters: params);
 
-        // Panggil API
         final response = await _api.fetchDataPrivate(uri.toString());
         final calendarResponse = CalendarResponse.fromJson(response);
 
-        // Tambahkan data halaman ini ke list penampung
         allFetchedItems.addAll(calendarResponse.data);
 
-        // Update info halaman dari meta response
         totalPages = calendarResponse.meta.totalPages;
         currentPage++;
       } while (currentPage <= totalPages);
-      // ^ Ulangi jika 'currentPage' (yang baru diincrement) masih <= 'totalPages'
 
-      // --- Selesai Looping, baru proses datanya ke memori ---
-
-      // Tambahkan ke list utama
       _allItems.addAll(allFetchedItems);
-
-      // Grouping ulang (HANYA menambah, tidak mereset total)
       _groupEventsByDate(allFetchedItems);
 
-      // Tandai bulan ini sudah selesai di-fetch
       _fetchedMonths.add(monthKey);
     } catch (e) {
       _error = e.toString();
@@ -148,30 +152,47 @@ class CalendarProvider extends ChangeNotifier {
   }
 
   void _groupEventsByDate(List<CalendarItem> newItems) {
-    // PENTING: Jangan lakukan _events = {}; di sini agar data bulan lain tidak hilang.
-
-    for (var item in newItems) {
+    for (final item in newItems) {
       DateTime current = _normalizeDate(item.start);
       final DateTime end = _normalizeDate(item.end);
 
-      // Loop setiap hari dari start sampai end event
-      // (Penting untuk cuti/sakit berhari-hari agar titik muncul di setiap tanggal)
       while (current.isBefore(end) || isSameDay(current, end)) {
-        if (_events[current] == null) {
-          _events[current] = [];
-        }
+        final list = _events.putIfAbsent(current, () => <CalendarItem>[]);
 
-        // Cek duplikasi ID agar aman saat refresh
-        final exists = _events[current]!.any(
-          (e) => e.id == item.id && e.type == item.type,
-        );
+        final exists = list.any((e) => e.id == item.id && e.type == item.type);
         if (!exists) {
-          _events[current]!.add(item);
+          list.add(item);
         }
 
         current = current.add(const Duration(days: 1));
       }
     }
+  }
+
+  void _removeMonthFromCache(DateTime month) {
+    final start = DateTime(month.year, month.month, 1);
+    final end = DateTime(month.year, month.month + 1, 0);
+
+    final keysToRemove = <DateTime>[];
+    for (final key in _events.keys) {
+      if (!key.isBefore(start) && !key.isAfter(end)) {
+        keysToRemove.add(key);
+      }
+    }
+    for (final k in keysToRemove) {
+      _events.remove(k);
+    }
+
+    _allItems.removeWhere((item) {
+      final s = _normalizeDate(item.start);
+      return (!s.isBefore(start) && !s.isAfter(end));
+    });
+  }
+
+  void _clearAllCache() {
+    _events.clear();
+    _allItems.clear();
+    _fetchedMonths.clear();
   }
 
   DateTime _normalizeDate(DateTime date) {
@@ -181,5 +202,11 @@ class CalendarProvider extends ChangeNotifier {
   bool isSameDay(DateTime? a, DateTime? b) {
     if (a == null || b == null) return false;
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  String _monthKey(DateTime d) {
+    final scope = isGlobalView ? 'global' : 'personal';
+    final mm = d.month.toString().padLeft(2, '0');
+    return '$scope-${d.year}-$mm';
   }
 }

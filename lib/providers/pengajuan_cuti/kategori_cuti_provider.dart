@@ -78,11 +78,15 @@ class KategoriCutiProvider extends ChangeNotifier {
           .map(Data.fromJson)
           .toList();
 
+      mapped.sort(
+        (a, b) => a.namaKategori.toLowerCase().compareTo(
+          b.namaKategori.toLowerCase(),
+        ),
+      );
+
       final dynamic paginationMap = response['pagination'];
       final Pagination? pagination = paginationMap is Map
-          ? Pagination.fromJson(
-              Map<String, dynamic>.from(paginationMap),
-            )
+          ? Pagination.fromJson(Map<String, dynamic>.from(paginationMap))
           : null;
 
       this.page = pagination?.page ?? currentPage;
